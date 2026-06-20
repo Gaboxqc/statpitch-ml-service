@@ -98,28 +98,40 @@ def _markets(lh, la, max_g=9):
 
 
 def predict(home, away, is_neutral=True):
-    feat  = _build_features(home, away, is_neutral)
-    lh    = float(_home.predict(feat)[0])
-    la    = float(_away.predict(feat)[0])
-    xgb_p = _xgb.predict_proba(feat)[0]   # [away_prob, draw_prob, home_prob]
-    out   = _markets(lh, la)
-    mr    = out['match_result']
+    feat = _build_features(home, away, is_neutral)
+    lh = float(_home.predict(feat)[0])
+    la = float(_away.predict(feat)[0])
+    xgb_p = _xgb.predict_proba(feat)[0]  # [away_prob, draw_prob, home_prob]
+    out = _markets(lh, la)
+    mr = out['match_result']
+
     # Blend XGBoost (60%) + Poisson (40%) for 1X2
     out['match_result'] = {
         'home_win': round(float(0.6 * xgb_p[2] + 0.4 * mr['home_win']), 4),
-        'draw':     round(float(0.6 * xgb_p[1] + 0.4 * mr['draw']),     4),
+        'draw': round(float(0.6 * xgb_p[1] + 0.4 * mr['draw']), 4),
         'away_win': round(float(0.6 * xgb_p[0] + 0.4 * mr['away_win']), 4),
     }
+
     h = TEAM_STATS.get(home, _AVG)
     a = TEAM_STATS.get(away, _AVG)
+
+    
+    he_val = h.get('elo', ELO_DEFAULT)
+    ae_val = a.get('elo', ELO_DEFAULT)
+
+
+    if np.isnan(he_val): he_val = ELO_DEFAULT
+    if np.isnan(ae_val): ae_val = ELO_DEFAULT
+    # -----------------------
+
     return {
         'home_team': home,
         'away_team': away,
         'expected_goals': {'home': round(lh, 3), 'away': round(la, 3)},
         'team_info': {
-            'home_elo': round(h.get('elo', ELO_DEFAULT), 1),
-            'away_elo': round(a.get('elo', ELO_DEFAULT), 1),
-            'elo_diff': round(h.get('elo', ELO_DEFAULT) - a.get('elo', ELO_DEFAULT), 1),
+            'home_elo': round(he_val, 1),
+            'away_elo': round(ae_val, 1),
+            'elo_diff': round(he_val - ae_val, 1),
         },
         **out,
     }

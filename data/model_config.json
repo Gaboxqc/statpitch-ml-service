@@ -1,0 +1,75 @@
+{
+  "feature_cols": [
+    "home_elo",
+    "away_elo",
+    "elo_diff",
+    "elo_prob_home",
+    "home_gs_avg5",
+    "home_gc_avg5",
+    "home_pts_avg5",
+    "home_win_rate5",
+    "home_gs_avg10",
+    "home_gc_avg10",
+    "home_pts_avg10",
+    "home_win_rate10",
+    "away_gs_avg5",
+    "away_gc_avg5",
+    "away_pts_avg5",
+    "away_win_rate5",
+    "away_gs_avg10",
+    "away_gc_avg10",
+    "away_pts_avg10",
+    "away_win_rate10",
+    "h2h_home_win_rate",
+    "h2h_avg_goals",
+    "h2h_num_games",
+    "is_neutral",
+    "tournament_weight"
+  ],
+  "target_cols": [
+    "result",
+    "result_label",
+    "home_score",
+    "away_score",
+    "total_goals",
+    "over_2_5",
+    "btts"
+  ],
+  "result_label_map": {
+    "away_win": 0,
+    "draw": 1,
+    "home_win": 2
+  },
+  "k_factors": {
+    "FIFA World Cup": 60,
+    "Confederations Cup": 50,
+    "UEFA Euro": 50,
+    "Copa America": 50,
+    "Africa Cup of Nations": 40,
+    "AFC Asian Cup": 40,
+    "CONCACAF Championship": 40,
+    "UEFA Euro qualification": 40,
+    "FIFA World Cup qualification": 40,
+    "UEFA Nations League": 40,
+    "Friendly": 20
+  },
+  "tournament_weights": {
+    "FIFA World Cup": 1.0,
+    "Confederations Cup": 0.85,
+    "UEFA Euro": 0.85,
+    "Copa America": 0.85,
+    "Africa Cup of Nations": 0.7,
+    "AFC Asian Cup": 0.7,
+    "CONCACAF Championship": 0.7,
+    "UEFA Euro qualification": 0.6,
+    "FIFA World Cup qualification": 0.6,
+    "UEFA Nations League": 0.55,
+    "Friendly": 0.3
+  },
+  "elo_start": 1500,
+  "test_accuracy": {
+    "1x2": 0.5156,
+    "over25": 0.5781,
+    "btts": 0.5469
+  }
+}

@@ -61,7 +61,7 @@ def _build_features(home, away, is_neutral, match_date=None):
     ae = a.get('elo', ELO_DEFAULT)
 
     h2h_key = f'{home}|{away}'
-    h2h     = H2H_STATS.get(h2h_key, {'win_rate': 0.40, 'avg_goals': 2.50, 'num_games': 0})
+    h2h     = H2H_STATS.get(h2h_key, {'win_rate': 0.0, 'avg_goals': 0.0, 'num_games': 0})
 
     h_rest = _rest_days(home, match_date)
     a_rest = _rest_days(away, match_date)
@@ -158,7 +158,7 @@ def predict(home, away, is_neutral=True, match_date=None):
     lh     = float(_home.predict(feat)[0])
     la     = float(_away.predict(feat)[0])
 
-    xgb_p  = _xgb.predict_proba(feat)[0]              # calibrated XGBoost
+    xgb_p = [float(p) for p in _xgb.predict_proba(feat)[0]]             # calibrated XGBoost
     poi_mat = _dc_matrix(lh, la)
     poi_p   = np.array([
         float(np.sum(np.triu(poi_mat, 1))),

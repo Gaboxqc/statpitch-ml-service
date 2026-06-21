@@ -24,7 +24,11 @@
     "h2h_avg_goals",
     "h2h_num_games",
     "is_neutral",
-    "tournament_weight"
+    "tournament_weight",
+    "home_rest_days",
+    "away_rest_days",
+    "home_goal_momentum",
+    "away_goal_momentum"
   ],
   "target_cols": [
     "result",
@@ -71,5 +75,7 @@
     "1x2": 0.5156,
     "over25": 0.5781,
     "btts": 0.5469
-  }
+  },
+  "dc_rho": -0.0,
+  "model_version": "v2"
 }

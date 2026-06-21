@@ -61,7 +61,7 @@ def _build_features(home, away, is_neutral, match_date=None):
     ae = a.get('elo', ELO_DEFAULT)
 
     h2h_key = f'{home}|{away}'
-    h2h     = H2H_STATS.get(h2h_key, {'win_rate': 0.0, 'avg_goals': 0.0, 'num_games': 0})
+    h2h     = H2H_STATS.get(h2h_key, {'win_rate': 0.40, 'avg_goals': 2.50, 'num_games': 0})
 
     h_rest = _rest_days(home, match_date)
     a_rest = _rest_days(away, match_date)
@@ -97,15 +97,7 @@ def _build_features(home, away, is_neutral, match_date=None):
         'home_goal_momentum': h.get('goal_momentum', _AVG['goal_momentum']),
         'away_goal_momentum': a.get('goal_momentum', _AVG['goal_momentum']),
     }
-
-    clean_row = []
-    for c in FEATURE_COLS:
-        val = row[c]
-        if np.isnan(val):
-
-            val = ELO_DEFAULT if 'elo' in c else 0.0
-        clean_row.append(val)
-    return np.array([clean_row])
+    return np.array([[row[c] for c in FEATURE_COLS]])
 
 
 def _tau(x, y, lh, la, rho):
@@ -158,7 +150,7 @@ def predict(home, away, is_neutral=True, match_date=None):
     lh     = float(_home.predict(feat)[0])
     la     = float(_away.predict(feat)[0])
 
-    xgb_p = [float(p) for p in _xgb.predict_proba(feat)[0]]             # calibrated XGBoost
+    xgb_p  = _xgb.predict_proba(feat)[0]              # calibrated XGBoost
     poi_mat = _dc_matrix(lh, la)
     poi_p   = np.array([
         float(np.sum(np.triu(poi_mat, 1))),
@@ -179,12 +171,6 @@ def predict(home, away, is_neutral=True, match_date=None):
 
     h = TEAM_STATS.get(home, _AVG)
     a = TEAM_STATS.get(away, _AVG)
-
-    he_val = h.get('elo', ELO_DEFAULT)
-    ae_val = a.get('elo', ELO_DEFAULT)
-    if np.isnan(he_val): he_val = ELO_DEFAULT
-    if np.isnan(ae_val): ae_val = ELO_DEFAULT
-
     h2h_key = f'{home}|{away}'
     h2h = H2H_STATS.get(h2h_key, {'win_rate': 0.40, 'avg_goals': 2.50, 'num_games': 0})
 
@@ -193,10 +179,10 @@ def predict(home, away, is_neutral=True, match_date=None):
         'away_team': away,
         'expected_goals': {'home': round(lh, 3), 'away': round(la, 3)},
         'team_info': {
-            'home_elo': round(he_val, 1),
-            'away_elo': round(ae_val, 1),
-            'elo_diff': round(he_val - ae_val, 1),
-            'h2h_games': h2h['num_games'],
+            'home_elo':      round(h.get('elo', ELO_DEFAULT), 1),
+            'away_elo':      round(a.get('elo', ELO_DEFAULT), 1),
+            'elo_diff':      round(h.get('elo', ELO_DEFAULT) - a.get('elo', ELO_DEFAULT), 1),
+            'h2h_games':     h2h['num_games'],
             'h2h_home_wins': round(h2h['win_rate'] * 100, 1),
         },
         'model_version': 'v2',

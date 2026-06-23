@@ -1,0 +1,319 @@
+date,home_team,away_team,home_goals,away_goals,home_xg,away_xg,league,season,comp_id
+1990-06-24,Brazil,Argentina,0,1,0.0,0.0,FIFA World Cup 1990,55,43.0
+1986-06-25,Argentina,Belgium,2,0,0.0,0.0,FIFA World Cup 1986,54,43.0
+1986-06-29,Argentina,Germany,3,2,0.0,0.0,FIFA World Cup 1986,54,43.0
+1986-06-22,Argentina,England,2,1,0.0,0.0,FIFA World Cup 1986,54,43.0
+2024-06-18,Portugal,Czech Republic,2,1,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-15,Hungary,Switzerland,1,3,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-16,Serbia,England,0,1,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-25,England,Slovenia,0,0,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-24,Croatia,Italy,1,1,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-15,Spain,Croatia,3,0,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-20,Slovenia,Serbia,1,1,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-25,France,Poland,1,1,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-21,Poland,Austria,1,3,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-22,Georgia,Czech Republic,1,1,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-18,Turkey,Georgia,3,1,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-17,Romania,Ukraine,3,0,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-21,Slovakia,Ukraine,1,2,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-16,Poland,Netherlands,1,2,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-26,Georgia,Portugal,2,0,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-07-01,France,Belgium,1,0,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-07-06,England,Switzerland,1,1,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-22,Turkey,Portugal,0,3,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-16,Slovenia,Denmark,1,1,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-23,Switzerland,Germany,1,1,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-19,Scotland,Switzerland,1,1,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-07-10,Netherlands,England,1,2,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-07-14,Spain,England,2,1,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-07-09,Spain,France,2,1,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-07-06,Netherlands,Turkey,2,1,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-07-05,Portugal,France,0,0,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-25,Netherlands,Austria,2,3,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-20,Denmark,England,1,1,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-07-05,Spain,Germany,2,1,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-26,Ukraine,Belgium,0,0,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-26,Czech Republic,Turkey,1,2,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-07-02,Austria,Turkey,1,2,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-07-02,Romania,Netherlands,0,3,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-07-01,Portugal,Slovenia,0,0,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-30,Spain,Georgia,4,1,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-30,England,Slovakia,2,1,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-25,Denmark,Serbia,0,0,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-24,Albania,Spain,0,1,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-29,Germany,Denmark,2,0,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-29,Switzerland,Italy,2,0,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-23,Scotland,Hungary,0,1,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-21,Netherlands,France,0,0,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-20,Spain,Italy,1,0,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-19,Croatia,Albania,2,2,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-19,Germany,Hungary,2,0,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-17,Austria,France,0,1,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-17,Belgium,Slovakia,0,1,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-15,Italy,Albania,2,1,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-26,Slovakia,Romania,1,1,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-22,Belgium,Romania,2,0,0.0,0.0,UEFA Euro 2024,282,55.0
+2024-06-14,Germany,Scotland,5,1,0.0,0.0,UEFA Euro 2024,282,55.0
+2021-06-17,Ukraine,North Macedonia,2,1,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-23,Portugal,France,2,2,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-20,Switzerland,Turkey,3,1,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-18,Sweden,Slovakia,1,0,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-18,Croatia,Czech Republic,1,1,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-07-02,Switzerland,Spain,1,1,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-27,Belgium,Portugal,1,0,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-27,Netherlands,Czech Republic,0,2,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-26,Italy,Austria,2,1,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-29,Sweden,Ukraine,1,2,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-26,Wales,Denmark,0,4,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-07-02,Belgium,Italy,1,2,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-07-03,Ukraine,England,0,4,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-07-06,Italy,Spain,1,1,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-28,Croatia,Spain,3,5,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-19,Hungary,France,1,1,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-07-11,Italy,England,1,1,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-21,Russia,Denmark,1,4,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-20,Italy,Wales,1,0,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-19,Portugal,Germany,2,4,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-16,Turkey,Wales,0,2,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-16,Italy,Switzerland,3,0,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-19,Spain,Poland,1,1,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-13,Austria,North Macedonia,3,1,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-11,Turkey,Italy,0,3,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-07-03,Czech Republic,Denmark,1,2,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-21,North Macedonia,Netherlands,0,3,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-29,England,Germany,2,0,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-23,Germany,Hungary,2,2,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-22,Croatia,Scotland,3,1,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-22,Czech Republic,England,0,1,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-21,Finland,Belgium,0,2,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-21,Ukraine,Austria,0,1,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-16,Finland,Russia,0,1,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-18,England,Scotland,0,0,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-17,Denmark,Belgium,1,2,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-13,England,Croatia,1,0,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-07-07,England,Denmark,2,1,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-13,Netherlands,Ukraine,3,2,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-28,France,Switzerland,3,3,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-17,Netherlands,Austria,2,0,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-14,Poland,Slovakia,1,2,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-14,Spain,Sweden,0,0,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-14,Scotland,Czech Republic,0,2,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-15,France,Germany,1,0,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-15,Hungary,Portugal,0,3,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-12,Denmark,Finland,0,1,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-23,Slovakia,Spain,0,5,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-23,Sweden,Poland,3,2,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-12,Belgium,Russia,3,0,0.0,0.0,UEFA Euro 2020,43,55.0
+2021-06-12,Wales,Switzerland,1,1,0.0,0.0,UEFA Euro 2020,43,55.0
+2024-07-03,Brazil,Colombia,1,1,0.0,0.0,Copa America 2024,282,223.0
+2024-07-01,Jamaica,Venezuela,0,3,0.0,0.0,Copa America 2024,282,223.0
+2024-06-28,Uruguay,Bolivia,5,0,0.0,0.0,Copa America 2024,282,223.0
+2024-06-22,Peru,Chile,0,0,0.0,0.0,Copa America 2024,282,223.0
+2024-06-26,Ecuador,Jamaica,3,1,0.0,0.0,Copa America 2024,282,223.0
+2024-06-26,Chile,Argentina,0,1,0.0,0.0,Copa America 2024,282,223.0
+2024-06-24,Colombia,Paraguay,2,1,0.0,0.0,Copa America 2024,282,223.0
+2024-06-23,United States,Bolivia,2,0,0.0,0.0,Copa America 2024,282,223.0
+2024-06-30,Argentina,Peru,2,0,0.0,0.0,Copa America 2024,282,223.0
+2024-06-23,Mexico,Jamaica,1,0,0.0,0.0,Copa America 2024,282,223.0
+2024-06-27,Venezuela,Mexico,1,0,0.0,0.0,Copa America 2024,282,223.0
+2024-07-01,Mexico,Ecuador,0,0,0.0,0.0,Copa America 2024,282,223.0
+2024-07-02,United States,Uruguay,0,1,0.0,0.0,Copa America 2024,282,223.0
+2024-06-29,Paraguay,Brazil,1,4,0.0,0.0,Copa America 2024,282,223.0
+2024-06-22,Ecuador,Venezuela,1,2,0.0,0.0,Copa America 2024,282,223.0
+2024-06-25,Peru,Canada,0,1,0.0,0.0,Copa America 2024,282,223.0
+2024-06-25,Brazil,Costa Rica,0,0,0.0,0.0,Copa America 2024,282,223.0
+2024-07-03,Costa Rica,Paraguay,2,1,0.0,0.0,Copa America 2024,282,223.0
+2024-07-06,Colombia,Panama,5,0,0.0,0.0,Copa America 2024,282,223.0
+2024-07-15,Argentina,Colombia,1,0,0.0,0.0,Copa America 2024,282,223.0
+2024-07-14,Canada,Uruguay,2,2,0.0,0.0,Copa America 2024,282,223.0
+2024-07-11,Uruguay,Colombia,0,1,0.0,0.0,Copa America 2024,282,223.0
+2024-07-10,Argentina,Canada,2,0,0.0,0.0,Copa America 2024,282,223.0
+2024-07-07,Uruguay,Brazil,0,0,0.0,0.0,Copa America 2024,282,223.0
+2024-06-24,Uruguay,Panama,3,1,0.0,0.0,Copa America 2024,282,223.0
+2024-07-06,Venezuela,Canada,1,1,0.0,0.0,Copa America 2024,282,223.0
+2024-07-05,Argentina,Ecuador,1,1,0.0,0.0,Copa America 2024,282,223.0
+2024-06-30,Canada,Chile,0,0,0.0,0.0,Copa America 2024,282,223.0
+2024-06-28,Colombia,Costa Rica,3,0,0.0,0.0,Copa America 2024,282,223.0
+2024-06-27,Panama,United States,2,1,0.0,0.0,Copa America 2024,282,223.0
+2024-07-02,Bolivia,Panama,1,3,0.0,0.0,Copa America 2024,282,223.0
+2024-06-21,Argentina,Canada,2,0,0.0,0.0,Copa America 2024,282,223.0
+2024-01-28,Egypt,Congo DR,1,1,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-19,Cape Verde Islands,Mozambique,3,0,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-23,Gambia,Cameroon,2,3,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-19,Senegal,Cameroon,3,1,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-22,Guinea-Bissau,Nigeria,0,1,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-24,Namibia,Mali,0,0,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-17,Congo DR,Zambia,1,1,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-21,South Africa,Namibia,4,0,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-23,Guinea,Senegal,0,2,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-23,Mauritania,Algeria,1,0,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-20,Tunisia,Mali,1,1,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-15,Cameroon,Guinea,1,1,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-16,Tunisia,Namibia,0,1,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-20,Mauritania,Angola,2,3,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-17,Morocco,Tanzania,3,0,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-20,Algeria,Burkina Faso,2,2,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-23,Angola,Burkina Faso,2,0,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-21,Morocco,Congo DR,1,1,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-24,South Africa,Tunisia,0,0,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-02-03,Cape Verde Islands,South Africa,0,0,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-14,Nigeria,Equatorial Guinea,1,1,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-22,Equatorial Guinea,Côte d'Ivoire,4,0,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-18,Equatorial Guinea,Guinea-Bissau,4,2,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-22,Mozambique,Ghana,2,2,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-02-11,Nigeria,Côte d'Ivoire,1,2,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-02-10,South Africa,Congo DR,0,0,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-02-07,Côte d'Ivoire,Congo DR,1,0,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-02-07,Nigeria,South Africa,1,1,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-29,Senegal,Côte d'Ivoire,1,1,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-28,Equatorial Guinea,Guinea,0,1,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-02-03,Mali,Côte d'Ivoire,1,2,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-30,Mali,Burkina Faso,2,1,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-02-02,Congo DR,Guinea,3,1,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-02-02,Nigeria,Angola,1,0,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-27,Angola,Namibia,3,0,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-30,Morocco,South Africa,0,2,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-29,Cape Verde Islands,Mauritania,1,0,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-27,Nigeria,Cameroon,2,0,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-18,Egypt,Ghana,2,2,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-14,Egypt,Mozambique,2,2,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-14,Ghana,Cape Verde Islands,1,2,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-24,Zambia,Morocco,0,1,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-24,Tanzania,Congo DR,0,0,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-22,Cape Verde Islands,Egypt,2,2,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-21,Zambia,Tanzania,1,1,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-19,Guinea,Gambia,1,0,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-18,Côte d'Ivoire,Nigeria,0,1,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-16,Burkina Faso,Mauritania,1,0,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-16,Mali,South Africa,2,0,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-15,Algeria,Angola,1,1,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-15,Senegal,Gambia,3,0,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2024-01-13,Côte d'Ivoire,Guinea-Bissau,2,0,0.0,0.0,African Cup of Nations 2023,107,1267.0
+2022-12-01,Canada,Morocco,1,2,1.096,0.426,FIFA World Cup 2022,106,
+2022-11-21,England,Iran,6,2,1.987,1.456,FIFA World Cup 2022,106,
+2022-12-01,Croatia,Belgium,0,0,0.695,2.382,FIFA World Cup 2022,106,
+2022-11-25,Netherlands,Ecuador,1,1,0.104,1.651,FIFA World Cup 2022,106,
+2022-12-01,Japan,Spain,2,1,1.158,0.858,FIFA World Cup 2022,106,
+2022-11-25,England,United States,0,0,0.461,0.514,FIFA World Cup 2022,106,
+2022-11-29,Iran,United States,0,1,0.921,1.17,FIFA World Cup 2022,106,
+2022-11-23,Morocco,Croatia,0,0,0.363,0.85,FIFA World Cup 2022,106,
+2022-11-25,Wales,Iran,0,2,0.616,1.454,FIFA World Cup 2022,106,
+2022-11-30,Tunisia,France,1,0,0.298,0.477,FIFA World Cup 2022,106,
+2022-11-29,Wales,England,0,3,0.208,2.915,FIFA World Cup 2022,106,
+2022-11-24,Switzerland,Cameroon,1,0,1.427,0.613,FIFA World Cup 2022,106,
+2022-11-24,Portugal,Ghana,3,2,2.097,0.78,FIFA World Cup 2022,106,
+2022-11-21,Senegal,Netherlands,0,2,0.691,1.124,FIFA World Cup 2022,106,
+2022-11-21,United States,Wales,1,1,0.602,1.395,FIFA World Cup 2022,106,
+2022-11-26,Poland,Saudi Arabia,2,0,1.734,1.972,FIFA World Cup 2022,106,
+2022-11-29,Netherlands,Qatar,2,0,1.714,0.144,FIFA World Cup 2022,106,
+2022-11-26,France,Denmark,2,1,1.934,0.889,FIFA World Cup 2022,106,
+2022-11-23,Germany,Japan,1,2,2.768,1.249,FIFA World Cup 2022,106,
+2022-11-22,Denmark,Tunisia,0,0,1.567,1.06,FIFA World Cup 2022,106,
+2022-11-22,Mexico,Poland,0,0,0.529,1.138,FIFA World Cup 2022,106,
+2022-11-25,Qatar,Senegal,1,3,0.96,0.903,FIFA World Cup 2022,106,
+2022-11-23,Belgium,Canada,1,0,0.67,2.546,FIFA World Cup 2022,106,
+2022-11-28,Brazil,Switzerland,1,0,0.923,0.289,FIFA World Cup 2022,106,
+2022-12-09,Netherlands,Argentina,2,2,4.487,5.857,FIFA World Cup 2022,106,
+2022-12-01,Costa Rica,Germany,2,4,1.035,4.316,FIFA World Cup 2022,106,
+2022-11-27,Japan,Costa Rica,0,1,0.774,0.199,FIFA World Cup 2022,106,
+2022-12-18,Argentina,France,3,3,5.892,5.407,FIFA World Cup 2022,106,
+2022-12-17,Croatia,Morocco,2,1,0.849,0.991,FIFA World Cup 2022,106,
+2022-12-02,Serbia,Switzerland,2,3,1.189,3.104,FIFA World Cup 2022,106,
+2022-12-03,Argentina,Australia,2,1,1.482,0.426,FIFA World Cup 2022,106,
+2022-11-30,Australia,Denmark,1,0,0.47,0.737,FIFA World Cup 2022,106,
+2022-11-24,Brazil,Serbia,2,0,2.124,0.163,FIFA World Cup 2022,106,
+2022-11-26,Tunisia,Australia,0,1,1.052,0.359,FIFA World Cup 2022,106,
+2022-11-29,Ecuador,Senegal,1,2,1.002,1.707,FIFA World Cup 2022,106,
+2022-11-24,Uruguay,South Korea,0,0,0.417,0.493,FIFA World Cup 2022,106,
+2022-12-10,Morocco,Portugal,1,0,0.972,0.744,FIFA World Cup 2022,106,
+2022-11-30,Saudi Arabia,Mexico,1,2,1.076,2.322,FIFA World Cup 2022,106,
+2022-11-30,Poland,Argentina,0,2,0.198,3.077,FIFA World Cup 2022,106,
+2022-11-26,Argentina,Mexico,2,0,0.325,0.206,FIFA World Cup 2022,106,
+2022-12-06,Portugal,Switzerland,6,1,2.284,1.272,FIFA World Cup 2022,106,
+2022-12-04,England,Senegal,3,0,1.02,0.973,FIFA World Cup 2022,106,
+2022-12-13,Argentina,Croatia,3,0,1.864,0.41,FIFA World Cup 2022,106,
+2022-12-10,England,France,1,2,2.353,0.839,FIFA World Cup 2022,106,
+2022-12-14,France,Morocco,2,0,2.002,1.23,FIFA World Cup 2022,106,
+2022-12-09,Croatia,Brazil,1,1,3.767,4.95,FIFA World Cup 2022,106,
+2022-12-06,Morocco,Spain,0,0,3.704,2.845,FIFA World Cup 2022,106,
+2022-12-05,Japan,Croatia,1,1,4.203,3.988,FIFA World Cup 2022,106,
+2022-12-05,Brazil,South Korea,4,1,3.261,0.345,FIFA World Cup 2022,106,
+2022-12-04,France,Poland,3,1,1.126,1.594,FIFA World Cup 2022,106,
+2022-12-03,Netherlands,United States,3,1,1.482,1.652,FIFA World Cup 2022,106,
+2022-11-28,Portugal,Uruguay,2,0,1.214,1.217,FIFA World Cup 2022,106,
+2022-11-27,Spain,Germany,1,1,0.64,1.147,FIFA World Cup 2022,106,
+2022-11-28,Cameroon,Serbia,3,3,2.07,1.738,FIFA World Cup 2022,106,
+2022-11-27,Belgium,Morocco,0,2,0.643,0.991,FIFA World Cup 2022,106,
+2022-11-20,Qatar,Ecuador,0,2,0.304,1.154,FIFA World Cup 2022,106,
+2022-11-22,Argentina,Saudi Arabia,1,2,2.492,0.153,FIFA World Cup 2022,106,
+2022-11-28,South Korea,Ghana,2,3,1.368,1.181,FIFA World Cup 2022,106,
+2022-12-02,Ghana,Uruguay,0,2,1.393,1.637,FIFA World Cup 2022,106,
+2022-11-23,Spain,Costa Rica,7,0,2.762,0.0,FIFA World Cup 2022,106,
+2022-11-27,Croatia,Canada,4,1,2.61,0.287,FIFA World Cup 2022,106,
+2022-12-02,Cameroon,Brazil,1,0,0.383,2.378,FIFA World Cup 2022,106,
+2022-11-22,France,Australia,4,1,3.17,0.323,FIFA World Cup 2022,106,
+2022-12-02,South Korea,Portugal,2,1,1.399,0.974,FIFA World Cup 2022,106,
+2018-07-06,Brazil,Belgium,1,2,2.609,0.405,FIFA World Cup 2018,3,
+2018-07-02,Belgium,Japan,3,2,2.918,0.694,FIFA World Cup 2018,3,
+2018-06-24,England,Panama,6,1,3.168,1.08,FIFA World Cup 2018,3,
+2018-06-19,Poland,Senegal,1,2,1.042,1.428,FIFA World Cup 2018,3,
+2018-06-22,Serbia,Switzerland,1,2,1.153,1.557,FIFA World Cup 2018,3,
+2018-06-18,Sweden,South Korea,1,0,2.015,0.414,FIFA World Cup 2018,3,
+2018-06-17,Germany,Mexico,0,1,2.299,0.993,FIFA World Cup 2018,3,
+2018-06-20,Iran,Spain,0,1,0.426,2.197,FIFA World Cup 2018,3,
+2018-06-20,Uruguay,Saudi Arabia,1,0,1.807,0.273,FIFA World Cup 2018,3,
+2018-06-21,France,Peru,1,0,1.862,0.625,FIFA World Cup 2018,3,
+2018-06-21,Argentina,Croatia,0,3,1.218,1.832,FIFA World Cup 2018,3,
+2018-07-03,Colombia,England,1,1,4.749,6.162,FIFA World Cup 2018,3,
+2018-06-28,Panama,Tunisia,1,2,0.691,2.852,FIFA World Cup 2018,3,
+2018-06-28,Japan,Poland,0,1,0.891,1.041,FIFA World Cup 2018,3,
+2018-06-26,Iceland,Croatia,1,2,2.133,0.674,FIFA World Cup 2018,3,
+2018-06-19,Russia,Egypt,3,1,0.981,1.698,FIFA World Cup 2018,3,
+2018-06-16,Argentina,Iceland,1,1,2.081,1.032,FIFA World Cup 2018,3,
+2018-06-28,England,Belgium,0,1,1.201,0.965,FIFA World Cup 2018,3,
+2018-07-03,Sweden,Switzerland,1,0,0.91,0.533,FIFA World Cup 2018,3,
+2018-06-25,Iran,Portugal,1,1,1.577,1.522,FIFA World Cup 2018,3,
+2018-06-20,Portugal,Morocco,1,0,0.885,1.455,FIFA World Cup 2018,3,
+2018-07-11,Croatia,England,2,1,2.141,0.547,FIFA World Cup 2018,3,
+2018-06-22,Brazil,Costa Rica,2,0,3.096,0.159,FIFA World Cup 2018,3,
+2018-06-15,Egypt,Uruguay,0,1,0.364,1.941,FIFA World Cup 2018,3,
+2018-06-23,South Korea,Mexico,1,2,0.822,1.878,FIFA World Cup 2018,3,
+2018-06-18,Belgium,Panama,3,0,1.212,0.625,FIFA World Cup 2018,3,
+2018-06-24,Poland,Colombia,0,3,1.114,1.387,FIFA World Cup 2018,3,
+2018-06-15,Portugal,Spain,3,3,1.435,1.661,FIFA World Cup 2018,3,
+2018-06-27,Serbia,Brazil,0,2,0.948,1.42,FIFA World Cup 2018,3,
+2018-06-23,Germany,Sweden,2,1,1.318,0.815,FIFA World Cup 2018,3,
+2018-06-18,Tunisia,England,1,2,0.946,2.626,FIFA World Cup 2018,3,
+2018-06-30,France,Argentina,4,3,1.638,1.447,FIFA World Cup 2018,3,
+2018-07-01,Croatia,Denmark,1,1,6.088,4.614,FIFA World Cup 2018,3,
+2018-06-22,Nigeria,Iceland,2,0,1.312,1.552,FIFA World Cup 2018,3,
+2018-06-16,Croatia,Nigeria,2,0,1.694,0.762,FIFA World Cup 2018,3,
+2018-06-26,Australia,Peru,0,2,1.629,0.336,FIFA World Cup 2018,3,
+2018-06-28,Senegal,Colombia,0,1,0.361,0.285,FIFA World Cup 2018,3,
+2018-06-27,Switzerland,Costa Rica,2,2,1.22,1.576,FIFA World Cup 2018,3,
+2018-06-16,France,Australia,2,1,1.562,0.98,FIFA World Cup 2018,3,
+2018-06-25,Uruguay,Russia,3,0,2.483,0.18,FIFA World Cup 2018,3,
+2018-07-02,Brazil,Mexico,2,0,3.32,0.583,FIFA World Cup 2018,3,
+2018-06-21,Denmark,Australia,1,1,1.014,1.412,FIFA World Cup 2018,3,
+2018-06-17,Costa Rica,Serbia,0,1,0.596,1.993,FIFA World Cup 2018,3,
+2018-07-06,Uruguay,France,0,2,0.693,0.539,FIFA World Cup 2018,3,
+2018-07-15,France,Croatia,4,2,1.098,1.48,FIFA World Cup 2018,3,
+2018-07-01,Spain,Russia,1,1,5.359,4.54,FIFA World Cup 2018,3,
+2018-06-23,Belgium,Tunisia,5,2,5.336,1.188,FIFA World Cup 2018,3,
+2018-06-16,Peru,Denmark,0,1,1.926,1.122,FIFA World Cup 2018,3,
+2018-06-25,Spain,Morocco,2,2,2.604,1.072,FIFA World Cup 2018,3,
+2018-06-17,Brazil,Switzerland,1,1,1.867,0.472,FIFA World Cup 2018,3,
+2018-06-26,Nigeria,Argentina,1,2,1.305,0.851,FIFA World Cup 2018,3,
+2018-06-30,Uruguay,Portugal,2,1,0.476,0.996,FIFA World Cup 2018,3,
+2018-06-15,Morocco,Iran,0,1,1.059,0.698,FIFA World Cup 2018,3,
+2018-06-14,Russia,Saudi Arabia,5,0,1.282,0.249,FIFA World Cup 2018,3,
+2018-06-27,Mexico,Sweden,0,3,1.611,2.79,FIFA World Cup 2018,3,
+2018-07-07,Sweden,England,0,2,0.834,0.758,FIFA World Cup 2018,3,
+2018-06-27,South Korea,Germany,2,0,1.775,2.706,FIFA World Cup 2018,3,
+2018-06-19,Colombia,Japan,1,2,0.806,2.321,FIFA World Cup 2018,3,
+2018-07-10,France,Belgium,1,0,1.682,0.567,FIFA World Cup 2018,3,
+2018-07-14,Belgium,England,2,0,1.321,1.335,FIFA World Cup 2018,3,
+2018-07-07,Russia,Croatia,2,2,4.988,5.568,FIFA World Cup 2018,3,
+2018-06-26,Denmark,France,0,0,0.139,0.418,FIFA World Cup 2018,3,
+2018-06-24,Japan,Senegal,2,2,0.982,1.878,FIFA World Cup 2018,3,
+2018-06-25,Saudi Arabia,Egypt,2,1,2.546,0.924,FIFA World Cup 2018,3,

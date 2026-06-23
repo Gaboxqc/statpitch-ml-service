@@ -28,7 +28,21 @@
     "home_rest_days",
     "away_rest_days",
     "home_goal_momentum",
-    "away_goal_momentum"
+    "away_goal_momentum",
+    "home_rest_days",
+    "away_rest_days",
+    "home_goal_momentum",
+    "away_goal_momentum",
+    "home_xg_avg5",
+    "home_xga_avg5",
+    "home_xg_avg10",
+    "home_xga_avg10",
+    "away_xg_avg5",
+    "away_xga_avg5",
+    "away_xg_avg10",
+    "away_xga_avg10",
+    "home_club_xg_overperf",
+    "away_club_xg_overperf"
   ],
   "target_cols": [
     "result",
@@ -84,10 +98,10 @@
   },
   "elo_start": 1500,
   "test_accuracy": {
-    "1x2": 0.5312,
-    "over25": 0.5625,
-    "btts": 0.5156
+    "1x2_final": 0.5781,
+    "log_loss": 1.0708,
+    "baseline": 0.4375
   },
   "dc_rho": -0.0,
-  "model_version": "v2"
+  "model_version": "v3"
 }

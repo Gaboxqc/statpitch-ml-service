@@ -42,7 +42,26 @@
     "away_xg_avg10",
     "away_xga_avg10",
     "home_club_xg_overperf",
-    "away_club_xg_overperf"
+    "away_club_xg_overperf",
+    "home_rest_days",
+    "away_rest_days",
+    "home_goal_momentum",
+    "away_goal_momentum",
+    "home_xg_avg5",
+    "home_xga_avg5",
+    "home_xg_avg10",
+    "home_xga_avg10",
+    "away_xg_avg5",
+    "away_xga_avg5",
+    "away_xg_avg10",
+    "away_xga_avg10",
+    "home_club_xg_overperf",
+    "away_club_xg_overperf",
+    "home_squad_value_norm",
+    "away_squad_value_norm",
+    "home_squad_age",
+    "away_squad_age",
+    "squad_value_diff"
   ],
   "target_cols": [
     "result",
@@ -98,8 +117,8 @@
   },
   "elo_start": 1500,
   "test_accuracy": {
-    "1x2_final": 0.5781,
-    "log_loss": 1.0708,
+    "1x2_final": 0.5469,
+    "log_loss": 1.0725,
     "baseline": 0.4375
   },
   "dc_rho": -0.0,

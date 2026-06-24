@@ -15,7 +15,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.2,
     "club_xg_against": 0.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Afghanistan": {
     "elo": 1221.77,
@@ -33,7 +37,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.4,
     "club_xg_against": 1.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Albania": {
     "elo": 1625.98,
@@ -51,7 +59,11 @@
     "current_rest_days": 17,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.0
+    "club_xg_overperf": 1.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Alderney": {
     "elo": 1466.2,
@@ -69,7 +81,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.0,
     "club_xg_against": 4.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Algeria": {
     "elo": 1830.37,
@@ -87,7 +103,11 @@
     "current_rest_days": 7,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.0
+    "club_xg_overperf": 1.0,
+    "squad_value_eur": 145000000,
+    "avg_player_value_eur": 5600000,
+    "squad_age": 27.5,
+    "squad_value_norm": 0.0967
   },
   "Ambazonia": {
     "elo": 1484.14,
@@ -105,7 +125,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.5,
     "club_xg_against": 2.5,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "American Samoa": {
     "elo": 1266.86,
@@ -123,7 +147,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.2,
     "club_xg_against": 2.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Andalusia": {
     "elo": 1605.73,
@@ -141,7 +169,11 @@
     "current_rest_days": 30,
     "club_xg_for": 2.2,
     "club_xg_against": 0.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Andorra": {
     "elo": 1086.65,
@@ -159,7 +191,11 @@
     "current_rest_days": 16,
     "club_xg_for": 0.4,
     "club_xg_against": 1.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Angola": {
     "elo": 1573.42,
@@ -177,7 +213,11 @@
     "current_rest_days": 14,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.8
+    "club_xg_overperf": 1.8,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Anguilla": {
     "elo": 972.78,
@@ -195,7 +235,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.6,
     "club_xg_against": 3.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Antigua and Barbuda": {
     "elo": 1155.84,
@@ -213,7 +257,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.2,
     "club_xg_against": 2.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Argentina": {
     "elo": 2139.91,
@@ -231,7 +279,11 @@
     "current_rest_days": 7,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.5
+    "club_xg_overperf": 1.5,
+    "squad_value_eur": 807500000,
+    "avg_player_value_eur": 31057692,
+    "squad_age": 24.4,
+    "squad_value_norm": 0.5383
   },
   "Armenia": {
     "elo": 1377.61,
@@ -249,7 +301,11 @@
     "current_rest_days": 14,
     "club_xg_for": 0.8,
     "club_xg_against": 2.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Artsakh": {
     "elo": 1517.5,
@@ -267,7 +323,11 @@
     "current_rest_days": 30,
     "club_xg_for": 2.0,
     "club_xg_against": 0.5,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Aruba": {
     "elo": 1194.1,
@@ -285,7 +345,11 @@
     "current_rest_days": 17,
     "club_xg_for": 0.6,
     "club_xg_against": 2.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Australia": {
     "elo": 1852.78,
@@ -303,7 +367,11 @@
     "current_rest_days": 4,
     "club_xg_for": 0.394,
     "club_xg_against": 1.61,
-    "club_xg_overperf": 0.606
+    "club_xg_overperf": 0.606,
+    "squad_value_eur": 4175000,
+    "avg_player_value_eur": 245588,
+    "squad_age": 23.2,
+    "squad_value_norm": 0.0028
   },
   "Austria": {
     "elo": 1867.2,
@@ -321,7 +389,11 @@
     "current_rest_days": 7,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.75
+    "club_xg_overperf": 1.75,
+    "squad_value_eur": 9250000,
+    "avg_player_value_eur": 355769,
+    "squad_age": 26.4,
+    "squad_value_norm": 0.0062
   },
   "Azerbaijan": {
     "elo": 1330.13,
@@ -339,7 +411,11 @@
     "current_rest_days": 14,
     "club_xg_for": 0.8,
     "club_xg_against": 2.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Bahamas": {
     "elo": 1076.73,
@@ -357,7 +433,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.4,
     "club_xg_against": 4.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Bahrain": {
     "elo": 1502.58,
@@ -375,7 +455,11 @@
     "current_rest_days": 18,
     "club_xg_for": 0.6,
     "club_xg_against": 1.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Bangladesh": {
     "elo": 1187.28,
@@ -393,7 +477,11 @@
     "current_rest_days": 18,
     "club_xg_for": 1.2,
     "club_xg_against": 1.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Barawa": {
     "elo": 1466.01,
@@ -411,7 +499,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.75,
     "club_xg_against": 4.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Barbados": {
     "elo": 1187.39,
@@ -429,7 +521,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.0,
     "club_xg_against": 1.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Basque Country": {
     "elo": 1739.78,
@@ -447,7 +543,11 @@
     "current_rest_days": 30,
     "club_xg_for": 2.0,
     "club_xg_against": 0.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Belarus": {
     "elo": 1507.83,
@@ -465,7 +565,11 @@
     "current_rest_days": 14,
     "club_xg_for": 1.8,
     "club_xg_against": 0.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Belgium": {
     "elo": 1888.06,
@@ -483,7 +587,11 @@
     "current_rest_days": 8,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.5
+    "club_xg_overperf": 0.5,
+    "squad_value_eur": 547500000,
+    "avg_player_value_eur": 21057692,
+    "squad_age": 23.8,
+    "squad_value_norm": 0.365
   },
   "Belize": {
     "elo": 1297.43,
@@ -501,7 +609,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.6,
     "club_xg_against": 3.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Benin": {
     "elo": 1468.99,
@@ -519,7 +631,11 @@
     "current_rest_days": 14,
     "club_xg_for": 0.8,
     "club_xg_against": 2.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Bermuda": {
     "elo": 1362.98,
@@ -537,7 +653,11 @@
     "current_rest_days": 17,
     "club_xg_for": 1.0,
     "club_xg_against": 3.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Bhutan": {
     "elo": 1041.96,
@@ -555,7 +675,11 @@
     "current_rest_days": 19,
     "club_xg_for": 0.4,
     "club_xg_against": 3.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Bolivia": {
     "elo": 1677.7,
@@ -573,7 +697,11 @@
     "current_rest_days": 13,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.333
+    "club_xg_overperf": 0.333,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Bonaire": {
     "elo": 1216.62,
@@ -591,7 +719,11 @@
     "current_rest_days": 17,
     "club_xg_for": 0.4,
     "club_xg_against": 2.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Bosnia and Herzegovina": {
     "elo": 1599.48,
@@ -609,7 +741,11 @@
     "current_rest_days": 5,
     "club_xg_for": 0.8,
     "club_xg_against": 1.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Botswana": {
     "elo": 1369.69,
@@ -627,7 +763,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.4,
     "club_xg_against": 2.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Brazil": {
     "elo": 2026.74,
@@ -645,7 +785,11 @@
     "current_rest_days": 4,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.25
+    "club_xg_overperf": 1.25,
+    "squad_value_eur": 928200000,
+    "avg_player_value_eur": 35700000,
+    "squad_age": 22.6,
+    "squad_value_norm": 0.6188
   },
   "British Virgin Islands": {
     "elo": 1026.15,
@@ -663,7 +807,11 @@
     "current_rest_days": 17,
     "club_xg_for": 0.6,
     "club_xg_against": 2.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Brittany": {
     "elo": 1515.37,
@@ -681,7 +829,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.25,
     "club_xg_against": 0.75,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Brunei": {
     "elo": 1098.39,
@@ -699,7 +851,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.4,
     "club_xg_against": 3.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Bulgaria": {
     "elo": 1431.0,
@@ -717,7 +873,11 @@
     "current_rest_days": 18,
     "club_xg_for": 0.8,
     "club_xg_against": 2.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Burkina Faso": {
     "elo": 1614.74,
@@ -735,7 +895,11 @@
     "current_rest_days": 14,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.0
+    "club_xg_overperf": 1.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Burundi": {
     "elo": 1357.51,
@@ -753,7 +917,11 @@
     "current_rest_days": 28,
     "club_xg_for": 0.0,
     "club_xg_against": 2.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Cambodia": {
     "elo": 1153.39,
@@ -771,7 +939,11 @@
     "current_rest_days": 14,
     "club_xg_for": 1.8,
     "club_xg_against": 1.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Cameroon": {
     "elo": 1694.74,
@@ -789,7 +961,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.25
+    "club_xg_overperf": 1.25,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Canada": {
     "elo": 1877.69,
@@ -807,7 +983,11 @@
     "current_rest_days": 5,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.667
+    "club_xg_overperf": 0.667,
+    "squad_value_eur": 29000000,
+    "avg_player_value_eur": 1035714,
+    "squad_age": 25.5,
+    "squad_value_norm": 0.0193
   },
   "Canary Islands": {
     "elo": 1527.49,
@@ -825,7 +1005,11 @@
     "current_rest_days": 30,
     "club_xg_for": 2.75,
     "club_xg_against": 0.75,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Cape Verde": {
     "elo": 1643.29,
@@ -843,7 +1027,11 @@
     "current_rest_days": 8,
     "club_xg_for": 1.8,
     "club_xg_against": 1.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 55000000,
+    "avg_player_value_eur": 2100000,
+    "squad_age": 27.5,
+    "squad_value_norm": 0.0367
   },
   "Cascadia": {
     "elo": 1515.62,
@@ -861,7 +1049,11 @@
     "current_rest_days": 30,
     "club_xg_for": 6.0,
     "club_xg_against": 3.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Catalonia": {
     "elo": 1673.24,
@@ -879,7 +1071,11 @@
     "current_rest_days": 30,
     "club_xg_for": 2.0,
     "club_xg_against": 1.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Cayman Islands": {
     "elo": 1088.61,
@@ -897,7 +1093,11 @@
     "current_rest_days": 17,
     "club_xg_for": 0.4,
     "club_xg_against": 3.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Central African Republic": {
     "elo": 1306.93,
@@ -915,7 +1115,11 @@
     "current_rest_days": 14,
     "club_xg_for": 0.8,
     "club_xg_against": 2.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Chad": {
     "elo": 1224.94,
@@ -933,7 +1137,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.2,
     "club_xg_against": 2.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Chagos Islands": {
     "elo": 1429.73,
@@ -951,7 +1159,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.0,
     "club_xg_against": 5.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Chechnya": {
     "elo": 1442.3,
@@ -969,7 +1181,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.0,
     "club_xg_against": 9.667,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Chile": {
     "elo": 1759.16,
@@ -987,7 +1203,11 @@
     "current_rest_days": 14,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "China": {
     "elo": 1541.45,
@@ -1005,7 +1225,11 @@
     "current_rest_days": 14,
     "club_xg_for": 1.0,
     "club_xg_against": 0.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Cilento": {
     "elo": 1487.48,
@@ -1023,7 +1247,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.0,
     "club_xg_against": 2.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Colombia": {
     "elo": 2018.26,
@@ -1041,7 +1269,11 @@
     "current_rest_days": 6,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 2.0
+    "club_xg_overperf": 2.0,
+    "squad_value_eur": 234350000,
+    "avg_player_value_eur": 9013461,
+    "squad_age": 24.8,
+    "squad_value_norm": 0.1562
   },
   "Comoros": {
     "elo": 1525.38,
@@ -1059,7 +1291,11 @@
     "current_rest_days": 14,
     "club_xg_for": 1.0,
     "club_xg_against": 0.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Congo": {
     "elo": 1319.44,
@@ -1077,7 +1313,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.8,
     "club_xg_against": 1.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Cook Islands": {
     "elo": 1207.18,
@@ -1095,7 +1335,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.4,
     "club_xg_against": 3.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Corsica": {
     "elo": 1525.05,
@@ -1113,7 +1357,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.0,
     "club_xg_against": 0.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Costa Rica": {
     "elo": 1718.06,
@@ -1131,7 +1379,11 @@
     "current_rest_days": 13,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.667
+    "club_xg_overperf": 0.667,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Croatia": {
     "elo": 1882.78,
@@ -1149,7 +1401,11 @@
     "current_rest_days": 6,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.0
+    "club_xg_overperf": 1.0,
+    "squad_value_eur": 387300000,
+    "avg_player_value_eur": 14896153,
+    "squad_age": 26.3,
+    "squad_value_norm": 0.2582
   },
   "Cuba": {
     "elo": 1343.33,
@@ -1167,7 +1423,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.4,
     "club_xg_against": 2.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Cura\u00e7ao": {
     "elo": 1639.31,
@@ -1185,7 +1445,11 @@
     "current_rest_days": 3,
     "club_xg_for": 1.2,
     "club_xg_against": 2.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Cyprus": {
     "elo": 1326.28,
@@ -1203,7 +1467,11 @@
     "current_rest_days": 16,
     "club_xg_for": 1.6,
     "club_xg_against": 1.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Czech Republic": {
     "elo": 1728.99,
@@ -1221,7 +1489,11 @@
     "current_rest_days": 5,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.0
+    "club_xg_overperf": 1.0,
+    "squad_value_eur": 310000000,
+    "avg_player_value_eur": 11900000,
+    "squad_age": 27.3,
+    "squad_value_norm": 0.2067
   },
   "DR Congo": {
     "elo": 1745.65,
@@ -1239,7 +1511,11 @@
     "current_rest_days": 6,
     "club_xg_for": 1.0,
     "club_xg_against": 0.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 17200000,
+    "avg_player_value_eur": 573333,
+    "squad_age": 25.3,
+    "squad_value_norm": 0.0115
   },
   "Denmark": {
     "elo": 1865.75,
@@ -1257,7 +1533,11 @@
     "current_rest_days": 16,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.5
+    "club_xg_overperf": 0.5,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Djibouti": {
     "elo": 1085.26,
@@ -1275,7 +1555,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.4,
     "club_xg_against": 3.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Dominica": {
     "elo": 1210.79,
@@ -1293,7 +1577,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.6,
     "club_xg_against": 1.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Dominican Republic": {
     "elo": 1507.18,
@@ -1311,7 +1599,11 @@
     "current_rest_days": 20,
     "club_xg_for": 0.6,
     "club_xg_against": 2.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Donetsk PR": {
     "elo": 1505.51,
@@ -1329,7 +1621,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.6,
     "club_xg_against": 1.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "East Turkestan": {
     "elo": 1521.25,
@@ -1347,7 +1643,11 @@
     "current_rest_days": 30,
     "club_xg_for": 8.0,
     "club_xg_against": 2.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Ecuador": {
     "elo": 1896.57,
@@ -1365,7 +1665,11 @@
     "current_rest_days": 3,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.25
+    "club_xg_overperf": 1.25,
+    "squad_value_eur": 56950000,
+    "avg_player_value_eur": 2372916,
+    "squad_age": 21.8,
+    "squad_value_norm": 0.038
   },
   "Egypt": {
     "elo": 1819.62,
@@ -1383,7 +1687,11 @@
     "current_rest_days": 8,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.75
+    "club_xg_overperf": 1.75,
+    "squad_value_eur": 185000000,
+    "avg_player_value_eur": 7100000,
+    "squad_age": 27.8,
+    "squad_value_norm": 0.1233
   },
   "El Salvador": {
     "elo": 1463.38,
@@ -1401,7 +1709,11 @@
     "current_rest_days": 17,
     "club_xg_for": 0.0,
     "club_xg_against": 1.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Elba Island": {
     "elo": 1525.37,
@@ -1419,7 +1731,11 @@
     "current_rest_days": 30,
     "club_xg_for": 4.5,
     "club_xg_against": 1.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Ellan Vannin": {
     "elo": 1519.33,
@@ -1437,7 +1753,11 @@
     "current_rest_days": 30,
     "club_xg_for": 3.5,
     "club_xg_against": 1.75,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "England": {
     "elo": 2069.58,
@@ -1455,7 +1775,11 @@
     "current_rest_days": 6,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.143
+    "club_xg_overperf": 1.143,
+    "squad_value_eur": 1450000000,
+    "avg_player_value_eur": 55800000,
+    "squad_age": 26.1,
+    "squad_value_norm": 0.9667
   },
   "Equatorial Guinea": {
     "elo": 1418.99,
@@ -1473,7 +1797,11 @@
     "current_rest_days": 14,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 2.25
+    "club_xg_overperf": 2.25,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Eritrea": {
     "elo": 1260.06,
@@ -1491,7 +1819,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.6,
     "club_xg_against": 2.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Estonia": {
     "elo": 1349.2,
@@ -1509,7 +1841,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.4,
     "club_xg_against": 2.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Eswatini": {
     "elo": 1258.74,
@@ -1527,7 +1863,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.0,
     "club_xg_against": 2.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Ethiopia": {
     "elo": 1366.32,
@@ -1545,7 +1885,11 @@
     "current_rest_days": 14,
     "club_xg_for": 0.8,
     "club_xg_against": 1.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Faroe Islands": {
     "elo": 1405.45,
@@ -1563,7 +1907,11 @@
     "current_rest_days": 30,
     "club_xg_for": 2.0,
     "club_xg_against": 1.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Fiji": {
     "elo": 1442.92,
@@ -1581,7 +1929,11 @@
     "current_rest_days": 17,
     "club_xg_for": 1.2,
     "club_xg_against": 2.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Finland": {
     "elo": 1491.65,
@@ -1599,7 +1951,11 @@
     "current_rest_days": 18,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.333
+    "club_xg_overperf": 0.333,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "France": {
     "elo": 2086.85,
@@ -1617,7 +1973,11 @@
     "current_rest_days": 7,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.667
+    "club_xg_overperf": 0.667,
+    "squad_value_eur": 1523000000,
+    "avg_player_value_eur": 58576923,
+    "squad_age": 23.4,
+    "squad_value_norm": 1.0
   },
   "Franconia": {
     "elo": 1520.19,
@@ -1635,7 +1995,11 @@
     "current_rest_days": 30,
     "club_xg_for": 4.0,
     "club_xg_against": 2.5,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "French Guiana": {
     "elo": 1397.72,
@@ -1653,7 +2017,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.4,
     "club_xg_against": 2.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Gabon": {
     "elo": 1528.77,
@@ -1671,7 +2039,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.4,
     "club_xg_against": 2.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Galicia": {
     "elo": 1527.45,
@@ -1689,7 +2061,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.4,
     "club_xg_against": 2.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Gambia": {
     "elo": 1505.47,
@@ -1707,7 +2083,11 @@
     "current_rest_days": 25,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.667
+    "club_xg_overperf": 0.667,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Georgia": {
     "elo": 1662.39,
@@ -1725,7 +2105,11 @@
     "current_rest_days": 18,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.25
+    "club_xg_overperf": 1.25,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Germany": {
     "elo": 2013.15,
@@ -1743,7 +2127,11 @@
     "current_rest_days": 3,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 2.2
+    "club_xg_overperf": 2.2,
+    "squad_value_eur": 319000000,
+    "avg_player_value_eur": 13869565,
+    "squad_age": 20.0,
+    "squad_value_norm": 0.2127
   },
   "Ghana": {
     "elo": 1651.92,
@@ -1761,7 +2149,11 @@
     "current_rest_days": 6,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.667
+    "club_xg_overperf": 1.667,
+    "squad_value_eur": 140000000,
+    "avg_player_value_eur": 5400000,
+    "squad_age": 26.3,
+    "squad_value_norm": 0.0933
   },
   "Gibraltar": {
     "elo": 1107.57,
@@ -1779,7 +2171,11 @@
     "current_rest_days": 17,
     "club_xg_for": 2.6,
     "club_xg_against": 2.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Gozo": {
     "elo": 1531.81,
@@ -1797,7 +2193,11 @@
     "current_rest_days": 30,
     "club_xg_for": 17.0,
     "club_xg_against": 1.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Greece": {
     "elo": 1747.84,
@@ -1815,7 +2215,11 @@
     "current_rest_days": 16,
     "club_xg_for": 0.4,
     "club_xg_against": 0.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Greenland": {
     "elo": 1488.54,
@@ -1833,7 +2237,11 @@
     "current_rest_days": 30,
     "club_xg_for": 2.0,
     "club_xg_against": 3.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Grenada": {
     "elo": 1349.43,
@@ -1851,7 +2259,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.8,
     "club_xg_against": 1.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Guadeloupe": {
     "elo": 1535.28,
@@ -1869,7 +2281,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.4,
     "club_xg_against": 2.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Guam": {
     "elo": 1082.23,
@@ -1887,7 +2303,11 @@
     "current_rest_days": 20,
     "club_xg_for": 0.6,
     "club_xg_against": 2.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Guatemala": {
     "elo": 1626.89,
@@ -1905,7 +2325,11 @@
     "current_rest_days": 16,
     "club_xg_for": 1.2,
     "club_xg_against": 3.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Guernsey": {
     "elo": 1493.01,
@@ -1923,7 +2347,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.333,
     "club_xg_against": 2.667,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Guinea": {
     "elo": 1538.95,
@@ -1941,7 +2369,11 @@
     "current_rest_days": 19,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.8
+    "club_xg_overperf": 0.8,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Guinea-Bissau": {
     "elo": 1349.29,
@@ -1959,7 +2391,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.667
+    "club_xg_overperf": 0.667,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Guyana": {
     "elo": 1458.67,
@@ -1977,7 +2413,11 @@
     "current_rest_days": 30,
     "club_xg_for": 2.2,
     "club_xg_against": 1.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Haiti": {
     "elo": 1637.38,
@@ -1995,7 +2435,11 @@
     "current_rest_days": 4,
     "club_xg_for": 1.2,
     "club_xg_against": 1.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 42000000,
+    "avg_player_value_eur": 1600000,
+    "squad_age": 26.2,
+    "squad_value_norm": 0.028
   },
   "Honduras": {
     "elo": 1684.01,
@@ -2013,7 +2457,11 @@
     "current_rest_days": 17,
     "club_xg_for": 1.0,
     "club_xg_against": 1.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Hong Kong": {
     "elo": 1280.5,
@@ -2031,7 +2479,11 @@
     "current_rest_days": 14,
     "club_xg_for": 1.0,
     "club_xg_against": 1.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Hungary": {
     "elo": 1725.95,
@@ -2049,7 +2501,11 @@
     "current_rest_days": 14,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.667
+    "club_xg_overperf": 0.667,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Iceland": {
     "elo": 1559.27,
@@ -2067,7 +2523,11 @@
     "current_rest_days": 14,
     "club_xg_for": 1.572,
     "club_xg_against": 1.356,
-    "club_xg_overperf": -0.906
+    "club_xg_overperf": -0.906,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "India": {
     "elo": 1283.76,
@@ -2085,7 +2545,11 @@
     "current_rest_days": 14,
     "club_xg_for": 0.8,
     "club_xg_against": 1.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Indonesia": {
     "elo": 1564.4,
@@ -2103,7 +2567,11 @@
     "current_rest_days": 14,
     "club_xg_for": 1.2,
     "club_xg_against": 0.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Iran": {
     "elo": 1865.19,
@@ -2121,7 +2589,11 @@
     "current_rest_days": 8,
     "club_xg_for": 1.277,
     "club_xg_against": 1.258,
-    "club_xg_overperf": 0.056
+    "club_xg_overperf": 0.056,
+    "squad_value_eur": 198700000,
+    "avg_player_value_eur": 9031818,
+    "squad_age": 22.7,
+    "squad_value_norm": 0.1325
   },
   "Iraq": {
     "elo": 1723.44,
@@ -2139,7 +2611,11 @@
     "current_rest_days": 7,
     "club_xg_for": 1.0,
     "club_xg_against": 1.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 48000000,
+    "avg_player_value_eur": 1800000,
+    "squad_age": 26.4,
+    "squad_value_norm": 0.032
   },
   "Israel": {
     "elo": 1600.93,
@@ -2157,7 +2633,11 @@
     "current_rest_days": 20,
     "club_xg_for": 1.4,
     "club_xg_against": 1.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Italy": {
     "elo": 1875.9,
@@ -2175,7 +2655,11 @@
     "current_rest_days": 16,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.75
+    "club_xg_overperf": 0.75,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Ivory Coast": {
     "elo": 1829.1,
@@ -2193,7 +2677,11 @@
     "current_rest_days": 3,
     "club_xg_for": 1.8,
     "club_xg_against": 0.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 310000000,
+    "avg_player_value_eur": 11900000,
+    "squad_age": 27.1,
+    "squad_value_norm": 0.2067
   },
   "Jamaica": {
     "elo": 1652.31,
@@ -2211,7 +2699,11 @@
     "current_rest_days": 17,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.333
+    "club_xg_overperf": 0.333,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Japan": {
     "elo": 1970.88,
@@ -2229,7 +2721,11 @@
     "current_rest_days": 3,
     "club_xg_for": 1.846,
     "club_xg_against": 1.953,
-    "club_xg_overperf": -0.596
+    "club_xg_overperf": -0.596,
+    "squad_value_eur": 270850000,
+    "avg_player_value_eur": 10417307,
+    "squad_age": 24.7,
+    "squad_value_norm": 0.1806
   },
   "Jersey": {
     "elo": 1469.49,
@@ -2247,7 +2743,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.4,
     "club_xg_against": 2.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Jordan": {
     "elo": 1654.79,
@@ -2265,7 +2765,11 @@
     "current_rest_days": 7,
     "club_xg_for": 1.2,
     "club_xg_against": 2.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 28000000,
+    "avg_player_value_eur": 1100000,
+    "squad_age": 27.0,
+    "squad_value_norm": 0.0187
   },
   "Kazakhstan": {
     "elo": 1416.18,
@@ -2283,7 +2787,11 @@
     "current_rest_days": 14,
     "club_xg_for": 0.8,
     "club_xg_against": 1.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Kenya": {
     "elo": 1439.86,
@@ -2301,7 +2809,11 @@
     "current_rest_days": 19,
     "club_xg_for": 1.4,
     "club_xg_against": 2.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Kernow": {
     "elo": 1570.64,
@@ -2319,7 +2831,11 @@
     "current_rest_days": 30,
     "club_xg_for": 2.8,
     "club_xg_against": 0.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Kosovo": {
     "elo": 1718.46,
@@ -2337,7 +2853,11 @@
     "current_rest_days": 16,
     "club_xg_for": 1.8,
     "club_xg_against": 1.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Kuwait": {
     "elo": 1449.68,
@@ -2355,7 +2875,11 @@
     "current_rest_days": 18,
     "club_xg_for": 2.0,
     "club_xg_against": 2.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Kyrgyzstan": {
     "elo": 1489.39,
@@ -2373,7 +2897,11 @@
     "current_rest_days": 14,
     "club_xg_for": 0.6,
     "club_xg_against": 1.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Laos": {
     "elo": 1056.97,
@@ -2391,7 +2919,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.6,
     "club_xg_against": 3.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Latvia": {
     "elo": 1295.87,
@@ -2409,7 +2941,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.6,
     "club_xg_against": 2.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Lebanon": {
     "elo": 1454.32,
@@ -2427,7 +2963,11 @@
     "current_rest_days": 30,
     "club_xg_for": 2.2,
     "club_xg_against": 0.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Lesotho": {
     "elo": 1362.61,
@@ -2445,7 +2985,11 @@
     "current_rest_days": 19,
     "club_xg_for": 0.6,
     "club_xg_against": 0.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Liberia": {
     "elo": 1418.56,
@@ -2463,7 +3007,11 @@
     "current_rest_days": 14,
     "club_xg_for": 1.4,
     "club_xg_against": 1.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Libya": {
     "elo": 1517.14,
@@ -2481,7 +3029,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.4,
     "club_xg_against": 0.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Liechtenstein": {
     "elo": 909.43,
@@ -2499,7 +3051,11 @@
     "current_rest_days": 16,
     "club_xg_for": 0.2,
     "club_xg_against": 2.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Lithuania": {
     "elo": 1288.74,
@@ -2517,7 +3073,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.4,
     "club_xg_against": 1.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Luhansk PR": {
     "elo": 1481.84,
@@ -2535,7 +3095,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.8,
     "club_xg_against": 2.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Luxembourg": {
     "elo": 1415.39,
@@ -2553,7 +3117,11 @@
     "current_rest_days": 17,
     "club_xg_for": 0.2,
     "club_xg_against": 1.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Macau": {
     "elo": 949.32,
@@ -2571,7 +3139,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.2,
     "club_xg_against": 2.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Madagascar": {
     "elo": 1484.09,
@@ -2589,7 +3161,11 @@
     "current_rest_days": 21,
     "club_xg_for": 1.8,
     "club_xg_against": 2.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Madrid": {
     "elo": 1492.76,
@@ -2607,7 +3183,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.0,
     "club_xg_against": 2.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Malawi": {
     "elo": 1417.89,
@@ -2625,7 +3205,11 @@
     "current_rest_days": 14,
     "club_xg_for": 0.4,
     "club_xg_against": 0.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Malaysia": {
     "elo": 1528.96,
@@ -2643,7 +3227,11 @@
     "current_rest_days": 30,
     "club_xg_for": 2.4,
     "club_xg_against": 0.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Maldives": {
     "elo": 1112.95,
@@ -2661,7 +3249,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.2,
     "club_xg_against": 1.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Mali": {
     "elo": 1686.53,
@@ -2679,7 +3271,11 @@
     "current_rest_days": 19,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.2
+    "club_xg_overperf": 1.2,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Malta": {
     "elo": 1313.02,
@@ -2697,7 +3293,11 @@
     "current_rest_days": 18,
     "club_xg_for": 1.4,
     "club_xg_against": 1.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Martinique": {
     "elo": 1500.49,
@@ -2715,7 +3315,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.6,
     "club_xg_against": 0.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Mauritania": {
     "elo": 1453.58,
@@ -2733,7 +3337,11 @@
     "current_rest_days": 15,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.75
+    "club_xg_overperf": 0.75,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Mauritius": {
     "elo": 1189.9,
@@ -2751,7 +3359,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.8,
     "club_xg_against": 2.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Mayotte": {
     "elo": 1453.25,
@@ -2769,7 +3381,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.0,
     "club_xg_against": 1.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Mexico": {
     "elo": 1976.95,
@@ -2787,7 +3403,11 @@
     "current_rest_days": 5,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.333
+    "club_xg_overperf": 0.333,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Micronesia": {
     "elo": 1487.37,
@@ -2805,7 +3425,11 @@
     "current_rest_days": 30,
     "club_xg_for": 2.667,
     "club_xg_against": 2.333,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Moldova": {
     "elo": 1277.36,
@@ -2823,7 +3447,11 @@
     "current_rest_days": 14,
     "club_xg_for": 1.2,
     "club_xg_against": 2.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Monaco": {
     "elo": 1455.32,
@@ -2841,7 +3469,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.0,
     "club_xg_against": 3.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Mongolia": {
     "elo": 1138.26,
@@ -2859,7 +3491,11 @@
     "current_rest_days": 18,
     "club_xg_for": 1.0,
     "club_xg_against": 2.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Montenegro": {
     "elo": 1464.6,
@@ -2877,7 +3513,11 @@
     "current_rest_days": 18,
     "club_xg_for": 1.8,
     "club_xg_against": 1.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Montserrat": {
     "elo": 1254.46,
@@ -2895,7 +3535,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.4,
     "club_xg_against": 1.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Morocco": {
     "elo": 1991.81,
@@ -2913,7 +3557,11 @@
     "current_rest_days": 4,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.25
+    "club_xg_overperf": 1.25,
+    "squad_value_eur": 420000000,
+    "avg_player_value_eur": 16200000,
+    "squad_age": 27.4,
+    "squad_value_norm": 0.28
   },
   "Mozambique": {
     "elo": 1472.24,
@@ -2931,7 +3579,11 @@
     "current_rest_days": 14,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.333
+    "club_xg_overperf": 1.333,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Myanmar": {
     "elo": 1182.38,
@@ -2949,7 +3601,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.0,
     "club_xg_against": 2.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Namibia": {
     "elo": 1381.48,
@@ -2967,7 +3623,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.25
+    "club_xg_overperf": 0.25,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Nepal": {
     "elo": 1138.94,
@@ -2985,7 +3645,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.6,
     "club_xg_against": 1.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Netherlands": {
     "elo": 1996.17,
@@ -3003,7 +3667,11 @@
     "current_rest_days": 3,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.667
+    "club_xg_overperf": 1.667,
+    "squad_value_eur": 275600000,
+    "avg_player_value_eur": 11024000,
+    "squad_age": 23.8,
+    "squad_value_norm": 0.1837
   },
   "New Caledonia": {
     "elo": 1496.19,
@@ -3021,7 +3689,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.2,
     "club_xg_against": 1.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "New Zealand": {
     "elo": 1705.32,
@@ -3039,7 +3711,11 @@
     "current_rest_days": 8,
     "club_xg_for": 0.6,
     "club_xg_against": 2.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 35000000,
+    "avg_player_value_eur": 1300000,
+    "squad_age": 27.9,
+    "squad_value_norm": 0.0233
   },
   "Nicaragua": {
     "elo": 1504.56,
@@ -3057,7 +3733,11 @@
     "current_rest_days": 18,
     "club_xg_for": 0.6,
     "club_xg_against": 1.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Niger": {
     "elo": 1484.44,
@@ -3075,7 +3755,11 @@
     "current_rest_days": 15,
     "club_xg_for": 1.0,
     "club_xg_against": 1.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Nigeria": {
     "elo": 1811.71,
@@ -3093,7 +3777,11 @@
     "current_rest_days": 13,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.143
+    "club_xg_overperf": 1.143,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "North Korea": {
     "elo": 1456.16,
@@ -3111,7 +3799,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.0,
     "club_xg_against": 2.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "North Macedonia": {
     "elo": 1573.16,
@@ -3129,7 +3821,11 @@
     "current_rest_days": 22,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.667
+    "club_xg_overperf": 0.667,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Northern Cyprus": {
     "elo": 1495.36,
@@ -3147,7 +3843,11 @@
     "current_rest_days": 30,
     "club_xg_for": 2.0,
     "club_xg_against": 2.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Northern Ireland": {
     "elo": 1602.41,
@@ -3165,7 +3865,11 @@
     "current_rest_days": 15,
     "club_xg_for": 0.8,
     "club_xg_against": 1.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Northern Mariana Islands": {
     "elo": 1421.67,
@@ -3183,7 +3887,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.2,
     "club_xg_against": 3.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Norway": {
     "elo": 1949.18,
@@ -3201,7 +3909,11 @@
     "current_rest_days": 7,
     "club_xg_for": 1.8,
     "club_xg_against": 1.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 245200000,
+    "avg_player_value_eur": 9430769,
+    "squad_age": 23.7,
+    "squad_value_norm": 0.1635
   },
   "Occitania": {
     "elo": 1612.95,
@@ -3219,7 +3931,11 @@
     "current_rest_days": 30,
     "club_xg_for": 5.6,
     "club_xg_against": 1.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Oman": {
     "elo": 1579.64,
@@ -3237,7 +3953,11 @@
     "current_rest_days": 18,
     "club_xg_for": 0.6,
     "club_xg_against": 1.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Padania": {
     "elo": 1500.68,
@@ -3255,7 +3975,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.5,
     "club_xg_against": 1.5,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Pakistan": {
     "elo": 1077.41,
@@ -3273,7 +3997,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.2,
     "club_xg_against": 1.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Palau": {
     "elo": 1464.24,
@@ -3291,7 +4019,11 @@
     "current_rest_days": 30,
     "club_xg_for": 2.0,
     "club_xg_against": 15.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Palestine": {
     "elo": 1531.43,
@@ -3309,7 +4041,11 @@
     "current_rest_days": 14,
     "club_xg_for": 0.2,
     "club_xg_against": 1.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Panama": {
     "elo": 1761.61,
@@ -3327,7 +4063,11 @@
     "current_rest_days": 6,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.5
+    "club_xg_overperf": 1.5,
+    "squad_value_eur": 38000000,
+    "avg_player_value_eur": 1500000,
+    "squad_age": 28.1,
+    "squad_value_norm": 0.0253
   },
   "Panjab": {
     "elo": 1531.87,
@@ -3345,7 +4085,11 @@
     "current_rest_days": 30,
     "club_xg_for": 2.6,
     "club_xg_against": 1.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Papua New Guinea": {
     "elo": 1333.27,
@@ -3363,7 +4107,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.4,
     "club_xg_against": 4.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Paraguay": {
     "elo": 1833.3,
@@ -3381,7 +4129,11 @@
     "current_rest_days": 4,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.0
+    "club_xg_overperf": 1.0,
+    "squad_value_eur": 232100000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 23.7,
+    "squad_value_norm": 0.1547
   },
   "Parishes of Jersey": {
     "elo": 1511.18,
@@ -3399,7 +4151,11 @@
     "current_rest_days": 30,
     "club_xg_for": 2.0,
     "club_xg_against": 1.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Peru": {
     "elo": 1711.54,
@@ -3417,7 +4173,11 @@
     "current_rest_days": 15,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Philippines": {
     "elo": 1339.07,
@@ -3435,7 +4195,11 @@
     "current_rest_days": 20,
     "club_xg_for": 3.2,
     "club_xg_against": 1.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Poland": {
     "elo": 1726.94,
@@ -3453,7 +4217,11 @@
     "current_rest_days": 20,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.0
+    "club_xg_overperf": 1.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Portugal": {
     "elo": 1966.81,
@@ -3471,7 +4239,11 @@
     "current_rest_days": 6,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.0
+    "club_xg_overperf": 1.0,
+    "squad_value_eur": 170200000,
+    "avg_player_value_eur": 6808000,
+    "squad_age": 22.6,
+    "squad_value_norm": 0.1135
   },
   "Provence": {
     "elo": 1541.05,
@@ -3489,7 +4261,11 @@
     "current_rest_days": 30,
     "club_xg_for": 4.0,
     "club_xg_against": 1.333,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Puerto Rico": {
     "elo": 1400.85,
@@ -3507,7 +4283,11 @@
     "current_rest_days": 18,
     "club_xg_for": 0.6,
     "club_xg_against": 2.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Qatar": {
     "elo": 1621.71,
@@ -3525,7 +4305,11 @@
     "current_rest_days": 5,
     "club_xg_for": 0.469,
     "club_xg_against": 1.257,
-    "club_xg_overperf": -0.136
+    "club_xg_overperf": -0.136,
+    "squad_value_eur": 65000000,
+    "avg_player_value_eur": 2500000,
+    "squad_age": 27.6,
+    "squad_value_norm": 0.0433
   },
   "Raetia": {
     "elo": 1410.8,
@@ -3543,7 +4327,11 @@
     "current_rest_days": 30,
     "club_xg_for": 2.4,
     "club_xg_against": 2.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Republic of Ireland": {
     "elo": 1712.92,
@@ -3561,7 +4349,11 @@
     "current_rest_days": 18,
     "club_xg_for": 1.8,
     "club_xg_against": 0.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Romani people": {
     "elo": 1476.11,
@@ -3579,7 +4371,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.667,
     "club_xg_against": 4.667,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Romania": {
     "elo": 1638.67,
@@ -3597,7 +4393,11 @@
     "current_rest_days": 17,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.0
+    "club_xg_overperf": 1.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Russia": {
     "elo": 1813.22,
@@ -3615,7 +4415,11 @@
     "current_rest_days": 14,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.667
+    "club_xg_overperf": 0.667,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Rwanda": {
     "elo": 1419.77,
@@ -3633,7 +4437,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.2,
     "club_xg_against": 1.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Ry\u016bky\u016b": {
     "elo": 1475.0,
@@ -3651,7 +4459,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.0,
     "club_xg_against": 9.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "R\u00e9union": {
     "elo": 1492.51,
@@ -3669,7 +4481,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.6,
     "club_xg_against": 1.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Saint Barth\u00e9lemy": {
     "elo": 1445.61,
@@ -3687,7 +4503,11 @@
     "current_rest_days": 30,
     "club_xg_for": 3.0,
     "club_xg_against": 2.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Saint Helena": {
     "elo": 1480.0,
@@ -3705,7 +4525,11 @@
     "current_rest_days": 30,
     "club_xg_for": 2.0,
     "club_xg_against": 7.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Saint Kitts and Nevis": {
     "elo": 1311.47,
@@ -3723,7 +4547,11 @@
     "current_rest_days": 30,
     "club_xg_for": 2.2,
     "club_xg_against": 2.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Saint Lucia": {
     "elo": 1290.15,
@@ -3741,7 +4569,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.6,
     "club_xg_against": 3.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Saint Martin": {
     "elo": 1307.88,
@@ -3759,7 +4591,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.6,
     "club_xg_against": 2.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Saint Vincent and the Grenadines": {
     "elo": 1401.96,
@@ -3777,7 +4613,11 @@
     "current_rest_days": 30,
     "club_xg_for": 3.2,
     "club_xg_against": 0.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Samoa": {
     "elo": 1356.54,
@@ -3795,7 +4635,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.0,
     "club_xg_against": 3.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "San Marino": {
     "elo": 872.96,
@@ -3813,7 +4657,11 @@
     "current_rest_days": 14,
     "club_xg_for": 0.8,
     "club_xg_against": 2.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Saudi Arabia": {
     "elo": 1712.05,
@@ -3831,7 +4679,11 @@
     "current_rest_days": 8,
     "club_xg_for": 1.067,
     "club_xg_against": 2.183,
-    "club_xg_overperf": -0.067
+    "club_xg_overperf": -0.067,
+    "squad_value_eur": 77450000,
+    "avg_player_value_eur": 2978846,
+    "squad_age": 24.8,
+    "squad_value_norm": 0.0516
   },
   "Saugeais": {
     "elo": 1498.83,
@@ -3849,7 +4701,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.0,
     "club_xg_against": 1.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Scotland": {
     "elo": 1808.67,
@@ -3867,7 +4723,11 @@
     "current_rest_days": 4,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.667
+    "club_xg_overperf": 0.667,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8300000,
+    "squad_age": 27.6,
+    "squad_value_norm": 0.1433
   },
   "Sealand": {
     "elo": 1538.4,
@@ -3885,7 +4745,11 @@
     "current_rest_days": 30,
     "club_xg_for": 3.2,
     "club_xg_against": 1.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Seborga": {
     "elo": 1490.84,
@@ -3903,7 +4767,11 @@
     "current_rest_days": 30,
     "club_xg_for": 2.0,
     "club_xg_against": 3.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Senegal": {
     "elo": 1854.35,
@@ -3921,7 +4789,11 @@
     "current_rest_days": 7,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 2.25
+    "club_xg_overperf": 2.25,
+    "squad_value_eur": 270000000,
+    "avg_player_value_eur": 10400000,
+    "squad_age": 26.9,
+    "squad_value_norm": 0.18
   },
   "Serbia": {
     "elo": 1749.4,
@@ -3939,7 +4811,11 @@
     "current_rest_days": 19,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.333
+    "club_xg_overperf": 0.333,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Seychelles": {
     "elo": 1041.74,
@@ -3957,7 +4833,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.0,
     "club_xg_against": 5.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Sierra Leone": {
     "elo": 1426.28,
@@ -3975,7 +4855,11 @@
     "current_rest_days": 14,
     "club_xg_for": 1.2,
     "club_xg_against": 1.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Silesia": {
     "elo": 1505.22,
@@ -3993,7 +4877,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.0,
     "club_xg_against": 1.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Singapore": {
     "elo": 1334.12,
@@ -4011,7 +4899,11 @@
     "current_rest_days": 18,
     "club_xg_for": 2.2,
     "club_xg_against": 1.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Sint Maarten": {
     "elo": 1299.03,
@@ -4029,7 +4921,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.0,
     "club_xg_against": 3.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Slovakia": {
     "elo": 1674.76,
@@ -4047,7 +4943,11 @@
     "current_rest_days": 18,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.0
+    "club_xg_overperf": 1.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Slovenia": {
     "elo": 1676.09,
@@ -4065,7 +4965,11 @@
     "current_rest_days": 16,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.5
+    "club_xg_overperf": 0.5,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Solomon Islands": {
     "elo": 1452.02,
@@ -4083,7 +4987,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.2,
     "club_xg_against": 1.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Somalia": {
     "elo": 1167.92,
@@ -4101,7 +5009,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.4,
     "club_xg_against": 2.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Somaliland": {
     "elo": 1483.76,
@@ -4119,7 +5031,11 @@
     "current_rest_days": 30,
     "club_xg_for": 2.0,
     "club_xg_against": 4.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "South Africa": {
     "elo": 1660.58,
@@ -4137,7 +5053,11 @@
     "current_rest_days": 5,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.0
+    "club_xg_overperf": 1.0,
+    "squad_value_eur": 18400000,
+    "avg_player_value_eur": 681481,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.0123
   },
   "South Korea": {
     "elo": 1862.27,
@@ -4155,7 +5075,11 @@
     "current_rest_days": 5,
     "club_xg_for": 0.901,
     "club_xg_against": 1.458,
-    "club_xg_overperf": 0.349
+    "club_xg_overperf": 0.349,
+    "squad_value_eur": 365000000,
+    "avg_player_value_eur": 15869565,
+    "squad_age": 22.5,
+    "squad_value_norm": 0.2433
   },
   "South Ossetia": {
     "elo": 1486.08,
@@ -4173,7 +5097,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.667,
     "club_xg_against": 2.333,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "South Sudan": {
     "elo": 1274.71,
@@ -4191,7 +5119,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.4,
     "club_xg_against": 2.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Spain": {
     "elo": 2126.34,
@@ -4209,7 +5141,11 @@
     "current_rest_days": 8,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 2.143
+    "club_xg_overperf": 2.143,
+    "squad_value_eur": 1222800000,
+    "avg_player_value_eur": 47030769,
+    "squad_age": 21.8,
+    "squad_value_norm": 0.8152
   },
   "Sri Lanka": {
     "elo": 1119.53,
@@ -4227,7 +5163,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.2,
     "club_xg_against": 1.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Sudan": {
     "elo": 1430.68,
@@ -4245,7 +5185,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.4,
     "club_xg_against": 2.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Suriname": {
     "elo": 1583.71,
@@ -4263,7 +5207,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.6,
     "club_xg_against": 1.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Surrey": {
     "elo": 1514.86,
@@ -4281,7 +5229,11 @@
     "current_rest_days": 30,
     "club_xg_for": 3.0,
     "club_xg_against": 1.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Sweden": {
     "elo": 1745.71,
@@ -4299,7 +5251,11 @@
     "current_rest_days": 3,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.25
+    "club_xg_overperf": 1.25,
+    "squad_value_eur": 290000000,
+    "avg_player_value_eur": 11200000,
+    "squad_age": 27.8,
+    "squad_value_norm": 0.1933
   },
   "Switzerland": {
     "elo": 1899.53,
@@ -4317,7 +5273,11 @@
     "current_rest_days": 5,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.6
+    "club_xg_overperf": 1.6,
+    "squad_value_eur": 480000000,
+    "avg_player_value_eur": 18500000,
+    "squad_age": 27.2,
+    "squad_value_norm": 0.32
   },
   "Syria": {
     "elo": 1520.16,
@@ -4335,7 +5295,11 @@
     "current_rest_days": 18,
     "club_xg_for": 3.2,
     "club_xg_against": 1.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Sz\u00e9kely Land": {
     "elo": 1514.05,
@@ -4353,7 +5317,11 @@
     "current_rest_days": 30,
     "club_xg_for": 3.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "S\u00e1pmi": {
     "elo": 1492.0,
@@ -4371,7 +5339,11 @@
     "current_rest_days": 30,
     "club_xg_for": 2.0,
     "club_xg_against": 3.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "S\u00e3o Tom\u00e9 and Pr\u00edncipe": {
     "elo": 1142.13,
@@ -4389,7 +5361,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.8,
     "club_xg_against": 2.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Tahiti": {
     "elo": 1443.76,
@@ -4407,7 +5383,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.6,
     "club_xg_against": 1.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Taiwan": {
     "elo": 1113.65,
@@ -4425,7 +5405,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.6,
     "club_xg_against": 4.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Tajikistan": {
     "elo": 1486.44,
@@ -4443,7 +5427,11 @@
     "current_rest_days": 14,
     "club_xg_for": 2.8,
     "club_xg_against": 0.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Tamil Eelam": {
     "elo": 1515.29,
@@ -4461,7 +5449,11 @@
     "current_rest_days": 30,
     "club_xg_for": 5.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Tanzania": {
     "elo": 1461.21,
@@ -4479,7 +5471,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.333
+    "club_xg_overperf": 0.333,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Thailand": {
     "elo": 1516.57,
@@ -4497,7 +5493,11 @@
     "current_rest_days": 14,
     "club_xg_for": 3.0,
     "club_xg_against": 1.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Tibet": {
     "elo": 1443.88,
@@ -4515,7 +5515,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.25,
     "club_xg_against": 3.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Ticino": {
     "elo": 1475.32,
@@ -4533,7 +5537,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.0,
     "club_xg_against": 5.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Timor-Leste": {
     "elo": 1012.62,
@@ -4551,7 +5559,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.6,
     "club_xg_against": 2.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Togo": {
     "elo": 1459.09,
@@ -4569,7 +5581,11 @@
     "current_rest_days": 14,
     "club_xg_for": 1.4,
     "club_xg_against": 0.6,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Tonga": {
     "elo": 1263.03,
@@ -4587,7 +5603,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.0,
     "club_xg_against": 2.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Trinidad and Tobago": {
     "elo": 1548.45,
@@ -4605,7 +5625,11 @@
     "current_rest_days": 14,
     "club_xg_for": 0.6,
     "club_xg_against": 2.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Tunisia": {
     "elo": 1640.24,
@@ -4623,7 +5647,11 @@
     "current_rest_days": 3,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.333
+    "club_xg_overperf": 0.333,
+    "squad_value_eur": 105000000,
+    "avg_player_value_eur": 4000000,
+    "squad_age": 27.2,
+    "squad_value_norm": 0.07
   },
   "Turkey": {
     "elo": 1820.92,
@@ -4641,7 +5669,11 @@
     "current_rest_days": 4,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.6
+    "club_xg_overperf": 1.6,
+    "squad_value_eur": 520000000,
+    "avg_player_value_eur": 20000000,
+    "squad_age": 26.8,
+    "squad_value_norm": 0.3467
   },
   "Turkmenistan": {
     "elo": 1398.75,
@@ -4659,7 +5691,11 @@
     "current_rest_days": 30,
     "club_xg_for": 2.0,
     "club_xg_against": 1.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Turks and Caicos Islands": {
     "elo": 1040.29,
@@ -4677,7 +5713,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.6,
     "club_xg_against": 2.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Tuvalu": {
     "elo": 1495.48,
@@ -4695,7 +5735,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.5,
     "club_xg_against": 4.5,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Uganda": {
     "elo": 1510.06,
@@ -4713,7 +5757,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.0,
     "club_xg_against": 2.4,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Ukraine": {
     "elo": 1738.84,
@@ -4731,7 +5779,11 @@
     "current_rest_days": 16,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.667
+    "club_xg_overperf": 0.667,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "United Arab Emirates": {
     "elo": 1700.65,
@@ -4749,7 +5801,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.2,
     "club_xg_against": 1.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "United Koreans in Japan": {
     "elo": 1525.0,
@@ -4767,7 +5823,11 @@
     "current_rest_days": 30,
     "club_xg_for": 9.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "United States": {
     "elo": 1960.4,
@@ -4785,7 +5845,11 @@
     "current_rest_days": 4,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.0
+    "club_xg_overperf": 1.0,
+    "squad_value_eur": 680000000,
+    "avg_player_value_eur": 26200000,
+    "squad_age": 25.9,
+    "squad_value_norm": 0.4533
   },
   "United States Virgin Islands": {
     "elo": 970.39,
@@ -4803,7 +5867,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.8,
     "club_xg_against": 2.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Uruguay": {
     "elo": 1894.63,
@@ -4821,7 +5889,11 @@
     "current_rest_days": 8,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.833
+    "club_xg_overperf": 1.833,
+    "squad_value_eur": 172050000,
+    "avg_player_value_eur": 7820454,
+    "squad_age": 23.3,
+    "squad_value_norm": 0.1147
   },
   "Uzbekistan": {
     "elo": 1756.54,
@@ -4839,7 +5911,11 @@
     "current_rest_days": 6,
     "club_xg_for": 1.0,
     "club_xg_against": 2.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 62000000,
+    "avg_player_value_eur": 2400000,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.0413
   },
   "Vanuatu": {
     "elo": 1469.29,
@@ -4857,7 +5933,11 @@
     "current_rest_days": 17,
     "club_xg_for": 1.4,
     "club_xg_against": 2.8,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Vatican City": {
     "elo": 1413.9,
@@ -4875,7 +5955,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.8,
     "club_xg_against": 2.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Venezuela": {
     "elo": 1753.9,
@@ -4893,7 +5977,11 @@
     "current_rest_days": 14,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 1.75
+    "club_xg_overperf": 1.75,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Vietnam": {
     "elo": 1436.8,
@@ -4911,7 +5999,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.8,
     "club_xg_against": 1.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Wales": {
     "elo": 1707.43,
@@ -4929,7 +6021,11 @@
     "current_rest_days": 17,
     "club_xg_for": 0.74,
     "club_xg_against": 1.657,
-    "club_xg_overperf": -0.406
+    "club_xg_overperf": -0.406,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "West Papua": {
     "elo": 1476.07,
@@ -4947,7 +6043,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.5,
     "club_xg_against": 4.5,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Western Sahara": {
     "elo": 1493.76,
@@ -4965,7 +6065,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.5,
     "club_xg_against": 2.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Yemen": {
     "elo": 1325.55,
@@ -4983,7 +6087,11 @@
     "current_rest_days": 30,
     "club_xg_for": 3.6,
     "club_xg_against": 0.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Ynys M\u00f4n": {
     "elo": 1520.0,
@@ -5001,7 +6109,11 @@
     "current_rest_days": 30,
     "club_xg_for": 7.0,
     "club_xg_against": 2.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Yorkshire": {
     "elo": 1556.5,
@@ -5019,7 +6131,11 @@
     "current_rest_days": 30,
     "club_xg_for": 5.0,
     "club_xg_against": 2.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Zambia": {
     "elo": 1520.15,
@@ -5037,7 +6153,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.0,
     "club_xg_against": 0.0,
-    "club_xg_overperf": 0.667
+    "club_xg_overperf": 0.667,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Zanzibar": {
     "elo": 1450.72,
@@ -5055,7 +6175,11 @@
     "current_rest_days": 30,
     "club_xg_for": 0.8,
     "club_xg_against": 1.2,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "Zimbabwe": {
     "elo": 1414.32,
@@ -5073,7 +6197,11 @@
     "current_rest_days": 30,
     "club_xg_for": 1.4,
     "club_xg_against": 2.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   },
   "\u00c5land Islands": {
     "elo": 1500.0,
@@ -5091,6 +6219,10 @@
     "current_rest_days": 30,
     "club_xg_for": 2.0,
     "club_xg_against": 2.0,
-    "club_xg_overperf": 0.0
+    "club_xg_overperf": 0.0,
+    "squad_value_eur": 215000000,
+    "avg_player_value_eur": 8926923,
+    "squad_age": 25.8,
+    "squad_value_norm": 0.1433
   }
 }

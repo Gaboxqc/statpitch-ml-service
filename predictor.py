@@ -37,6 +37,7 @@ _AVG = {
     'xg_avg5': 1.30,     'xga_avg5': 1.30,
     'xg_avg10': 1.30,    'xga_avg10': 1.30,
     'club_xg_overperf': 0.0,
+    'squad_value_norm': 0.13, 'squad_age': 26.5,
 }
 
 
@@ -105,6 +106,12 @@ def _build_features(home, away, is_neutral, match_date=None):
         'away_xga_avg10':        a.get('xga_avg10',        _AVG['xga_avg10']),
         'home_club_xg_overperf': h.get('club_xg_overperf', 0.0),
         'away_club_xg_overperf': a.get('club_xg_overperf', 0.0),
+        'home_squad_value_norm': h.get('squad_value_norm', 0.13),
+        'away_squad_value_norm': a.get('squad_value_norm', 0.13),
+        'home_squad_age':        h.get('squad_age',        26.5),
+        'away_squad_age':        a.get('squad_age',        26.5),
+        'squad_value_diff':      h.get('squad_value_norm', 0.13)
+                                  - a.get('squad_value_norm', 0.13),
     }
     return np.array([[row[c] for c in FEATURE_COLS]])
 
@@ -191,6 +198,8 @@ def predict(home, away, is_neutral=True, match_date=None):
             'elo_diff':      round(h.get('elo', ELO_DEFAULT) - a.get('elo', ELO_DEFAULT), 1),
             'h2h_games':     h2h['num_games'],
             'h2h_home_wins': round(h2h['win_rate'] * 100, 1),
+            'home_squad_value_m': round(h.get('squad_value_eur', 0) / 1e6, 1),
+            'away_squad_value_m': round(a.get('squad_value_eur', 0) / 1e6, 1),
         },
         'model_version': 'v3',
         **out,

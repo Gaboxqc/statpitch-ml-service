@@ -113,6 +113,35 @@ class Competition:
 
         return self.format
 
+    @property
+    def default_format_is_league_like(self) -> bool:
+        """True when the fallback format is a table, not a tie."""
+        return self.format in ("round_robin", "swiss_league_phase")
+
+    def knows_stage(self, stage: str | None) -> bool:
+        """Whether falling back to the default format for `stage` is safe.
+
+        `resolve_format` falls back to the competition default for an unrecognised
+        stage. That is harmless where the default matches the stage in kind — every
+        FA Cup round really is a single-leg tie — but dangerous for UCL and UEL,
+        whose default is `swiss_league_phase`. There, an unrecognised stage records
+        two-legged qualifiers as Swiss league fixtures and nothing raises.
+
+        So this reports "safe" unless the competition is a knockout whose default
+        is a league-type format, which is exactly the hazardous combination.
+        """
+        if not (self.is_knockout and self.default_format_is_league_like):
+            return True
+        stage_key = _normalise_stage(stage)
+        if stage_key is None:
+            return False
+        if stage_key in self.stage_formats:
+            return True
+        return any(
+            _normalise_stage(entry.get("stage")) == stage_key
+            for entry in self.format_history
+        )
+
     def is_neutral_venue(self, stage: str | None) -> bool:
         return _normalise_stage(stage) in self.neutral_venue_stages
 

@@ -109,7 +109,11 @@ _STAGE_PATTERNS: tuple[tuple[str, str], ...] = (
     (r"^group [a-l]$|^gruppe [a-l]$", "group_stage"),
     (r"^preliminary round$|^vorrunde$", "preliminary_round"),
     (r"^qualifying|^qualifikation", "qualifying"),
-    (r"^round (\d+)$|^(\d+)\.? ?runde$", "round_{}"),
+    # "Round 1", "1. Runde" and "1. Round" all occur — the last is DFB-Pokal
+    # 2025-26 mixing English and German in one label. Missing it splits the same
+    # round into two buckets, which silently halves the sample behind any
+    # per-round estimate.
+    (r"^round (\d+)$|^(\d+)\.? ?runde$|^(\d+)\.? ?round$", "round_{}"),
 )
 
 _TIME_RE = re.compile(r"^\s*(\d{1,2}[:.]\d{2})\s+")

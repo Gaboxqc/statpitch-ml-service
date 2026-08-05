@@ -99,7 +99,7 @@
       "teams": 18,
       "sources": {
         "football_data_code": "F1",
-        "openfootball_repo": "openfootball/france",
+        "openfootball_repo": "openfootball/europe",
         "understat_code": "Ligue_1"
       }
     },
@@ -209,7 +209,7 @@
       "teams": null,
       "sources": {
         "football_data_code": null,
-        "openfootball_repo": "openfootball/france",
+        "openfootball_repo": "openfootball/europe",
         "understat_code": null
       },
       "format_notes": "Single leg throughout. The lower-tier club hosts, which makes the FR-9 lower-division prior and home advantage interact strongly here."
@@ -227,6 +227,7 @@
         "group_stage": "round_robin",
         "league_phase": "swiss_league_phase",
         "knockout_playoff": "two_leg_knockout",
+        "round_of_32": "two_leg_knockout",
         "round_of_16": "two_leg_knockout",
         "quarter_final": "two_leg_knockout",
         "semi_final": "two_leg_knockout",
@@ -265,6 +266,7 @@
         "group_stage": "round_robin",
         "league_phase": "swiss_league_phase",
         "knockout_playoff": "two_leg_knockout",
+        "round_of_32": "two_leg_knockout",
         "round_of_16": "two_leg_knockout",
         "quarter_final": "two_leg_knockout",
         "semi_final": "two_leg_knockout",
@@ -278,7 +280,7 @@
       "teams": 36,
       "sources": {
         "football_data_code": null,
-        "openfootball_repo": "openfootball/europa-league",
+        "openfootball_repo": "openfootball/champions-league",
         "understat_code": null
       },
       "format_history": [

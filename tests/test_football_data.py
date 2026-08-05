@@ -37,10 +37,10 @@ E0,18/08/2024,Leeds,Burnley,,,,2.10,3.40,3.60,2.20,3.50,3.70,2.12,3.42,3.62,
 """
 
 
-def _season_file(tmp_path, name, text, start_year, competition_id="ENG.PL"):
+def _season_file(tmp_path, name, text, start_year, competition_id="ENG.PL", div_code="E0"):
     path = tmp_path / name
     path.write_text(text, encoding="utf-8")
-    return SeasonFile(competition_id, "E0", start_year, path)
+    return SeasonFile(competition_id, div_code, start_year, path)
 
 
 @pytest.fixture
@@ -307,6 +307,40 @@ def test_odds_rows_only_reference_known_matches(tmp_path):
     assert set(o["match_id"]) <= set(m["match_id"])
 
 
+# --- cross-division contamination ---------------------------------------------
+
+MIXED_DIV_CSV = """Div,Date,HomeTeam,AwayTeam,FTHG,FTAG,FTR,B365H,B365D,B365A,MaxH,MaxD,MaxA,AvgH,AvgD,AvgA
+SP1,17/08/2024,Barcelona,Sevilla,3,0,H,1.40,4.50,7.00,1.45,4.70,7.50,1.42,4.60,7.20
+SC1,17/08/2024,Arbroath,Ayr,1,1,D,2.50,3.20,2.70,2.60,3.30,2.80,2.55,3.25,2.75
+"""
+
+
+def test_rows_tagged_for_another_division_are_dropped(tmp_path, caplog):
+    """The real 2026/27 SP1 file carries five Scottish fixtures.
+
+    Left in, they import ten Scottish clubs into a LaLiga dataset — invisible
+    until something downstream tries to match them against a club-strength source.
+    """
+    sf = _season_file(
+        tmp_path, "SP1.csv", MIXED_DIV_CSV, 2026,
+        competition_id="ESP.LALIGA", div_code="SP1",
+    )
+    m = fd.parse_matches(sf)
+    assert list(m["home_team"]) == ["Barcelona"]
+    assert "Arbroath" not in set(m["away_team"]) | set(m["home_team"])
+    assert any("other divisions" in r.message for r in caplog.records)
+
+
+def test_odds_from_a_foreign_division_row_are_dropped_too(tmp_path):
+    sf = _season_file(
+        tmp_path, "SP1.csv", MIXED_DIV_CSV, 2026,
+        competition_id="ESP.LALIGA", div_code="SP1",
+    )
+    o = fd.parse_odds(sf)
+    assert not o.empty
+    assert o["match_id"].str.contains("Arbroath").sum() == 0
+
+
 # --- ragged rows --------------------------------------------------------------
 
 # Nine files in the real archive (2002/03-2004/05) have rows wider than their
@@ -314,14 +348,14 @@ def test_odds_rows_only_reference_known_matches(tmp_path):
 # matches, silently, because the parse failure is caught per-file.
 RAGGED_CSV = (
     "Div,Date,HomeTeam,AwayTeam,FTHG,FTAG,FTR,B365H,B365D,B365A,,\n"
-    "F1,09/08/03,Lyon,Monaco,3,1,H,1.90,3.00,3.75,,,,,,,\n"
-    "F1,09/08/03,Nantes,Lens,2,0,H,2.00,3.00,3.65,,,,,,,\n"
+    "E0,09/08/03,Lyon,Monaco,3,1,H,1.90,3.00,3.75,,,,,,,\n"
+    "E0,09/08/03,Nantes,Lens,2,0,H,2.00,3.00,3.65,,,,,,,\n"
 )
 
 RAGGED_WITH_REAL_DATA = (
     "Div,Date,HomeTeam,AwayTeam,FTHG,FTAG,FTR\n"
-    "F1,09/08/03,Lyon,Monaco,3,1,H\n"
-    "F1,09/08/03,Nantes,Lens,2,0,H,SURPRISE\n"
+    "E0,09/08/03,Lyon,Monaco,3,1,H\n"
+    "E0,09/08/03,Nantes,Lens,2,0,H,SURPRISE\n"
 )
 
 

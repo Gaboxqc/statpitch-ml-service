@@ -23,7 +23,11 @@
       "Bash(cp \"C:/Users/Gabox/Downloads/files/01_Requirements.md\" \"C:/Users/Gabox/Downloads/files/02_Design.md\" \"C:/Users/Gabox/Downloads/files/03_Tasks.md\" docs/)",
       "Bash(git init *)",
       "Bash(git add *)",
-      "Bash(git -c user.name=StatPitch -c user.email=noreply@statpitch.local commit -q -m ' *)"
+      "Bash(git -c user.name=StatPitch -c user.email=noreply@statpitch.local commit -q -m ' *)",
+      "Bash(curl -s --max-time 30 \"http://api.clubelo.com/2025-03-15\" -o elo_date.csv)",
+      "Bash(curl -s --max-time 30 \"http://api.clubelo.com/ManCity\" -o elo_club.csv)",
+      "Bash(.venv/Scripts/python.exe -)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/test_club_elo.py)"
     ]
   }
 }

@@ -12,6 +12,11 @@ data/raw/
 data/cache/
 models/*.pkl
 
+# Per-club Club Elo shards: a resumable fetch cache written by
+# scripts/fetch_cup_club_elo.py, not a deliverable. The combined
+# elo_ratings_all.parquet it produces is what gets committed.
+data/processed/elo_shards/
+
 # Secrets (API-Football key)
 .env
 

@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+.coverage
+htmlcov/
+
+# Raw downloads and caches are reproducible from source — never committed.
+data/raw/
+data/cache/
+models/*.pkl
+
+# Secrets (API-Football key)
+.env

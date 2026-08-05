@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import sys; print\\(sys.executable\\)\")",
+      "Bash(pip --version)",
+      "Bash(python -c \"import pandas, numpy, requests; print\\('pandas', pandas.__version__\\); print\\('numpy', numpy.__version__\\)\")",
+      "Bash(curl -s -o /dev/null -w \"fdcouk:%{http_code} size:%{size_download}\\\\n\" --max-time 25 \"https://www.football-data.co.uk/mmz4281/2425/E0.csv\")",
+      "Bash(curl -s -o /dev/null -w \"clubelo:%{http_code}\\\\n\" --max-time 25 \"http://api.clubelo.com/2024-08-01\")",
+      "Bash(python -m venv .venv)",
+      "Bash(.venv/Scripts/python.exe --version)",
+      "Bash(.venv/Scripts/python.exe -m pip install --quiet --upgrade pip)",
+      "Bash(.venv/Scripts/python.exe -m pip install -r requirements.txt)",
+      "Bash(.venv/Scripts/python.exe -m pip install -e . --quiet --no-deps)",
+      "Bash(.venv/Scripts/python.exe -m pytest)",
+      "Bash(.venv/Scripts/python.exe -m ruff check src tests)",
+      "Bash(curl -s --max-time 30 -o e0_2425.csv \"https://www.football-data.co.uk/mmz4281/2425/E0.csv\")",
+      "Bash(curl -s --max-time 30 -o e0_0910.csv \"https://www.football-data.co.uk/mmz4281/0910/E0.csv\")",
+      "Bash(python -c ' *)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/test_football_data.py)",
+      "Bash(.venv/Scripts/python.exe -m ruff check src tests --output-format=concise)",
+      "Bash(.venv/Scripts/python.exe -c ' *)",
+      "Bash(mkdir -p docs)",
+      "Bash(cp \"C:/Users/Gabox/Downloads/files/01_Requirements.md\" \"C:/Users/Gabox/Downloads/files/02_Design.md\" \"C:/Users/Gabox/Downloads/files/03_Tasks.md\" docs/)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git -c user.name=StatPitch -c user.email=noreply@statpitch.local commit -q -m ' *)"
+    ]
+  }
+}

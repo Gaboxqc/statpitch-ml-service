@@ -1,0 +1,300 @@
+{
+  "schema_version": "2.0",
+  "notes": [
+    "Design §2 competition taxonomy. This file is the foundation every later stage depends on.",
+    "`format` is the competition's DEFAULT format. Real competitions vary format by stage (Copa del Rey semis are two-legged; a UCL final is a single leg at a neutral venue), so `stage_formats` overrides it per stage and `format_history` records format changes across seasons. Resolve with statpitch.taxonomy.resolve_format() rather than reading `format` directly.",
+    "`odds_coverage` gates the entire Decision Layer (Requirements §9). football-data.co.uk covers league divisions only; no free odds source with cup coverage exists, so every cup and continental row is false.",
+    "`tier` is the league's position in its national pyramid. It is null for cups, because tier is a property of the ENTRANT club there, not of the competition — that is what `admits_lower_tiers` flags and what the FR-9 lower-division prior consumes."
+  ],
+  "away_goals_rule_abolished_from_season": "2021-2022",
+  "competitions": [
+    {
+      "competition_id": "ENG.PL",
+      "name": "Premier League",
+      "country": "England",
+      "competition_type": "league",
+      "format": "round_robin",
+      "stage_formats": {},
+      "tier": 1,
+      "odds_coverage": true,
+      "admits_lower_tiers": false,
+      "extra_time": false,
+      "neutral_venue_stages": [],
+      "teams": 20,
+      "sources": {
+        "football_data_code": "E0",
+        "openfootball_repo": "openfootball/england",
+        "understat_code": "EPL"
+      }
+    },
+    {
+      "competition_id": "ESP.LALIGA",
+      "name": "LaLiga",
+      "country": "Spain",
+      "competition_type": "league",
+      "format": "round_robin",
+      "stage_formats": {},
+      "tier": 1,
+      "odds_coverage": true,
+      "admits_lower_tiers": false,
+      "extra_time": false,
+      "neutral_venue_stages": [],
+      "teams": 20,
+      "sources": {
+        "football_data_code": "SP1",
+        "openfootball_repo": "openfootball/espana",
+        "understat_code": "La_liga"
+      }
+    },
+    {
+      "competition_id": "GER.BUNDESLIGA",
+      "name": "Bundesliga",
+      "country": "Germany",
+      "competition_type": "league",
+      "format": "round_robin",
+      "stage_formats": {},
+      "tier": 1,
+      "odds_coverage": true,
+      "admits_lower_tiers": false,
+      "extra_time": false,
+      "neutral_venue_stages": [],
+      "teams": 18,
+      "sources": {
+        "football_data_code": "D1",
+        "openfootball_repo": "openfootball/deutschland",
+        "understat_code": "Bundesliga"
+      }
+    },
+    {
+      "competition_id": "ITA.SERIEA",
+      "name": "Serie A",
+      "country": "Italy",
+      "competition_type": "league",
+      "format": "round_robin",
+      "stage_formats": {},
+      "tier": 1,
+      "odds_coverage": true,
+      "admits_lower_tiers": false,
+      "extra_time": false,
+      "neutral_venue_stages": [],
+      "teams": 20,
+      "sources": {
+        "football_data_code": "I1",
+        "openfootball_repo": "openfootball/italy",
+        "understat_code": "Serie_A"
+      }
+    },
+    {
+      "competition_id": "FRA.LIGUE1",
+      "name": "Ligue 1",
+      "country": "France",
+      "competition_type": "league",
+      "format": "round_robin",
+      "stage_formats": {},
+      "tier": 1,
+      "odds_coverage": true,
+      "admits_lower_tiers": false,
+      "extra_time": false,
+      "neutral_venue_stages": [],
+      "teams": 18,
+      "sources": {
+        "football_data_code": "F1",
+        "openfootball_repo": "openfootball/france",
+        "understat_code": "Ligue_1"
+      }
+    },
+
+    {
+      "competition_id": "ENG.FA_CUP",
+      "name": "FA Cup",
+      "country": "England",
+      "competition_type": "domestic_cup",
+      "format": "single_leg_knockout",
+      "stage_formats": {},
+      "tier": null,
+      "odds_coverage": false,
+      "admits_lower_tiers": true,
+      "extra_time": true,
+      "neutral_venue_stages": ["semi_final", "final"],
+      "teams": null,
+      "sources": {
+        "football_data_code": null,
+        "openfootball_repo": "openfootball/england",
+        "understat_code": null
+      },
+      "format_notes": "Replays were used in early rounds historically and were abolished from the first round proper in 2024-2025. A replay is ingested as a separate single-leg match, not as leg 2 of a tie."
+    },
+    {
+      "competition_id": "ESP.COPA_DEL_REY",
+      "name": "Copa del Rey",
+      "country": "Spain",
+      "competition_type": "domestic_cup",
+      "format": "single_leg_knockout",
+      "stage_formats": {
+        "semi_final": "two_leg_knockout"
+      },
+      "tier": null,
+      "odds_coverage": false,
+      "admits_lower_tiers": true,
+      "extra_time": true,
+      "neutral_venue_stages": ["final"],
+      "teams": null,
+      "sources": {
+        "football_data_code": null,
+        "openfootball_repo": "openfootball/espana",
+        "understat_code": null
+      },
+      "format_history": [
+        {
+          "until_season": "2018-2019",
+          "format": "two_leg_knockout",
+          "note": "Most rounds were two-legged before the 2019-2020 restructure to single-leg ties with the lower-ranked club at home."
+        }
+      ]
+    },
+    {
+      "competition_id": "GER.DFB_POKAL",
+      "name": "DFB-Pokal",
+      "country": "Germany",
+      "competition_type": "domestic_cup",
+      "format": "single_leg_knockout",
+      "stage_formats": {},
+      "tier": null,
+      "odds_coverage": false,
+      "admits_lower_tiers": true,
+      "extra_time": true,
+      "neutral_venue_stages": ["final"],
+      "teams": 64,
+      "sources": {
+        "football_data_code": null,
+        "openfootball_repo": "openfootball/deutschland",
+        "understat_code": null
+      },
+      "format_notes": "Single leg in every round, lower-tier club always at home in rounds 1-2. Final is fixed at the Olympiastadion, Berlin."
+    },
+    {
+      "competition_id": "ITA.COPPA_ITALIA",
+      "name": "Coppa Italia",
+      "country": "Italy",
+      "competition_type": "domestic_cup",
+      "format": "single_leg_knockout",
+      "stage_formats": {},
+      "tier": null,
+      "odds_coverage": false,
+      "admits_lower_tiers": true,
+      "extra_time": true,
+      "neutral_venue_stages": ["final"],
+      "teams": null,
+      "sources": {
+        "football_data_code": null,
+        "openfootball_repo": "openfootball/italy",
+        "understat_code": null
+      },
+      "format_history": [
+        {
+          "until_season": "2023-2024",
+          "stage": "semi_final",
+          "format": "two_leg_knockout",
+          "note": "Semi-finals were two-legged through 2023-2024 and became single-leg from 2024-2025."
+        }
+      ]
+    },
+    {
+      "competition_id": "FRA.COUPE_DE_FRANCE",
+      "name": "Coupe de France",
+      "country": "France",
+      "competition_type": "domestic_cup",
+      "format": "single_leg_knockout",
+      "stage_formats": {},
+      "tier": null,
+      "odds_coverage": false,
+      "admits_lower_tiers": true,
+      "extra_time": true,
+      "neutral_venue_stages": ["final"],
+      "teams": null,
+      "sources": {
+        "football_data_code": null,
+        "openfootball_repo": "openfootball/france",
+        "understat_code": null
+      },
+      "format_notes": "Single leg throughout. The lower-tier club hosts, which makes the FR-9 lower-division prior and home advantage interact strongly here."
+    },
+
+    {
+      "competition_id": "UEFA.UCL",
+      "name": "UEFA Champions League",
+      "country": "Europe",
+      "competition_type": "continental_cup",
+      "format": "swiss_league_phase",
+      "stage_formats": {
+        "qualifying": "two_leg_knockout",
+        "playoff": "two_leg_knockout",
+        "group_stage": "round_robin",
+        "league_phase": "swiss_league_phase",
+        "knockout_playoff": "two_leg_knockout",
+        "round_of_16": "two_leg_knockout",
+        "quarter_final": "two_leg_knockout",
+        "semi_final": "two_leg_knockout",
+        "final": "single_leg_knockout"
+      },
+      "tier": null,
+      "odds_coverage": false,
+      "admits_lower_tiers": false,
+      "extra_time": true,
+      "neutral_venue_stages": ["final"],
+      "teams": 36,
+      "sources": {
+        "football_data_code": null,
+        "openfootball_repo": "openfootball/champions-league",
+        "understat_code": null
+      },
+      "format_history": [
+        {
+          "until_season": "2023-2024",
+          "stage": "group_stage",
+          "format": "round_robin",
+          "note": "32 teams in eight groups of four. Replaced from 2024-2025 by the 36-team Swiss league phase, which is why `format` resolution must be season-aware."
+        }
+      ],
+      "cross_league_bridge": true
+    },
+    {
+      "competition_id": "UEFA.UEL",
+      "name": "UEFA Europa League",
+      "country": "Europe",
+      "competition_type": "continental_cup",
+      "format": "swiss_league_phase",
+      "stage_formats": {
+        "qualifying": "two_leg_knockout",
+        "playoff": "two_leg_knockout",
+        "group_stage": "round_robin",
+        "league_phase": "swiss_league_phase",
+        "knockout_playoff": "two_leg_knockout",
+        "round_of_16": "two_leg_knockout",
+        "quarter_final": "two_leg_knockout",
+        "semi_final": "two_leg_knockout",
+        "final": "single_leg_knockout"
+      },
+      "tier": null,
+      "odds_coverage": false,
+      "admits_lower_tiers": false,
+      "extra_time": true,
+      "neutral_venue_stages": ["final"],
+      "teams": 36,
+      "sources": {
+        "football_data_code": null,
+        "openfootball_repo": "openfootball/europa-league",
+        "understat_code": null
+      },
+      "format_history": [
+        {
+          "until_season": "2023-2024",
+          "stage": "group_stage",
+          "format": "round_robin",
+          "note": "32 teams in eight groups of four before the 2024-2025 Swiss-format change."
+        }
+      ],
+      "cross_league_bridge": true
+    }
+  ]
+}

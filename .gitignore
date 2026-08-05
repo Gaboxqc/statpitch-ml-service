@@ -14,3 +14,9 @@ models/*.pkl
 
 # Secrets (API-Football key)
 .env
+
+# Machine-local editor and tool config. These were tracked by an over-broad
+# `git add -A` in the first commit; they are per-developer state, not project
+# state, and churn on every session.
+.idea/
+.claude/settings.local.json

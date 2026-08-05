@@ -478,9 +478,34 @@ def _match_ids(df: pd.DataFrame, competition_id: str) -> pd.Series:
     )
 
 
+def _drop_foreign_divisions(raw: pd.DataFrame, sf: SeasonFile) -> pd.DataFrame:
+    """Keep only rows whose own `Div` matches the file's division.
+
+    Trust the row, not the filename. The live archive really does mix divisions:
+    the in-progress 2026/27 SP1 file carries five SC1 (Scottish) fixtures, which
+    would otherwise import ten Scottish clubs into a LaLiga dataset and quietly
+    corrupt every league-level aggregate built on top of it.
+    """
+    if "Div" not in raw.columns:
+        return raw
+    declared = raw["Div"].astype(str).str.strip()
+    foreign = declared.notna() & (declared != sf.div_code) & (declared != "nan")
+    if not foreign.any():
+        return raw
+    log.warning(
+        "football-data: %s %s — dropping %d row(s) tagged for other divisions (%s)",
+        sf.div_code, sf.season, int(foreign.sum()), sorted(set(declared[foreign])),
+    )
+    return raw[~foreign].reset_index(drop=True)
+
+
 def parse_matches(sf: SeasonFile) -> pd.DataFrame:
     """One division-season CSV -> canonical match rows."""
     raw = _read_raw(sf.path)
+    if raw.empty:
+        return pd.DataFrame()
+
+    raw = _drop_foreign_divisions(raw, sf)
     if raw.empty:
         return pd.DataFrame()
 
@@ -598,7 +623,7 @@ def parse_odds(sf: SeasonFile, matches: pd.DataFrame | None = None) -> pd.DataFr
     sum its implied probabilities, and a tidy table makes that a groupby instead of
     a hand-maintained list of 120 column names.
     """
-    raw = _read_raw(sf.path)
+    raw = _drop_foreign_divisions(_read_raw(sf.path), sf)
     if raw.empty:
         return pd.DataFrame()
 

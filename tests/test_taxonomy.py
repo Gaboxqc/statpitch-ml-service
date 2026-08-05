@@ -106,10 +106,23 @@ def test_ucl_knockout_rounds_are_two_legged(reg):
         assert ucl.resolve_format(stage=stage, season="2024-2025") == "two_leg_knockout", stage
 
 
-def test_coppa_italia_semi_final_flipped_to_single_leg_in_2024(reg):
+def test_coppa_italia_semi_finals_are_two_legged_and_stay_that_way(reg):
     coppa = reg["ITA.COPPA_ITALIA"]
-    assert coppa.resolve_format(stage="semi_final", season="2022-2023") == "two_leg_knockout"
-    assert coppa.resolve_format(stage="semi_final", season="2024-2025") == "single_leg_knockout"
+    for season in ("2022-2023", "2024-2025", "2025-2026"):
+        assert coppa.resolve_format(stage="semi_final", season=season) == "two_leg_knockout"
+    # ...while every other round is a single leg.
+    assert coppa.resolve_format(stage="quarter_final", season="2025-2026") == "single_leg_knockout"
+    assert coppa.resolve_format(stage="final", season="2025-2026") == "single_leg_knockout"
+
+
+def test_both_domestic_cups_with_two_legged_semis_are_covered(reg):
+    """FR-7's aggregate-tie engine is needed for domestic cups, not only Europe."""
+    two_legged_semis = {
+        c.competition_id
+        for c in reg.of_type("domestic_cup")
+        if c.resolve_format(stage="semi_final", season="2025-2026") == "two_leg_knockout"
+    }
+    assert two_legged_semis == {"ESP.COPA_DEL_REY", "ITA.COPPA_ITALIA"}
 
 
 def test_stage_names_normalise_across_spelling_variants(reg):

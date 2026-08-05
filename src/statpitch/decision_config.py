@@ -28,6 +28,64 @@ class DecisionConfigError(ValueError):
 
 
 @dataclass(frozen=True, slots=True)
+class Benchmark:
+    """Which market number the model is judged against (FR-13, FR-14).
+
+    The primary benchmark is the de-vigged *consensus* closing price. Because
+    consensus closing columns only exist from 2019/20, this is what bounds the
+    headline comparison window — a data limit, not a modelling choice.
+
+    Pinnacle's own closing price reaches back to 2012/13 and is kept as a
+    secondary, single-book benchmark. It is never mixed into the primary number:
+    one book and a ~30-book consensus are different estimators, and averaging
+    them would produce a benchmark that means nothing in particular.
+    """
+
+    primary: str
+    primary_price_column: str
+    primary_first_season: str
+    primary_last_season: str
+    primary_odds_regime: str
+    secondary: str | None
+    secondary_price_column: str | None
+    secondary_first_season: str | None
+    secondary_last_season: str | None
+    holdout_season: str
+    post_break_season_held_separately: str | None
+
+    def covers(self, season: str, odds_regime: str | None = None) -> bool:
+        """Whether a season belongs in the primary benchmark window."""
+        from statpitch.taxonomy import season_start_year
+
+        year = season_start_year(season)
+        if not (
+            season_start_year(self.primary_first_season)
+            <= year
+            <= season_start_year(self.primary_last_season)
+        ):
+            return False
+        return odds_regime is None or odds_regime == self.primary_odds_regime
+
+    def is_holdout(self, season: str) -> bool:
+        """NFR-10's untouched season — looked at exactly once, in Phase 8."""
+        from statpitch.taxonomy import season_start_year
+
+        return season_start_year(season) == season_start_year(self.holdout_season)
+
+    def training_seasons(self) -> list[str]:
+        """Primary-window seasons excluding the untouched holdout."""
+        from statpitch.taxonomy import season_start_year
+
+        first = season_start_year(self.primary_first_season)
+        last = season_start_year(self.primary_last_season)
+        return [
+            f"{y}-{y + 1}"
+            for y in range(first, last + 1)
+            if not self.is_holdout(f"{y}-{y + 1}")
+        ]
+
+
+@dataclass(frozen=True, slots=True)
 class Grading:
     e_peak: float
     sigma: float
@@ -69,6 +127,7 @@ class MarketEngine:
 class DecisionConfig:
     config_version: str
     status: str
+    benchmark: Benchmark
     w: float | None
     w_fitted: bool
     devig_default_method: str
@@ -119,6 +178,8 @@ def load(path: Path | None = None) -> DecisionConfig:
     version = raw.get("config_version")
     if not version:
         raise DecisionConfigError("decision config must carry a config_version (NFR-12)")
+
+    benchmark = _parse_benchmark(raw.get("benchmark", {}))
 
     shrink = raw.get("market_shrinkage", {})
     w = shrink.get("w")
@@ -203,6 +264,7 @@ def load(path: Path | None = None) -> DecisionConfig:
     return DecisionConfig(
         config_version=version,
         status=raw.get("status", "unknown"),
+        benchmark=benchmark,
         w=None if w is None else float(w),
         w_fitted=bool(shrink.get("w_fitted", False)) and w is not None,
         devig_default_method=default_method,
@@ -218,6 +280,58 @@ def load(path: Path | None = None) -> DecisionConfig:
         allow_pooling_across_regimes=bool(reg.get("allow_pooling_across_regimes", False)),
         raw=raw,
     )
+
+
+#: Never permitted as a fair-probability source. Max-of-N book prices sit above
+#: consensus by construction, so de-vigging them fabricates edge (FR-16a).
+_FORBIDDEN_BENCHMARK_COLUMNS = frozenset(("odds_max", "odds_panel_max"))
+
+
+def _parse_benchmark(raw: dict[str, Any]) -> Benchmark:
+    primary_window = raw.get("primary_window") or {}
+    secondary_window = raw.get("secondary_window") or {}
+
+    primary_col = raw.get("primary_price_column", "odds_avg")
+    if primary_col in _FORBIDDEN_BENCHMARK_COLUMNS:
+        raise DecisionConfigError(
+            f"benchmark primary_price_column may not be {primary_col!r}: the maximum "
+            "of N book prices is above consensus by construction, so de-vigging it "
+            "manufactures edge that does not exist (FR-16a, Design §3.1). Fair "
+            "probability comes from the average, price comes from the maximum."
+        )
+
+    holdout = raw.get("holdout_season")
+    if not holdout:
+        raise DecisionConfigError(
+            "benchmark.holdout_season is required (NFR-10): one season must be "
+            "designated untouched and evaluated exactly once"
+        )
+
+    benchmark = Benchmark(
+        primary=raw.get("primary", "consensus_closing"),
+        primary_price_column=primary_col,
+        primary_first_season=primary_window.get("first_season", "2019-2020"),
+        primary_last_season=primary_window.get("last_season", "2024-2025"),
+        primary_odds_regime=primary_window.get("odds_regime", "pre_2025_07_23"),
+        secondary=raw.get("secondary"),
+        secondary_price_column=raw.get("secondary_price_column"),
+        secondary_first_season=secondary_window.get("first_season"),
+        secondary_last_season=secondary_window.get("last_season"),
+        holdout_season=holdout,
+        post_break_season_held_separately=raw.get("post_break_season_held_separately"),
+    )
+
+    if not benchmark.covers(benchmark.holdout_season):
+        raise DecisionConfigError(
+            f"holdout season {benchmark.holdout_season!r} lies outside the primary "
+            "benchmark window; a holdout the model is never evaluated on the same "
+            "terms as is not a holdout"
+        )
+    if not benchmark.training_seasons():
+        raise DecisionConfigError(
+            "the primary benchmark window contains nothing but the holdout season"
+        )
+    return benchmark
 
 
 def _validate_grading(g: Grading) -> None:

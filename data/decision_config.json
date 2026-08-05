@@ -20,6 +20,22 @@
     "comment": "p_used = w*p_model + (1-w)*q_fair (Design §6.5). Fitted on validation data to maximise realised log-growth, never assumed. w near zero is a valid and publishable finding (Requirements §8.4). Null until Phase 5 fits it."
   },
 
+  "benchmark": {
+    "primary": "consensus_closing",
+    "primary_price_column": "odds_avg",
+    "primary_window": {
+      "first_season": "2019-2020",
+      "last_season": "2024-2025",
+      "odds_regime": "pre_2025_07_23"
+    },
+    "secondary": "pinnacle_closing",
+    "secondary_price_column": "odds_pinnacle",
+    "secondary_window": { "first_season": "2012-2013", "last_season": "2024-2025" },
+    "holdout_season": "2024-2025",
+    "post_break_season_held_separately": "2025-2026",
+    "comment": "DECIDED: the de-vigged consensus closing price (AvgC*) is the primary market benchmark. That confines the headline comparison to 2019/20 onward, because consensus closing columns do not exist before then — verified against the live archive, not assumed from Requirements §7.3. Pinnacle's own closing price reaches back to 2012/13 and is retained as a SECONDARY, single-book benchmark for calibration and RPS work over a longer horizon; it is never mixed into the primary number. 2025/26 sits after the Pinnacle regime break and is held entirely separate rather than pooled (Requirements §7.3). holdout_season is the NFR-10 untouched season: the last pre-break season, so it shares a regime with the training window."
+  },
+
   "devig": {
     "default_method": "shin",
     "methods_implemented": ["proportional", "power", "shin"],

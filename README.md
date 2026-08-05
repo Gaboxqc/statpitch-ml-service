@@ -53,11 +53,20 @@ Phase 0 complete, Phase 1 in progress.
 | `decision_config.json`, versioned, refuses to stake while placeholder | done |
 | API-Football quota guard, before any real API call exists | done |
 | football-data.co.uk ingestion, full odds column set, regime-tagged | done |
-| Club Elo ingestion | next |
-| openfootball cups + continental | pending |
+| Club Elo ingestion, as-of-date lookups, name reconciliation | done |
+| openfootball cups + continental | next |
 
-Ingested so far: **59,084 matches** across the 5 leagues, 1993/94 to date, and
-**417,701 tidy odds rows**.
+Ingested so far: **59,079 matches** across the 5 leagues, 1993/94 to date,
+**417,631 tidy odds rows**, and **926,697 Club Elo rating intervals** covering all
+245 clubs.
+
+### Known limitation in the Elo table
+
+It currently covers only clubs that have appeared in one of the five top leagues
+since 1993/94. Domestic cups admit entrants from far down the pyramid, and those
+clubs are not in it yet — they get added when the openfootball cup ingestion
+reveals their names. Club Elo itself covers them (that is why FR-9 is buildable
+at all); the roster is simply scoped to what has been needed so far.
 
 ## Three findings from Phase 1 that change the plan
 

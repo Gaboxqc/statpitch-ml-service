@@ -27,7 +27,12 @@
       "Bash(curl -s --max-time 30 \"http://api.clubelo.com/2025-03-15\" -o elo_date.csv)",
       "Bash(curl -s --max-time 30 \"http://api.clubelo.com/ManCity\" -o elo_club.csv)",
       "Bash(.venv/Scripts/python.exe -)",
-      "Bash(.venv/Scripts/python.exe -m pytest tests/test_club_elo.py)"
+      "Bash(.venv/Scripts/python.exe -m pytest tests/test_club_elo.py)",
+      "Bash(git config *)",
+      "Bash(git -c rebase.autoStash=true filter-branch -f --env-filter ' *)",
+      "Bash(git commit *)",
+      "Bash(rm -rf .git/refs/original)",
+      "Bash(git commit -q -m ' *)"
     ]
   }
 }

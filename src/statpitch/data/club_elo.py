@@ -41,6 +41,7 @@ import unicodedata
 from dataclasses import dataclass
 from datetime import date as Date
 from io import StringIO
+from pathlib import Path
 
 import pandas as pd
 
@@ -64,11 +65,11 @@ NAME_ALIASES: dict[str, str] = {
     "Ath Bilbao": "Bilbao",
     "Ath Madrid": "Atletico",          # NOT Real Madrid — fuzzy matching gets this wrong
     "Espanol": "Espanyol",
-    "La Coruna": "Deportivo",
+    "La Coruna": "Depor",
     "Sp Gijon": "Gijon",
     "Vallecano": "Rayo Vallecano",
     "Villareal": "Villarreal",         # football-data misspells it with one 'r'
-    "Gimnastic": "Nastic",
+    "Gimnastic": "Tarragona",
     "Lerida": "Lleida",
     # Germany
     "Bayern Munich": "Bayern",
@@ -88,9 +89,9 @@ NAME_ALIASES: dict[str, str] = {
     "Schalke 04": "Schalke",
     "Werder Bremen": "Werder",
     # France
-    "Ajaccio GFCO": "Ajaccio GFCO",
+    "Ajaccio GFCO": "Gazelec",  # Gazelec Ajaccio, a different club from AC Ajaccio
     "Arles": "Arles-Avignon",
-    "Evian Thonon Gaillard": "Evian",
+    "Evian Thonon Gaillard": "Evian TG",
     "St Etienne": "Saint-Etienne",
     "Paris SG": "Paris SG",
 }
@@ -227,11 +228,24 @@ class NameResolution:
     mapping: dict[str, str]          # football-data name -> Club Elo name
     unmatched: tuple[str, ...]
     suggestions: dict[str, tuple[str, ...]]
+    #: Aliases accepted on trust because the roster has never seen the target.
+    #: Reported separately because a *typo'd* alias lands here too, and would
+    #: otherwise be indistinguishable from a correct one until the club silently
+    #: vanished at fetch time — Club Elo answers an unknown club with an empty
+    #: CSV rather than a 404, so nothing raises.
+    unverified: tuple[str, ...] = ()
 
     @property
     def coverage(self) -> float:
+        """Share of names mapped to a target the roster actually contains.
+
+        Deliberately excludes `unverified`: counting trusted-but-unseen aliases as
+        successes is what let four wrong aliases report as 100% coverage.
+        """
         total = len(self.mapping) + len(self.unmatched)
-        return len(self.mapping) / total if total else 0.0
+        if not total:
+            return 0.0
+        return (len(self.mapping) - len(self.unverified)) / total
 
 
 def resolve_names(
@@ -252,6 +266,7 @@ def resolve_names(
 
     mapping: dict[str, str] = {}
     unmatched: list[str] = []
+    unverified: list[str] = []
     suggestions: dict[str, tuple[str, ...]] = {}
 
     for name in sorted(set(source_names)):
@@ -265,10 +280,13 @@ def resolve_names(
             mapping[name] = hit
             continue
 
-        # Alias points at a club the roster never saw (a brief top-flight spell
-        # the snapshots missed). Trust the curated alias — it is a human decision.
+        # Alias points at a club the roster never saw. That can be legitimate — a
+        # top-flight spell too brief for the probe dates to catch — so the alias is
+        # still attempted. But it is flagged, because a typo lands here too and
+        # Club Elo answers an unknown club with an empty CSV rather than an error.
         if alias is not None:
             mapping[name] = alias
+            unverified.append(name)
             continue
 
         unmatched.append(name)
@@ -280,8 +298,15 @@ def resolve_names(
             "club-elo: %d/%d club names unresolved — add them to NAME_ALIASES: %s",
             len(unmatched), len(unmatched) + len(mapping), unmatched,
         )
+    if unverified:
+        log.warning(
+            "club-elo: %d alias target(s) absent from the roster — verify against the "
+            "API before trusting them, since an unknown club returns an empty CSV "
+            "rather than an error: %s",
+            len(unverified), {n: mapping[n] for n in unverified},
+        )
 
-    return NameResolution(mapping, tuple(unmatched), suggestions)
+    return NameResolution(mapping, tuple(unmatched), suggestions, tuple(unverified))
 
 
 # --- as-of lookups ------------------------------------------------------------
@@ -332,5 +357,5 @@ def tier_as_of(table: pd.DataFrame, source_name: str, on: Date | str) -> int | N
     return None if pd.isna(tier) else int(tier)
 
 
-def elo_file() -> "object":
+def elo_file() -> Path:
     return paths.elo_file()

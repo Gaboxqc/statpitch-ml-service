@@ -109,11 +109,46 @@ def test_unmatched_names_carry_suggestions_for_a_human(roster):
     assert "Malaga" in r.suggestions["Malagas"]
 
 
-def test_an_alias_pointing_outside_the_roster_is_still_trusted(roster):
-    """Snapshots miss clubs with brief top-flight spells; a curated alias wins."""
+def test_an_alias_pointing_outside_the_roster_is_attempted_but_flagged(roster):
+    """Snapshots can miss clubs with brief top-flight spells, so the alias is tried.
+
+    But it is reported as unverified rather than counted as a success. Four wrong
+    aliases once reported as 100% coverage precisely because this path was silent,
+    and Club Elo answers an unknown club with an empty CSV rather than a 404 — so
+    nothing downstream raises either.
+    """
     r = ce.resolve_names(["Arles"], roster, aliases={"Arles": "Arles-Avignon"})
     assert r.mapping["Arles"] == "Arles-Avignon"
     assert not r.unmatched
+    assert "Arles" in r.unverified
+    assert r.coverage < 1.0
+
+
+def test_verified_aliases_do_not_count_as_unverified(roster):
+    r = ce.resolve_names(["Ath Madrid"], roster)
+    assert not r.unverified
+    assert r.coverage == 1.0
+
+
+def test_every_alias_target_exists_in_the_committed_roster():
+    """The guard that would have caught four wrong aliases before they shipped.
+
+    "Evian Thonon Gaillard" pointed at "Evian" (the club is "Evian TG"),
+    "Gimnastic" at "Nastic" ("Tarragona"), "Ajaccio GFCO" at itself ("Gazelec"),
+    and "La Coruna" at "Deportivo" ("Depor"). Each returned an empty CSV and was
+    dropped with nothing louder than a log line.
+    """
+    import pandas as pd
+
+    from statpitch import paths
+
+    roster_path = paths.processed_dir() / "clubelo_roster.parquet"
+    if not roster_path.exists():
+        pytest.skip("roster snapshot not built yet — run the Club Elo ingestion")
+
+    known = set(pd.read_parquet(roster_path)["clubelo_name"])
+    missing = {k: v for k, v in ce.NAME_ALIASES.items() if v not in known}
+    assert not missing, f"alias targets absent from the Club Elo roster: {missing}"
 
 
 def test_alias_table_has_no_self_contradictions():

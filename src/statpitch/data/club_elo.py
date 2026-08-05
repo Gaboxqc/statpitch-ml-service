@@ -1,9 +1,18 @@
 """Club Elo ingestion (Design §3, FR-9, FR-11).
 
 clubelo.com publishes a free, keyless CSV API covering European club football
-since the 1940s — crucially including the *full pyramid*, not just top flights.
-That is what makes the FR-9 lower-division prior possible: when a Segunda
-División club turns up in the Copa del Rey, Club Elo already has a rating for it.
+since the 1940s.
+
+**It does not cover the full pyramid.** Requirements §7.1 and FR-9 describe it as
+doing so; verified against the API, it rates only the top two tiers of each
+country. Saarbrücken, Wrexham, Elversberg and Ulm (tiers 1-2) all return history;
+AFC Sudbury, AFC Fylde, SC Verl, 1. FC Düren and AD Tardienta (tier 3+) return an
+empty CSV — not a 404, which is why the gap is easy to miss.
+
+FR-9's own worked example still holds: a Segunda División club in the Copa del
+Rey is tier 2 and *is* rated. But domestic cups admit entrants from far deeper,
+so the lower-division prior needs a documented fallback for clubs below tier 2
+rather than an Elo lookup. See `CLUB_ELO_TIER_LIMIT`.
 
 Two endpoints are used:
 
@@ -106,6 +115,75 @@ def normalise(name: str) -> str:
     decomposed = unicodedata.normalize("NFKD", str(name))
     ascii_only = decomposed.encode("ascii", "ignore").decode()
     return re.sub(r"[^a-z0-9]", "", ascii_only.lower())
+
+
+#: Club Elo transliterates German umlauts rather than stripping them — "Köln" is
+#: "Koeln", "Nürnberg" is "Nuernberg". Unicode NFKD decomposition gives "koln"
+#: and "nurnberg" instead, so both forms have to be generated or every German
+#: club with an umlaut silently fails to match.
+_TRANSLITERATION = str.maketrans(
+    {"ö": "oe", "ü": "ue", "ä": "ae", "Ö": "oe", "Ü": "ue", "Ä": "ae",
+     "ß": "ss", "ø": "o", "å": "a", "æ": "ae"}
+)
+
+#: Legal-form abbreviations carried by openfootball's formal names ("1. FC Köln",
+#: "AC Milan", "SpVgg Greuther Fürth") but not by Club Elo's short ones.
+#:
+#: Strictly legal forms only. Words like "Real", "Atletico", "Sporting" and
+#: "Union" look like boilerplate but are load-bearing parts of club names —
+#: stripping "Real" from "Real Madrid" leaves "madrid", which no longer matches
+#: Club Elo's "Real Madrid" and starts colliding with Atlético.
+_CLUB_TYPE_TOKENS = frozenset([
+    # club/association abbreviations
+    "fc", "cf", "ac", "as", "ss", "ssc", "asd", "ssd", "sd", "sr", "afc",
+    "bk", "if", "ik", "nk", "hnk", "mfk", "fk", "sk", "sv", "tsv", "tsg",
+    "bsc", "vfb", "vfl", "spvgg", "sc", "cs", "us", "usl", "rc", "rcd",
+    "ogc", "sco", "fco", "cd", "ud", "ca", "aa", "ec", "cfr", "acf", "aca",
+    # spelled-out legal forms and connectives
+    "calcio", "club", "de", "la", "le",
+    "futbol", "fussball", "fotball", "sportiva", "societa", "associazione",
+])
+
+
+def _candidate_keys(name: str, *, reduce_to_single_token: bool = False) -> set[str]:
+    """Every reasonable normalised form of a club name.
+
+    openfootball writes formal names ("1. FC Köln", "SpVgg Greuther Fürth") while
+    Club Elo writes short ones ("Koeln", "Fuerth"). Matching them needs several
+    candidate forms per name: with and without umlaut transliteration, with and
+    without club-type tokens, and with or without founding-year numbers.
+
+    `reduce_to_single_token` reduces a name to its first or last distinctive word.
+    It buys roughly 23 points of coverage and is **off by default because it is
+    unsafe**: it resolved "Paris Saint-Germain FC" to "Paris FC", a different
+    club, since both reduce to "paris". City and regional names are shared across
+    clubs, so no token rule can separate them — only a curated alias can. It is
+    retained for generating *suggestions* to a human, never for accepting a match.
+    """
+    text = str(name).strip()
+    keys: set[str] = set()
+
+    for base in (text, text.translate(_TRANSLITERATION)):
+        ascii_only = (
+            unicodedata.normalize("NFKD", base).encode("ascii", "ignore").decode().lower()
+        )
+        tokens = [t for t in re.sub(r"[^a-z0-9 ]", " ", ascii_only).split() if t]
+        if not tokens:
+            continue
+        keys.add("".join(tokens))
+
+        # Drop club-type words and bare founding years ("1. FC Schweinfurt 05").
+        core = [
+            t for t in tokens
+            if t not in _CLUB_TYPE_TOKENS and not re.fullmatch(r"\d{2,4}", t)
+        ]
+        if core:
+            keys.add("".join(core))
+            if reduce_to_single_token and len(core) > 1:
+                keys.add(core[-1])
+                keys.add(core[0])
+
+    return {k for k in keys if len(k) > 2}
 
 
 def club_slug(clubelo_name: str) -> str:
@@ -307,6 +385,158 @@ def resolve_names(
         )
 
     return NameResolution(mapping, tuple(unmatched), suggestions, tuple(unverified))
+
+
+@dataclass(frozen=True, slots=True)
+class CupClubResolution:
+    """Outcome of matching cup entrants against Club Elo.
+
+    Three-way, deliberately. `ambiguous` exists so that a name matching several
+    Club Elo clubs is never silently resolved to one of them, and `unmatched` is
+    dominated by a real coverage limit rather than by naming noise — see
+    `CLUB_ELO_TIER_LIMIT`.
+    """
+
+    mapping: dict[str, str]
+    ambiguous: dict[str, tuple[str, ...]]
+    unmatched: tuple[str, ...]
+
+    @property
+    def coverage(self) -> float:
+        total = len(self.mapping) + len(self.ambiguous) + len(self.unmatched)
+        return len(self.mapping) / total if total else 0.0
+
+
+#: Club Elo rates only the top two tiers of each country. Verified directly
+#: against the API: Saarbrücken, Wrexham, Elversberg and Ulm (tiers 1-2) all
+#: return history, while AFC Sudbury, AFC Fylde, SC Verl, 1. FC Düren and AD
+#: Tardienta (tier 3+) return an EMPTY CSV.
+#:
+#: This qualifies Requirements §7.1 and FR-9, which describe Club Elo as covering
+#: "the full pyramid". FR-9's own worked example — a Segunda División club in the
+#: Copa del Rey — is tier 2 and *is* covered. Deeper entrants are not, and
+#: domestic cups are full of them, so the lower-division prior needs a documented
+#: fallback for clubs below tier 2 rather than an Elo lookup.
+CLUB_ELO_TIER_LIMIT = 2
+
+
+def _name_tokens(name: str) -> frozenset[str]:
+    """Distinctive lowercase word set, umlauts transliterated, legal forms dropped."""
+    ascii_only = (
+        unicodedata.normalize("NFKD", str(name).translate(_TRANSLITERATION))
+        .encode("ascii", "ignore")
+        .decode()
+        .lower()
+    )
+    tokens = re.sub(r"[^a-z0-9 ]", " ", ascii_only).split()
+    # Single characters are kept deliberately. Club Elo marks reserve sides with a
+    # trailing "B" ("Atletico B", "Bilbao B", "Sociedad B"); dropping it makes a
+    # reserve team's token set identical to the first team's, so "Atlético Madrid"
+    # matches both and is discarded as ambiguous. Keeping it lets the subset rule
+    # reject the reserve side and resolve the first team cleanly.
+    return frozenset(
+        t for t in tokens
+        if t not in _CLUB_TYPE_TOKENS and not re.fullmatch(r"\d{1,4}", t)
+    )
+
+
+def _token_subset_matches(
+    name: str,
+    country: str | None,
+    token_index: list[tuple[str | None, frozenset[str], str]],
+) -> set[str]:
+    """Roster clubs whose every distinctive word appears in `name`."""
+    query = _name_tokens(name)
+    if not query:
+        return set()
+    return {
+        clubelo_name
+        for roster_country, tokens, clubelo_name in token_index
+        if tokens
+        and tokens <= query
+        # A short roster name is a subset of far too much: "Paris FC" is a subset
+        # of "Paris Saint-Germain", and accepting that attaches a second-tier
+        # club's rating to the French champions. Requiring the match to account
+        # for all but one of the query's distinctive words keeps "Dortmund" ⊂
+        # "Borussia Dortmund" while rejecting the Paris collision.
+        and len(query - tokens) <= 1
+        and (country is None or roster_country == country)
+    }
+
+
+def resolve_cup_clubs(
+    names: dict[str, str | None], roster: pd.DataFrame
+) -> CupClubResolution:
+    """Match cup entrants to Club Elo, constrained by country.
+
+    `names` maps a club name to its ISO-3 country code (or None when unknown).
+    The country constraint is doing real work: without it "Union" and "Atletico"
+    match clubs in half a dozen countries, and picking one would repeat exactly
+    the mistake that mapped Atlético Madrid to Real Madrid.
+    """
+    index: dict[tuple[str | None, str], set[str]] = {}
+    for row in roster.itertuples():
+        # Roster side: canonical forms only, no single-token reduction.
+        for key in _candidate_keys(row.clubelo_name):
+            index.setdefault((row.country, key), set()).add(row.clubelo_name)
+            index.setdefault((None, key), set()).add(row.clubelo_name)
+
+    token_index = [
+        (row.country, _name_tokens(row.clubelo_name), row.clubelo_name)
+        for row in roster.itertuples()
+    ]
+
+    mapping: dict[str, str] = {}
+    ambiguous: dict[str, tuple[str, ...]] = {}
+    unmatched: list[str] = []
+
+    for name, raw_country in sorted(names.items()):
+        # NaN is truthy in Python, so a caller writing `row.home_country or
+        # fallback` against a DataFrame quietly produces NaN rather than the
+        # fallback, and every lookup keyed on it misses. Normalising here means
+        # callers reading straight from pandas cannot fall into that trap.
+        country = None if raw_country is None or pd.isna(raw_country) else str(raw_country)
+
+        # Safe forms only. Single-token reduction is deliberately not used here
+        # (see _candidate_keys) — it maps "Paris Saint-Germain FC" onto "Paris FC".
+        query_keys = _candidate_keys(name)
+        candidates: set[str] = set()
+        for key in query_keys:
+            candidates |= index.get((country, key), set())
+        if not candidates and country is None:
+            for key in query_keys:
+                candidates |= index.get((None, key), set())
+
+        if not candidates:
+            # Token-subset fallback: every word of the Club Elo name must appear
+            # in the query. "Brugge" is a subset of "Club Brugge KV" while
+            # "Cercle Brugge" is not, so it accepts the right club and rejects the
+            # near-miss that fuzzy matching ranks first. Where several roster
+            # clubs qualify — "Sporting" and "Braga" are both subsets of
+            # "Sporting Braga" — the result is ambiguous and is reported, not
+            # picked.
+            candidates = _token_subset_matches(name, country, token_index)
+
+        if len(candidates) == 1:
+            mapping[name] = next(iter(candidates))
+        elif candidates:
+            ambiguous[name] = tuple(sorted(candidates))
+        else:
+            unmatched.append(name)
+
+    if ambiguous:
+        log.info(
+            "club-elo: %d cup club name(s) matched more than one club and were left "
+            "unresolved rather than guessed", len(ambiguous),
+        )
+    if unmatched:
+        log.info(
+            "club-elo: %d cup club name(s) have no Club Elo entry — expected, since "
+            "Club Elo rates only tiers 1-%d and cups admit far deeper entrants",
+            len(unmatched), CLUB_ELO_TIER_LIMIT,
+        )
+
+    return CupClubResolution(mapping, ambiguous, tuple(unmatched))
 
 
 # --- as-of lookups ------------------------------------------------------------

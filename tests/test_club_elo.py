@@ -159,6 +159,146 @@ def test_alias_table_has_no_self_contradictions():
     assert not hops, f"alias table needs multi-hop resolution for {hops}"
 
 
+# --- cup-entrant matching -----------------------------------------------------
+
+@pytest.fixture
+def cup_roster():
+    """A roster with the collisions that actually caused trouble."""
+    rows = [
+        ("Atletico", "ESP", 1), ("Atletico B", "ESP", 2), ("Real Madrid", "ESP", 1),
+        ("Bilbao", "ESP", 1), ("Bilbao B", "ESP", 2),
+        ("Sociedad", "ESP", 1), ("Sociedad B", "ESP", 2),
+        ("Paris SG", "FRA", 1), ("Paris FC", "FRA", 2),
+        ("Dortmund", "GER", 1), ("Koeln", "GER", 1), ("Fortuna Koeln", "GER", 2),
+        ("Brugge", "BEL", 1), ("Cercle Brugge", "BEL", 1),
+        ("Milan", "ITA", 1), ("Man City", "ENG", 1),
+    ]
+    df = pd.DataFrame(rows, columns=["clubelo_name", "country", "best_tier"])
+    df["norm"] = df["clubelo_name"].map(ce.normalise)
+    return df
+
+
+def _resolve(names, roster):
+    return ce.resolve_cup_clubs(names, roster)
+
+
+def test_formal_names_resolve_to_club_elo_short_names(cup_roster):
+    r = _resolve({"AC Milan": "ITA", "Borussia Dortmund": "GER"}, cup_roster)
+    assert r.mapping["AC Milan"] == "Milan"
+    assert r.mapping["Borussia Dortmund"] == "Dortmund"
+
+
+def test_umlaut_transliteration_matches_club_elos_spelling(cup_roster):
+    """Club Elo writes "Koeln"; NFKD alone gives "koln" and never matches."""
+    r = _resolve({"1. FC Köln": "GER"}, cup_roster)
+    assert r.mapping["1. FC Köln"] == "Koeln"
+
+
+def test_psg_is_never_resolved_to_paris_fc(cup_roster):
+    """The headline near-miss: both names reduce to "paris".
+
+    Paris FC is a different, lower-division club. Accepting the match would put
+    its rating on every PSG fixture — wrong in a way that looks entirely
+    plausible in the output.
+    """
+    r = _resolve({"Paris Saint-Germain": "FRA"}, cup_roster)
+    assert r.mapping.get("Paris Saint-Germain") != "Paris FC"
+    assert "Paris Saint-Germain" not in r.mapping
+
+
+def test_reserve_teams_do_not_block_their_first_team(cup_roster):
+    """Club Elo marks reserves with a trailing "B".
+
+    Dropping that single character makes "Atletico B" indistinguishable from
+    "Atletico", so the first team resolves to nothing.
+    """
+    r = _resolve(
+        {"Atlético Madrid": "ESP", "Athletic Bilbao": "ESP", "Real Sociedad": "ESP"},
+        cup_roster,
+    )
+    assert r.mapping["Atlético Madrid"] == "Atletico"
+    assert r.mapping["Athletic Bilbao"] == "Bilbao"
+    assert r.mapping["Real Sociedad"] == "Sociedad"
+
+
+def test_atletico_never_resolves_to_real_madrid(cup_roster):
+    r = _resolve({"Atlético Madrid": "ESP"}, cup_roster)
+    assert r.mapping["Atlético Madrid"] != "Real Madrid"
+
+
+def test_token_subset_prefers_the_right_club_over_the_near_miss(cup_roster):
+    """"Brugge" is a subset of "Club Brugge KV"; "Cercle Brugge" is not.
+
+    Fuzzy matching ranks Cercle Brugge first, which is why it is not used.
+    """
+    r = _resolve({"Club Brugge KV": "BEL"}, cup_roster)
+    assert r.mapping["Club Brugge KV"] == "Brugge"
+
+
+def test_longer_roster_name_does_not_steal_a_shorter_query(cup_roster):
+    r = _resolve({"1. FC Köln": "GER"}, cup_roster)
+    assert r.mapping["1. FC Köln"] != "Fortuna Koeln"
+
+
+def test_country_constraint_prevents_cross_border_collisions(cup_roster):
+    """Without it, short names collide across half a dozen countries."""
+    r = _resolve({"Milan": "ENG"}, cup_roster)
+    assert "Milan" not in r.mapping
+
+
+def test_nan_country_is_treated_as_unknown_not_as_a_key(cup_roster):
+    """NaN is truthy, so `row.country or fallback` yields NaN, not the fallback.
+
+    Left unhandled every continental club was keyed on NaN and matched nothing.
+    """
+    r = _resolve({"AC Milan": float("nan")}, cup_roster)
+    assert r.mapping["AC Milan"] == "Milan"
+
+
+def test_an_exact_key_match_wins_before_the_subset_fallback(cup_roster):
+    r = _resolve({"Milan": "ITA"}, cup_roster)
+    assert r.mapping["Milan"] == "Milan"
+
+
+def test_ambiguity_is_reported_never_resolved(cup_roster):
+    """Both "Lazio" and "Roma" are subsets of "Lazio Roma".
+
+    Nothing in the name distinguishes which club is meant, so the pair is handed
+    back for a human rather than decided by ordering.
+    """
+    roster = pd.concat([
+        cup_roster,
+        pd.DataFrame([
+            {"clubelo_name": "Lazio", "country": "ITA", "best_tier": 1, "norm": "lazio"},
+            {"clubelo_name": "Roma", "country": "ITA", "best_tier": 1, "norm": "roma"},
+        ]),
+    ])
+    r = _resolve({"Lazio Roma": "ITA"}, roster)
+    assert "Lazio Roma" not in r.mapping
+    assert set(r.ambiguous["Lazio Roma"]) == {"Lazio", "Roma"}
+
+
+def test_unmatched_clubs_are_reported(cup_roster):
+    r = _resolve({"AFC Sudbury": "ENG"}, cup_roster)
+    assert "AFC Sudbury" in r.unmatched
+    assert r.coverage == 0.0
+
+
+def test_club_elo_tier_limit_is_documented():
+    """Verified against the API: tier 1-2 return history, tier 3+ return empty.
+
+    This qualifies FR-9's claim that Club Elo covers "the full pyramid". Its own
+    example — a Segunda División club in the Copa del Rey — is tier 2 and works.
+    """
+    assert ce.CLUB_ELO_TIER_LIMIT == 2
+
+
+def test_legal_form_tokens_exclude_load_bearing_words():
+    """Stripping "Real" from "Real Madrid" leaves "madrid" and starts colliding."""
+    for word in ("real", "atletico", "athletic", "sporting", "union", "deportivo"):
+        assert word not in ce._CLUB_TYPE_TOKENS
+
+
 # --- as-of lookups ------------------------------------------------------------
 
 def test_elo_as_of_returns_the_interval_in_force(history):

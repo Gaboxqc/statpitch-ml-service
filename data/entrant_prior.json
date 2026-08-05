@@ -1,0 +1,85 @@
+{
+  "home_advantage_elo": 24.58,
+  "home_advantage_source": "rated-vs-rated cup matches only; league control 54.4 Elo over 19,763 matches",
+  "home_advantage_matches": 982,
+  "pooled_elo": 1547.55,
+  "n_matches_used": 2446,
+  "min_bucket_matches": 20,
+  "buckets": [
+    {
+      "competition_id": "ENG.FA_CUP",
+      "entry_stage": "round_1",
+      "elo": 1330.5,
+      "ci_low": 1291.1,
+      "ci_high": 1361.6,
+      "n_matches": 710,
+      "n_clubs": 117,
+      "reliable": true
+    },
+    {
+      "competition_id": "ENG.FA_CUP",
+      "entry_stage": "round_3",
+      "elo": 1790.0,
+      "ci_low": 1713.3,
+      "ci_high": 1855.5,
+      "n_matches": 162,
+      "n_clubs": 9,
+      "reliable": true
+    },
+    {
+      "competition_id": "ESP.COPA_DEL_REY",
+      "entry_stage": "preliminary_round",
+      "elo": 1197.1,
+      "ci_low": 994.7,
+      "ci_high": 1323.5,
+      "n_matches": 123,
+      "n_clubs": 81,
+      "reliable": true
+    },
+    {
+      "competition_id": "ESP.COPA_DEL_REY",
+      "entry_stage": "round_1",
+      "elo": 1380.0,
+      "ci_low": 1320.0,
+      "ci_high": 1426.4,
+      "n_matches": 320,
+      "n_clubs": 120,
+      "reliable": true
+    },
+    {
+      "competition_id": "FRA.COUPE_DE_FRANCE",
+      "entry_stage": "round_7",
+      "elo": 1203.1,
+      "ci_low": 1102.2,
+      "ci_high": 1281.1,
+      "n_matches": 238,
+      "n_clubs": 142,
+      "reliable": true
+    },
+    {
+      "competition_id": "GER.DFB_POKAL",
+      "entry_stage": "round_1",
+      "elo": 1425.7,
+      "ci_low": 1365.7,
+      "ci_high": 1483.5,
+      "n_matches": 231,
+      "n_clubs": 74,
+      "reliable": true
+    },
+    {
+      "competition_id": "ITA.COPPA_ITALIA",
+      "entry_stage": "round_1",
+      "elo": 1219.8,
+      "ci_low": 1057.5,
+      "ci_high": 1341.3,
+      "n_matches": 30,
+      "n_clubs": 18,
+      "reliable": true
+    }
+  ],
+  "notes": [
+    "FR-9 fallback for cup entrants Club Elo does not rate (tier 3+).",
+    "Conditioned on ENTRY round, not match round.",
+    "Cup home advantage is roughly half the league figure; do not substitute a league constant."
+  ]
+}

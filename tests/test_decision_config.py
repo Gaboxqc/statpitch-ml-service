@@ -76,6 +76,83 @@ def test_lambda_frontier_covers_all_four_kelly_fractions(cfg):
     assert cfg.staking.lambda_frontier == (0.10, 0.25, 0.50, 1.00)
 
 
+# --- benchmark (decided: consensus closing is primary) ------------------------
+
+def test_primary_benchmark_is_the_consensus_closing_price(cfg):
+    assert cfg.benchmark.primary == "consensus_closing"
+    assert cfg.benchmark.primary_price_column == "odds_avg"
+
+
+def test_primary_window_starts_where_consensus_closing_odds_do(cfg):
+    # Verified against the live archive: no AvgC*/MaxC* columns before 2019/20.
+    assert cfg.benchmark.primary_first_season == "2019-2020"
+    assert cfg.benchmark.covers("2019-2020")
+    assert not cfg.benchmark.covers("2018-2019")
+
+
+def test_primary_window_stops_at_the_pinnacle_regime_break(cfg):
+    assert not cfg.benchmark.covers("2025-2026")
+    assert cfg.benchmark.post_break_season_held_separately == "2025-2026"
+
+
+def test_a_post_break_row_is_excluded_even_inside_the_season_range(cfg):
+    assert cfg.benchmark.covers("2024-2025", odds_regime="pre_2025_07_23")
+    assert not cfg.benchmark.covers("2024-2025", odds_regime="post_2025_07_23")
+
+
+def test_pinnacle_is_secondary_and_reaches_further_back(cfg):
+    assert cfg.benchmark.secondary == "pinnacle_closing"
+    assert cfg.benchmark.secondary_price_column == "odds_pinnacle"
+    assert cfg.benchmark.secondary_first_season == "2012-2013"
+
+
+def test_holdout_is_inside_the_window_and_excluded_from_training(cfg):
+    b = cfg.benchmark
+    assert b.covers(b.holdout_season)
+    assert b.is_holdout("2024-2025")
+    assert "2024-2025" not in b.training_seasons()
+    assert len(b.training_seasons()) >= 2   # Requirements §8.3
+
+
+def test_training_seasons_are_contiguous_pre_break_seasons(cfg):
+    assert cfg.benchmark.training_seasons() == [
+        "2019-2020", "2020-2021", "2021-2022", "2022-2023", "2023-2024",
+    ]
+
+
+def test_max_odds_may_never_be_the_benchmark_price(tmp_path, cfg):
+    """FR-16a, enforced rather than documented.
+
+    Max-of-N is above consensus by construction; de-vigging it produces fair
+    probabilities that look like free money and are not.
+    """
+    raw = _base(cfg)
+    raw["benchmark"]["primary_price_column"] = "odds_max"
+    with pytest.raises(DecisionConfigError, match="above consensus by construction"):
+        load(_write(tmp_path, raw))
+
+
+def test_holdout_outside_the_window_is_rejected(tmp_path, cfg):
+    raw = _base(cfg)
+    raw["benchmark"]["holdout_season"] = "2015-2016"
+    with pytest.raises(DecisionConfigError, match="outside the primary benchmark window"):
+        load(_write(tmp_path, raw))
+
+
+def test_missing_holdout_is_rejected(tmp_path, cfg):
+    raw = _base(cfg)
+    del raw["benchmark"]["holdout_season"]
+    with pytest.raises(DecisionConfigError, match="holdout_season is required"):
+        load(_write(tmp_path, raw))
+
+
+def test_a_window_that_is_only_the_holdout_is_rejected(tmp_path, cfg):
+    raw = _base(cfg)
+    raw["benchmark"]["primary_window"]["first_season"] = "2024-2025"
+    with pytest.raises(DecisionConfigError, match="nothing but the holdout"):
+        load(_write(tmp_path, raw))
+
+
 # --- validation ---------------------------------------------------------------
 
 def _write(tmp_path, cfg_dict):

@@ -178,7 +178,9 @@
       "country": "Italy",
       "competition_type": "domestic_cup",
       "format": "single_leg_knockout",
-      "stage_formats": {},
+      "stage_formats": {
+        "semi_final": "two_leg_knockout"
+      },
       "tier": null,
       "odds_coverage": false,
       "admits_lower_tiers": true,
@@ -190,14 +192,7 @@
         "openfootball_repo": "openfootball/italy",
         "understat_code": null
       },
-      "format_history": [
-        {
-          "until_season": "2023-2024",
-          "stage": "semi_final",
-          "format": "two_leg_knockout",
-          "note": "Semi-finals were two-legged through 2023-2024 and became single-leg from 2024-2025."
-        }
-      ]
+      "format_notes": "Single leg in every round except the semi-finals, which remain two-legged. Same shape as Copa del Rey, and the reason FR-7's aggregate-tie engine has to run for two domestic cups rather than only for continental ties."
     },
     {
       "competition_id": "FRA.COUPE_DE_FRANCE",

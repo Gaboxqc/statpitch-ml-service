@@ -260,6 +260,11 @@ def fit(
     bucket_keys = sorted(
         {b for b in pd.concat([design["home_bucket"], design["away_bucket"]]) if b is not None}
     )
+    if not bucket_keys:
+        raise ValueError(
+            "no unrated entrants found: every match had two rated sides, so there is "
+            "no entrant population to estimate a prior for"
+        )
     index = {key: i for i, key in enumerate(bucket_keys)}
 
     home_idx = np.array([index[b] if b is not None else -1 for b in design["home_bucket"]])

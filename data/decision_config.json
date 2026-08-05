@@ -5,7 +5,7 @@
     "NFR-12: every Decision Layer parameter lives here, never in code, so any historical",
     "backtest result can be reproduced exactly from its parameter set.",
     "",
-    "STATUS = placeholder. Every value below is a Design-§6 default, NOT a fitted value.",
+    "STATUS = placeholder. Every value below is a Design-\u00a76 default, NOT a fitted value.",
     "Nothing here has seen data yet. The fitting schedule is:",
     "  market_shrinkage.w      <- Phase 5 checkpoint (the project's truth serum)",
     "  devig.method_per_competition <- Notebook 12, Phase 5",
@@ -13,13 +13,11 @@
     "  staking.lambda frontier <- Notebook 14, Phase 5.5d",
     "Code must refuse to emit live recommendations while status == 'placeholder'."
   ],
-
   "market_shrinkage": {
     "w": null,
     "w_fitted": false,
-    "comment": "p_used = w*p_model + (1-w)*q_fair (Design §6.5). Fitted on validation data to maximise realised log-growth, never assumed. w near zero is a valid and publishable finding (Requirements §8.4). Null until Phase 5 fits it."
+    "comment": "p_used = w*p_model + (1-w)*q_fair (Design \u00a76.5). Fitted on validation data to maximise realised log-growth, never assumed. w near zero is a valid and publishable finding (Requirements \u00a78.4). Null until Phase 5 fits it."
   },
-
   "benchmark": {
     "primary": "consensus_closing",
     "primary_price_column": "odds_avg",
@@ -30,41 +28,56 @@
     },
     "secondary": "pinnacle_closing",
     "secondary_price_column": "odds_pinnacle",
-    "secondary_window": { "first_season": "2012-2013", "last_season": "2024-2025" },
+    "secondary_window": {
+      "first_season": "2012-2013",
+      "last_season": "2024-2025"
+    },
     "holdout_season": "2024-2025",
     "post_break_season_held_separately": "2025-2026",
-    "comment": "DECIDED: the de-vigged consensus closing price (AvgC*) is the primary market benchmark. That confines the headline comparison to 2019/20 onward, because consensus closing columns do not exist before then — verified against the live archive, not assumed from Requirements §7.3. Pinnacle's own closing price reaches back to 2012/13 and is retained as a SECONDARY, single-book benchmark for calibration and RPS work over a longer horizon; it is never mixed into the primary number. 2025/26 sits after the Pinnacle regime break and is held entirely separate rather than pooled (Requirements §7.3). holdout_season is the NFR-10 untouched season: the last pre-break season, so it shares a regime with the training window."
+    "comment": "DECIDED: the de-vigged consensus closing price (AvgC*) is the primary market benchmark. That confines the headline comparison to 2019/20 onward, because consensus closing columns do not exist before then \u2014 verified against the live archive, not assumed from Requirements \u00a77.3. Pinnacle's own closing price reaches back to 2012/13 and is retained as a SECONDARY, single-book benchmark for calibration and RPS work over a longer horizon; it is never mixed into the primary number. 2025/26 sits after the Pinnacle regime break and is held entirely separate rather than pooled (Requirements \u00a77.3). holdout_season is the NFR-10 untouched season: the last pre-break season, so it shares a regime with the training window."
   },
-
   "devig": {
     "default_method": "shin",
-    "methods_implemented": ["proportional", "power", "shin"],
+    "methods_implemented": [
+      "proportional",
+      "power",
+      "shin"
+    ],
     "method_per_competition": {
-      "ENG.PL": null,
-      "ESP.LALIGA": null,
-      "GER.BUNDESLIGA": null,
-      "ITA.SERIEA": null,
-      "FRA.LIGUE1": null
+      "ENG.PL": "shin",
+      "ESP.LALIGA": "shin",
+      "GER.BUNDESLIGA": "shin",
+      "ITA.SERIEA": "shin",
+      "FRA.LIGUE1": "shin"
     },
-    "comment": "FR-28. Selected per competition in Notebook 12 by log-loss and calibration error against realised outcomes. Default is Shin rather than proportional because proportional de-vig systematically overstates longshot fair probability and would manufacture phantom value on draws and away underdogs (Design §6.2)."
+    "comment": "FR-28. Selected per competition in Notebook 12 by log-loss and calibration error against realised outcomes. Default is Shin rather than proportional because proportional de-vig systematically overstates longshot fair probability and would manufacture phantom value on draws and away underdogs (Design \u00a76.2)."
   },
-
   "grading": {
     "e_peak": 0.04,
     "sigma": 0.05,
     "e_ceiling": 0.12,
-    "cutoffs": { "A": 0.80, "B": 0.65, "C": 0.50, "D": 0.35 },
-    "stake_multiplier": { "A": 1.0, "B": 0.5, "C": 0.25, "D": 0.0, "F": 0.0 },
+    "cutoffs": {
+      "A": 0.8,
+      "B": 0.65,
+      "C": 0.5,
+      "D": 0.35
+    },
+    "stake_multiplier": {
+      "A": 1.0,
+      "B": 0.5,
+      "C": 0.25,
+      "D": 0.0,
+      "F": 0.0
+    },
     "subscore_weights": {
-      "c_edge": 0.30,
-      "c_robust": 0.20,
-      "c_market": 0.20,
+      "c_edge": 0.3,
+      "c_robust": 0.2,
+      "c_market": 0.2,
       "c_calib": 0.15,
       "c_support": 0.15
     },
-    "comment": "Design §6.4. c_edge is deliberately NON-monotonic: exp(-((edge_prob - e_peak)/sigma)^2), with an automatic F above e_ceiling. An apparent 20-point edge in a market this efficient almost always means the model is blind to something, not that the market is wrong."
+    "comment": "Design \u00a76.4. c_edge is deliberately NON-monotonic: exp(-((edge_prob - e_peak)/sigma)^2), with an automatic F above e_ceiling. An apparent 20-point edge in a market this efficient almost always means the model is blind to something, not that the market is wrong."
   },
-
   "guardrails": {
     "max_p_std": 0.06,
     "max_book_margin": 0.08,
@@ -74,35 +87,76 @@
     "suppress_unconfirmed_lineup_with_key_doubt": true,
     "comment": "FR-33. Evaluated BEFORE grading; each firing forces grade F with a logged reason. odds_coverage=false is also a guardrail and is enforced from the taxonomy, not from this file."
   },
-
   "staking": {
     "kelly_lambda": 0.25,
-    "lambda_frontier": [0.10, 0.25, 0.50, 1.00],
+    "lambda_frontier": [
+      0.1,
+      0.25,
+      0.5,
+      1.0
+    ],
     "cap_per_bet": 0.02,
-    "cap_per_matchday": 0.10,
+    "cap_per_matchday": 0.1,
     "min_stake_fraction": 0.0005,
-    "comment": "Design §6.5. lambda defaults to 0.25; the backtest publishes the full growth-vs-drawdown frontier rather than asserting one value. Caps are fractions of bankroll."
+    "comment": "Design \u00a76.5. lambda defaults to 0.25; the backtest publishes the full growth-vs-drawdown frontier rather than asserting one value. Caps are fractions of bankroll."
   },
-
   "market_engine": {
     "matrix_max_goals": 10,
-    "asian_handicap_lines": [-3.0, -2.75, -2.5, -2.25, -2.0, -1.75, -1.5, -1.25, -1.0, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0],
-    "total_goals_lines": [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5],
+    "asian_handicap_lines": [
+      -3.0,
+      -2.75,
+      -2.5,
+      -2.25,
+      -2.0,
+      -1.75,
+      -1.5,
+      -1.25,
+      -1.0,
+      -0.75,
+      -0.5,
+      -0.25,
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0,
+      1.25,
+      1.5,
+      1.75,
+      2.0,
+      2.25,
+      2.5,
+      2.75,
+      3.0
+    ],
+    "total_goals_lines": [
+      0.5,
+      1.0,
+      1.5,
+      2.0,
+      2.5,
+      3.0,
+      3.5,
+      4.0,
+      4.5,
+      5.0,
+      5.5
+    ],
     "correct_score_top_n": 10,
-    "non_stakeable_markets": ["correct_score"],
-    "comment": "Design §6.1 / §11. matrix_max_goals is the truncation point deferred from Design §11; the matrix is renormalised after truncation and Phase 3 asserts it sums to ~1."
+    "non_stakeable_markets": [
+      "correct_score"
+    ],
+    "comment": "Design \u00a76.1 / \u00a711. matrix_max_goals is the truncation point deferred from Design \u00a711; the matrix is renormalised after truncation and Phase 3 asserts it sums to ~1."
   },
-
   "reporting": {
     "clv_label": "Friday-to-close CLV",
     "min_cell_sample_size": 50,
     "bootstrap_resamples": 10000,
-    "comment": "The CLV label is mandatory and literal (Design §6.6): football-data.co.uk's base snapshot is Friday afternoon, not a true opening line, so measured movement understates what an early bettor could capture. min_cell_sample_size greys out edge-map cells rather than displaying noise as signal (Design §6.8)."
+    "comment": "The CLV label is mandatory and literal (Design \u00a76.6): football-data.co.uk's base snapshot is Friday afternoon, not a true opening line, so measured movement understates what an early bettor could capture. min_cell_sample_size greys out edge-map cells rather than displaying noise as signal (Design \u00a76.8)."
   },
-
   "odds_regime": {
     "pinnacle_break_date": "2025-07-23",
     "allow_pooling_across_regimes": false,
-    "comment": "Requirements §7.3. Pinnacle was dropped from Max/Avg on this date. Pooling the two regimes without adjustment is a correctness bug, so the default forbids it."
+    "comment": "Requirements \u00a77.3. Pinnacle was dropped from Max/Avg on this date. Pooling the two regimes without adjustment is a correctness bug, so the default forbids it."
   }
 }

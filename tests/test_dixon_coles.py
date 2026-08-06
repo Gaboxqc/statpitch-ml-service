@@ -179,6 +179,54 @@ def test_over_is_monotonically_decreasing_in_the_line(matrix):
     assert overs == sorted(overs, reverse=True)
 
 
+# --- asian handicap -----------------------------------------------------------
+
+@pytest.mark.parametrize(
+    "line", [-2.0, -1.75, -1.5, -1.25, -1.0, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 1.0, 2.0]
+)
+def test_asian_handicap_outcomes_are_exhaustive(matrix, line):
+    win, push, loss = matrix.asian_handicap(line)
+    assert win + push + loss == pytest.approx(1.0, abs=1e-9)
+    assert min(win, push, loss) >= 0.0
+
+
+def test_a_zero_handicap_pushes_exactly_on_the_draw(matrix):
+    assert matrix.asian_handicap(0.0)[1] == pytest.approx(matrix.draw(), abs=1e-12)
+
+
+def test_a_half_goal_start_is_the_straight_home_win(matrix):
+    """AH -0.5 wins on exactly the results a 1X2 home bet wins on."""
+    win, push, _ = matrix.asian_handicap(-0.5)
+    assert push == 0.0
+    assert win == pytest.approx(matrix.home_win(), abs=1e-12)
+
+
+def test_half_lines_never_push(matrix):
+    for line in (-1.5, -0.5, 0.5, 1.5):
+        assert matrix.asian_handicap(line)[1] == 0.0
+
+
+def test_whole_lines_can_push(matrix):
+    for line in (-1.0, 0.0, 1.0):
+        assert matrix.asian_handicap(line)[1] > 0.0
+
+
+def test_quarter_lines_split_the_adjacent_lines(matrix):
+    """A quarter-line stake sits half on each neighbour, so it half-wins."""
+    low = matrix.asian_handicap(-0.5)
+    high = matrix.asian_handicap(0.0)
+    quarter = matrix.asian_handicap(-0.25)
+    for q, expected in zip(quarter, [(a + b) / 2 for a, b in zip(low, high, strict=True)],
+                           strict=True):
+        assert q == pytest.approx(expected, abs=1e-12)
+
+
+def test_giving_a_bigger_start_makes_covering_harder(matrix):
+    """Win probability must fall as the home side gives away more goals."""
+    wins = [matrix.asian_handicap(line)[0] for line in (1.0, 0.5, 0.0, -0.5, -1.0, -1.5)]
+    assert wins == sorted(wins, reverse=True)
+
+
 def test_both_teams_to_score_excludes_any_clean_sheet(matrix):
     manual = 1.0 - (matrix.matrix[0, :].sum() + matrix.matrix[:, 0].sum()
                     - matrix.matrix[0, 0])

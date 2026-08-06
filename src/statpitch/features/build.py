@@ -63,6 +63,11 @@ class _ClubState:
     results: deque = field(default_factory=lambda: deque(maxlen=max(FORM_WINDOWS)))
     goals_for: deque = field(default_factory=lambda: deque(maxlen=max(FORM_WINDOWS)))
     goals_against: deque = field(default_factory=lambda: deque(maxlen=max(FORM_WINDOWS)))
+    #: xG is tracked separately from goals because it is only available for the
+    #: Big 5 from 2014/15 — a club can have twenty matches of form history and
+    #: none of xG, and conflating the two would silently shorten the xG window.
+    xg_for: deque = field(default_factory=lambda: deque(maxlen=max(FORM_WINDOWS)))
+    xg_against: deque = field(default_factory=lambda: deque(maxlen=max(FORM_WINDOWS)))
     dates: deque = field(default_factory=lambda: deque(maxlen=60))
     last_date: pd.Timestamp | None = None
 
@@ -87,12 +92,25 @@ class _ClubState:
             return None
         return float(min((on - self.last_date).days, MAX_REST_DAYS))
 
-    def record(self, date: pd.Timestamp, points: float, scored: int, conceded: int) -> None:
+    def record(
+        self,
+        date: pd.Timestamp,
+        points: float,
+        scored: int,
+        conceded: int,
+        xg_for: float | None = None,
+        xg_against: float | None = None,
+    ) -> None:
         self.results.append(points)
         self.goals_for.append(scored)
         self.goals_against.append(conceded)
         self.dates.append(date)
         self.last_date = date
+        # Only appended when measured. Pushing a zero for an unmeasured match
+        # would read as "created no chances" and drag every rolling xG down.
+        if xg_for is not None and xg_against is not None:
+            self.xg_for.append(xg_for)
+            self.xg_against.append(xg_against)
 
 
 def _points(scored: int, conceded: int) -> float:
@@ -136,11 +154,16 @@ def merge_match_log(
 def build_features(
     matches: pd.DataFrame,
     elo_lookup: dict[tuple[str, pd.Timestamp], float] | None = None,
+    xg_lookup: dict[str, tuple[float, float]] | None = None,
 ) -> pd.DataFrame:
     """Emit one feature row per match, using only earlier matches.
 
     `elo_lookup` maps (club, date) to the club's rating strictly before that date;
     see `statpitch.data.club_elo.elo_as_of`.
+
+    `xg_lookup` maps match_id to that match's (home_xg, away_xg). It is consumed
+    only when updating state *after* a row is emitted, so a match's own xG never
+    reaches its own features.
     """
     if matches.empty:
         return pd.DataFrame()
@@ -170,6 +193,20 @@ def build_features(
                 row[f"{side}_goals_against_{window}"] = state.mean_goals(
                     state.goals_against, window
                 )
+            for window in FORM_WINDOWS:
+                row[f"{side}_xg_for_{window}"] = state.mean_goals(state.xg_for, window)
+                row[f"{side}_xg_against_{window}"] = state.mean_goals(
+                    state.xg_against, window
+                )
+            # Positive means the club has scored more than its chances deserved,
+            # which historically regresses — the signal rolling goals cannot see.
+            row[f"{side}_xg_overperformance"] = (
+                None
+                if not state.xg_for or not state.goals_for
+                else float(np.mean(list(state.goals_for)[-len(state.xg_for):]))
+                - float(np.mean(list(state.xg_for)))
+            )
+            row[f"{side}_xg_matches"] = len(state.xg_for)
             row[f"{side}_rest_days"] = state.rest_days(date)
             row[f"{side}_matches_14d"] = state.matches_within(date, CONGESTION_DAYS)
             row[f"{side}_matches_played"] = len(state.dates)
@@ -198,6 +235,9 @@ def build_features(
         for window in FORM_WINDOWS:
             h, a = row[f"home_form_{window}"], row[f"away_form_{window}"]
             row[f"form_diff_{window}"] = None if h is None or a is None else h - a
+        for window in FORM_WINDOWS:
+            h, a = row[f"home_xg_for_{window}"], row[f"away_xg_for_{window}"]
+            row[f"xg_diff_{window}"] = None if h is None or a is None else h - a
         h_rest, a_rest = row["home_rest_days"], row["away_rest_days"]
         row["rest_diff"] = None if h_rest is None or a_rest is None else h_rest - a_rest
         row["congestion_diff"] = row["home_matches_14d"] - row["away_matches_14d"]
@@ -209,8 +249,9 @@ def build_features(
         # would let each match contribute to its own features.
         scored, conceded = int(m.home_goals), int(m.away_goals)
         home_points, away_points = _points(scored, conceded), _points(conceded, scored)
-        home_state.record(date, home_points, scored, conceded)
-        away_state.record(date, away_points, conceded, scored)
+        home_xg, away_xg = (xg_lookup or {}).get(m.match_id, (None, None))
+        home_state.record(date, home_points, scored, conceded, home_xg, away_xg)
+        away_state.record(date, away_points, conceded, scored, away_xg, home_xg)
         history.append((home_points, home))
 
     frame = pd.DataFrame(rows)

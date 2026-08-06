@@ -280,17 +280,93 @@ def test_every_match_produces_exactly_one_row(simple_log):
     assert features["match_id"].is_unique
 
 
-def test_no_feature_column_is_entirely_null_on_real_shaped_input():
-    rng = np.random.default_rng(0)
+def _busy_log(n=200, seed=0):
+    rng = np.random.default_rng(seed)
     clubs = [f"Club {i}" for i in range(10)]
     rows = []
     day = pd.Timestamp("2024-08-01")
-    for i in range(200):
+    for i in range(n):
         home, away = rng.choice(clubs, size=2, replace=False)
         rows.append(
             _match(f"m{i}", day + pd.Timedelta(days=i // 5 * 3), home, away,
                    int(rng.integers(0, 4)), int(rng.integers(0, 4)))
         )
-    features = fb.drop_burn_in(fb.build_features(pd.DataFrame(rows)))
+    return pd.DataFrame(rows)
+
+
+def test_no_feature_column_is_entirely_null_on_real_shaped_input():
+    log = _busy_log()
+    rng = np.random.default_rng(1)
+    xg = {mid: (float(rng.uniform(0.2, 3.0)), float(rng.uniform(0.2, 3.0)))
+          for mid in log["match_id"]}
+    features = fb.drop_burn_in(fb.build_features(log, xg_lookup=xg))
     for column in fb.feature_columns(features):
         assert features[column].notna().any(), f"{column} is entirely null"
+
+
+# --- expected goals -----------------------------------------------------------
+
+def test_xg_columns_are_null_when_no_xg_is_supplied():
+    """Absent xG must read as "not measured", never as zero.
+
+    Understat covers the Big 5 from 2014/15 only, so most of the archive has no
+    xG at all. A zero would mean "created no chances" and drag every rolling
+    average down for the seasons that predate coverage.
+    """
+    features = fb.build_features(_busy_log(n=60))
+    for column in ("home_xg_for_5", "away_xg_against_10", "xg_diff_5"):
+        assert features[column].isna().all()
+    assert (features["home_xg_matches"] == 0).all()
+
+
+def test_rolling_xg_uses_only_earlier_matches():
+    log = pd.DataFrame([
+        _match("m1", "2024-08-01", "Arsenal", "Chelsea", 1, 0),
+        _match("m2", "2024-08-08", "Arsenal", "Everton", 0, 0),
+    ])
+    xg = {"m1": (2.5, 0.4), "m2": (1.1, 1.0)}
+    features = fb.build_features(log, xg_lookup=xg).set_index("match_id")
+    assert pd.isna(features.loc["m1", "home_xg_for_5"])   # its own xG is invisible
+    assert features.loc["m2", "home_xg_for_5"] == pytest.approx(2.5)
+    assert features.loc["m2", "home_xg_against_5"] == pytest.approx(0.4)
+
+
+def test_xg_is_recorded_from_each_clubs_perspective():
+    log = pd.DataFrame([
+        _match("m1", "2024-08-01", "Arsenal", "Chelsea", 1, 0),
+        _match("m2", "2024-08-08", "Chelsea", "Everton", 0, 0),
+    ])
+    xg = {"m1": (2.5, 0.4), "m2": (1.0, 1.0)}
+    features = fb.build_features(log, xg_lookup=xg).set_index("match_id")
+    # Chelsea were away in m1: they created 0.4 and faced 2.5.
+    assert features.loc["m2", "home_xg_for_5"] == pytest.approx(0.4)
+    assert features.loc["m2", "home_xg_against_5"] == pytest.approx(2.5)
+
+
+def test_overperformance_is_goals_minus_xg():
+    """The signal rolling goals cannot see: finishing above or below chances."""
+    log = pd.DataFrame([
+        _match("m1", "2024-08-01", "Arsenal", "Chelsea", 3, 0),
+        _match("m2", "2024-08-08", "Arsenal", "Everton", 1, 0),
+    ])
+    xg = {"m1": (1.0, 0.5), "m2": (1.0, 1.0)}
+    features = fb.build_features(log, xg_lookup=xg).set_index("match_id")
+    # Arsenal scored 3 from 1.0 xG, so they arrive at m2 two goals to the good.
+    assert features.loc["m2", "home_xg_overperformance"] == pytest.approx(2.0)
+
+
+def test_xg_window_is_not_shortened_by_matches_without_xg():
+    """A club can have long form history and only a few measured matches.
+
+    Tracking xG in the same deque as goals would silently truncate the xG window
+    to the last N matches overall rather than the last N measured ones.
+    """
+    rows = [_match(f"m{i}", f"2024-08-{i + 1:02d}", "Arsenal", f"Opp{i}", 1, 0)
+            for i in range(8)]
+    # Only the first two matches have xG.
+    xg = {"m0": (2.0, 0.5), "m1": (2.0, 0.5)}
+    features = fb.build_features(pd.DataFrame(rows), xg_lookup=xg).set_index("match_id")
+    last = features.loc["m7"]
+    assert last["home_xg_matches"] == 2
+    assert last["home_xg_for_5"] == pytest.approx(2.0)   # both measured matches
+    assert last["home_matches_played"] == 7              # full form history

@@ -22,10 +22,24 @@ Matches against rated opponents pin the overall level, and unrated-vs-unrated
 matches carry the buckets' positions relative to each other. Solving them
 together uses both.
 
-Fitted by maximum likelihood on the standard Elo expected-score curve, with home
-advantage fitted rather than assumed. Every bucket is reported with its sample
-count and a bootstrap confidence interval — an estimate without a dispersion
-figure does not ship (NFR-10).
+Home advantage is estimated **first and separately**, from matches where both
+ratings are known, then held fixed. Fitting it jointly with the bucket ratings
+fails for a structural reason, not a numerical one: domestic cups seed the
+lower-tier club at home, so within a bucket the home side is systematically the
+weaker club. A bucket carries only one rating and cannot express that, so the
+optimiser charges the deficit to the venue term — which came out at -27 Elo, then
+-3 Elo, against data that plainly shows a positive home effect. Where both
+ratings are known the confound disappears and the venue term is the only thing
+left to explain the result.
+
+Measured that way, cup home advantage is **~25 Elo against ~54 in the leagues**
+(19,763 league matches as a control, which also validates the estimator against a
+well-known quantity). Applying a league home-advantage constant to cup fixtures
+would over-favour the host by roughly 30 Elo, and it would do so exactly in the
+lower-division-hosts-a-big-club ties this prior exists to handle.
+
+Every bucket is reported with its sample count and a bootstrap confidence
+interval — an estimate without a dispersion figure does not ship (NFR-10).
 """
 
 from __future__ import annotations
@@ -51,10 +65,30 @@ DEFAULT_ENTRANT_ELO = 1300.0
 #: estimate instead, and says so.
 MIN_BUCKET_MATCHES = 20
 
+#: Rated-vs-rated matches needed before home advantage is estimated from data.
+MIN_HOME_ADVANTAGE_MATCHES = 100
+
+#: Fallback venue effect when there is too little rated-vs-rated play to measure
+#: one. A conventional league figure, deliberately not tuned.
+DEFAULT_HOME_ADVANTAGE = 60.0
+
 
 def expected_score(rating: np.ndarray | float, opponent: np.ndarray | float) -> np.ndarray:
     """Standard Elo expectation for the rating difference."""
     return 1.0 / (1.0 + np.power(10.0, (np.asarray(opponent) - np.asarray(rating)) / ELO_SCALE))
+
+
+def _fit_home_advantage(
+    home_elo: np.ndarray, away_elo: np.ndarray, score: np.ndarray
+) -> float:
+    """Venue effect in Elo points, from matches where both ratings are known."""
+
+    def nll(params: np.ndarray) -> float:
+        expected = expected_score(home_elo + params[0], away_elo)
+        expected = np.clip(expected, 1e-9, 1 - 1e-9)
+        return float(-np.sum(score * np.log(expected) + (1 - score) * np.log(1 - expected)))
+
+    return float(minimize(nll, np.array([DEFAULT_HOME_ADVANTAGE]), method="L-BFGS-B").x[0])
 
 
 @dataclass(frozen=True, slots=True)
@@ -274,9 +308,37 @@ def fit(
     score = design["score"].to_numpy(dtype=float)
     neutral = design["neutral"].to_numpy(dtype=bool)
 
+    # --- stage 1: home advantage, from matches where both ratings are known ---
+    #
+    # Fitting it jointly with the bucket ratings does not work, and the reason is
+    # structural rather than numerical. Domestic cups seed the lower-tier club at
+    # home (always in the DFB-Pokal's early rounds, by rank in the Copa del Rey and
+    # Coupe de France). Within a bucket the home side is therefore systematically
+    # the weaker club, but a bucket has only one rating and cannot express that —
+    # so the optimiser charges the deficit to the venue term and home advantage
+    # comes out at roughly zero or negative.
+    #
+    # Where both ratings are known the confound disappears: strength is measured,
+    # so the venue term is the only thing left to explain the result. Home
+    # advantage is estimated there and held fixed while the buckets are fitted.
+    both_rated = (home_idx < 0) & (away_idx < 0) & ~neutral
+    if both_rated.sum() >= MIN_HOME_ADVANTAGE_MATCHES:
+        home_advantage = _fit_home_advantage(
+            home_elo[both_rated], away_elo[both_rated], score[both_rated]
+        )
+        home_advantage_matches = int(both_rated.sum())
+    else:
+        log.warning(
+            "entrant prior: only %d rated-vs-rated matches, too few to identify home "
+            "advantage; falling back to %.0f Elo",
+            int(both_rated.sum()), DEFAULT_HOME_ADVANTAGE,
+        )
+        home_advantage = DEFAULT_HOME_ADVANTAGE
+        home_advantage_matches = int(both_rated.sum())
+
     def negative_log_likelihood(params: np.ndarray) -> float:
-        ratings = params[:-1]
-        advantage = params[-1]
+        ratings = params
+        advantage = home_advantage
         h = np.where(home_idx >= 0, ratings[np.maximum(home_idx, 0)], home_elo)
         a = np.where(away_idx >= 0, ratings[np.maximum(away_idx, 0)], away_elo)
         expected = expected_score(h + np.where(neutral, 0.0, advantage), a)
@@ -284,10 +346,9 @@ def fit(
         # Draws enter as half a win and half a loss, the usual Elo convention.
         return float(-np.sum(score * np.log(expected) + (1 - score) * np.log(1 - expected)))
 
-    start = np.append(np.full(len(bucket_keys), DEFAULT_ENTRANT_ELO), 60.0)
+    start = np.full(len(bucket_keys), DEFAULT_ENTRANT_ELO)
     result = minimize(negative_log_likelihood, start, method="L-BFGS-B")
-    ratings = result.x[:-1]
-    home_advantage = float(result.x[-1])
+    ratings = result.x
 
     # Bootstrap over matches for the per-bucket interval.
     rng = np.random.default_rng(seed)
@@ -297,15 +358,15 @@ def fit(
         pick = rng.integers(0, n, n)
 
         def nll_resampled(params: np.ndarray, pick: np.ndarray = pick) -> float:
-            r, advantage = params[:-1], params[-1]
+            r = params
             h = np.where(home_idx[pick] >= 0, r[np.maximum(home_idx[pick], 0)], home_elo[pick])
             a = np.where(away_idx[pick] >= 0, r[np.maximum(away_idx[pick], 0)], away_elo[pick])
-            expected = expected_score(h + np.where(neutral[pick], 0.0, advantage), a)
+            expected = expected_score(h + np.where(neutral[pick], 0.0, home_advantage), a)
             expected = np.clip(expected, 1e-9, 1 - 1e-9)
             s = score[pick]
             return float(-np.sum(s * np.log(expected) + (1 - s) * np.log(1 - expected)))
 
-        samples[b] = minimize(nll_resampled, result.x, method="L-BFGS-B").x[:-1]
+        samples[b] = minimize(nll_resampled, result.x, method="L-BFGS-B").x
 
     counts = _bucket_counts(design, matches, entry_lookup, club_mapping)
 
@@ -350,6 +411,7 @@ def fit(
             "converged": float(result.success),
             "log_likelihood": -float(result.fun),
             "n_buckets": float(len(buckets)),
+            "home_advantage_matches": float(home_advantage_matches),
         },
     )
 

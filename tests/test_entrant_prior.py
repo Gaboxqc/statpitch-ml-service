@@ -136,7 +136,10 @@ def _simulate(seed=0, n_seasons=8):
 
 @pytest.fixture(scope="module")
 def fitted():
-    matches, elo, mapping, true, home_advantage = _simulate()
+    # 30 seasons, not 8. Home advantage is now estimated from rated-vs-rated play
+    # alone, and 8 seasons yields only 32 such matches — below the threshold, so
+    # it falls back to a default and the bucket ratings absorb the difference.
+    matches, elo, mapping, true, home_advantage = _simulate(n_seasons=30)
     prior = ep.fit(matches, elo, mapping, bootstrap=40, seed=1)
     return prior, true, home_advantage
 
@@ -154,15 +157,17 @@ def test_fit_recovers_the_true_ratings_within_tolerance(fitted):
 
 
 def test_home_advantage_is_positive_and_roughly_right():
-    """It fitted at -27 Elo when rated-vs-rated matches were excluded.
+    """Estimated from rated-vs-rated matches only, then held fixed.
 
-    Cups seed the weaker club at home, so weak-and-home is confounded with the
-    venue effect; only matches where both ratings are known separate them.
+    Fitting it jointly with the bucket ratings gave -27 Elo, then -3 Elo, against
+    data that plainly shows a positive home effect: cups seed the weaker club at
+    home, so within a bucket home is confounded with weakness, and a single bucket
+    rating cannot express that.
 
-    Averaged over seeds rather than asserted on one. Home advantage is estimated
+    Averaged over seeds rather than asserted on one. Home advantage is inferred
     from win rates and 70 Elo is only a ~10pp shift, so a single simulated run is
-    genuinely noisy — one seed drew exactly 50% home wins and recovered -1 Elo.
-    Averaging tests the estimator instead of the draw.
+    genuinely noisy — one seed drew exactly 50% home wins. Averaging tests the
+    estimator instead of the draw.
     """
     estimates = []
     for seed in range(5):
@@ -172,6 +177,36 @@ def test_home_advantage_is_positive_and_roughly_right():
 
     assert np.mean(estimates) > 0
     assert np.mean(estimates) == pytest.approx(home_advantage, abs=30)
+
+
+def test_home_advantage_survives_the_seeding_confound():
+    """The failure mode that produced a negative venue effect on real data.
+
+    Every unrated club is placed at home against a stronger rated club, which is
+    how domestic cups actually seed. A joint fit reads the resulting home deficit
+    as negative home advantage; estimating from rated-vs-rated play does not.
+    """
+    matches, elo, mapping, _, home_advantage = _simulate(seed=3, n_seasons=30)
+    rated = set(mapping)
+    seeded = matches.copy()
+    swap = seeded.home_team.isin(rated) & ~seeded.away_team.isin(rated)
+    seeded.loc[swap, ["home_team", "away_team"]] = seeded.loc[
+        swap, ["away_team", "home_team"]
+    ].to_numpy()
+    seeded.loc[swap, ["home_goals", "away_goals"]] = seeded.loc[
+        swap, ["away_goals", "home_goals"]
+    ].to_numpy()
+
+    prior = ep.fit(seeded, elo, mapping, bootstrap=5, seed=1)
+    assert prior.home_advantage > 0
+    assert prior.home_advantage == pytest.approx(home_advantage, abs=45)
+
+
+def test_home_advantage_falls_back_when_rated_play_is_too_thin():
+    matches, elo, mapping, _, _ = _simulate(seed=0, n_seasons=2)
+    prior = ep.fit(matches, elo, mapping, bootstrap=5, seed=1)
+    assert prior.home_advantage == ep.DEFAULT_HOME_ADVANTAGE
+    assert prior.diagnostics["home_advantage_matches"] < ep.MIN_HOME_ADVANTAGE_MATCHES
 
 
 def test_every_bucket_reports_a_confidence_interval(fitted):

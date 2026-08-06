@@ -71,25 +71,84 @@ class _ClubState:
     dates: deque = field(default_factory=lambda: deque(maxlen=60))
     last_date: pd.Timestamp | None = None
 
-    def form(self, window: int) -> float | None:
-        """Points per game over the last `window` matches, or None if unplayed."""
+    #: Venue-split history. Pooled form averages a club's home and away records
+    #: together, which hides a real and large split: most clubs are markedly
+    #: better at home, and the two records answer different questions about a
+    #: fixture. The home side's HOME record and the away side's AWAY record are
+    #: what actually bear on it.
+    venue_results: dict[str, deque] = field(
+        default_factory=lambda: {
+            "home": deque(maxlen=max(FORM_WINDOWS)),
+            "away": deque(maxlen=max(FORM_WINDOWS)),
+        }
+    )
+    venue_scored: dict[str, deque] = field(
+        default_factory=lambda: {
+            "home": deque(maxlen=max(FORM_WINDOWS)),
+            "away": deque(maxlen=max(FORM_WINDOWS)),
+        }
+    )
+    venue_conceded: dict[str, deque] = field(
+        default_factory=lambda: {
+            "home": deque(maxlen=max(FORM_WINDOWS)),
+            "away": deque(maxlen=max(FORM_WINDOWS)),
+        }
+    )
+    #: Consecutive matches, at this venue, in which the club scored / kept a
+    #: clean sheet. Streaks are what a pooled mean cannot express.
+    scoring_streak: dict[str, int] = field(
+        default_factory=lambda: {"home": 0, "away": 0}
+    )
+    clean_sheet_streak: dict[str, int] = field(
+        default_factory=lambda: {"home": 0, "away": 0}
+    )
+
+    def form(self, window: int) -> float:
+        """Points per game over the last `window` matches, NaN if never played.
+
+        NaN rather than None throughout: None makes an all-missing column infer
+        `object` dtype, so the same feature typed differently depending on which
+        rows were in the frame. That surfaced as a spurious failure of the
+        leakage test, which compares a truncated build against the full one.
+        """
         if not self.results:
-            return None
+            return float("nan")
         recent = list(self.results)[-window:]
         return float(np.mean(recent))
 
-    def mean_goals(self, series: deque, window: int) -> float | None:
+    def mean_goals(self, series: deque, window: int) -> float:
         if not series:
-            return None
+            return float("nan")
         return float(np.mean(list(series)[-window:]))
 
     def matches_within(self, on: pd.Timestamp, days: int) -> int:
         cutoff = on - pd.Timedelta(days=days)
         return sum(1 for d in self.dates if cutoff <= d < on)
 
-    def rest_days(self, on: pd.Timestamp) -> float | None:
+    def venue_form(self, venue: str, window: int) -> float:
+        series = self.venue_results[venue]
+        if not series:
+            return float("nan")
+        return float(np.mean(list(series)[-window:]))
+
+    def venue_mean(self, series: deque, window: int) -> float:
+        if not series:
+            return float("nan")
+        return float(np.mean(list(series)[-window:]))
+
+    def goal_volatility(self, window: int) -> float | None:
+        """Spread of goals scored, which a rolling mean cannot express.
+
+        Two clubs averaging 1.5 goals are different propositions if one scores
+        1,2,1,2,1 and the other 0,0,5,1,1 — most obviously for totals markets.
+        """
+        if len(self.goals_for) < 3:
+            return float("nan")
+        return float(np.std(list(self.goals_for)[-window:]))
+
+    def rest_days(self, on: pd.Timestamp) -> float:
         if self.last_date is None:
-            return None
+            return float("nan")
         return float(min((on - self.last_date).days, MAX_REST_DAYS))
 
     def record(
@@ -100,6 +159,7 @@ class _ClubState:
         conceded: int,
         xg_for: float | None = None,
         xg_against: float | None = None,
+        venue: str | None = None,
     ) -> None:
         self.results.append(points)
         self.goals_for.append(scored)
@@ -111,6 +171,17 @@ class _ClubState:
         if xg_for is not None and xg_against is not None:
             self.xg_for.append(xg_for)
             self.xg_against.append(xg_against)
+
+        if venue is not None:
+            self.venue_results[venue].append(points)
+            self.venue_scored[venue].append(scored)
+            self.venue_conceded[venue].append(conceded)
+            self.scoring_streak[venue] = (
+                self.scoring_streak[venue] + 1 if scored > 0 else 0
+            )
+            self.clean_sheet_streak[venue] = (
+                self.clean_sheet_streak[venue] + 1 if conceded == 0 else 0
+            )
 
 
 def _points(scored: int, conceded: int) -> float:
@@ -201,12 +272,25 @@ def build_features(
             # Positive means the club has scored more than its chances deserved,
             # which historically regresses — the signal rolling goals cannot see.
             row[f"{side}_xg_overperformance"] = (
-                None
+                float("nan")
                 if not state.xg_for or not state.goals_for
                 else float(np.mean(list(state.goals_for)[-len(state.xg_for):]))
                 - float(np.mean(list(state.xg_for)))
             )
             row[f"{side}_xg_matches"] = len(state.xg_for)
+            # Venue-split: the home club's home record, the away club's away one.
+            for window in FORM_WINDOWS:
+                row[f"{side}_venue_form_{window}"] = state.venue_form(side, window)
+                row[f"{side}_venue_scored_{window}"] = state.venue_mean(
+                    state.venue_scored[side], window
+                )
+                row[f"{side}_venue_conceded_{window}"] = state.venue_mean(
+                    state.venue_conceded[side], window
+                )
+            row[f"{side}_venue_matches"] = len(state.venue_results[side])
+            row[f"{side}_scoring_streak"] = state.scoring_streak[side]
+            row[f"{side}_clean_sheet_streak"] = state.clean_sheet_streak[side]
+            row[f"{side}_goal_volatility"] = state.goal_volatility(max(FORM_WINDOWS))
             row[f"{side}_rest_days"] = state.rest_days(date)
             row[f"{side}_matches_14d"] = state.matches_within(date, CONGESTION_DAYS)
             row[f"{side}_matches_played"] = len(state.dates)
@@ -216,31 +300,42 @@ def build_features(
         if history:
             points = [p for p, h in history if h == home]
             row["h2h_matches"] = len(history)
-            row["h2h_home_ppg"] = float(np.mean(points)) if points else None
+            row["h2h_home_ppg"] = float(np.mean(points)) if points else float("nan")
         else:
             row["h2h_matches"] = 0
-            row["h2h_home_ppg"] = None
+            row["h2h_home_ppg"] = float("nan")
 
         if elo_lookup is not None:
             home_elo = elo_lookup.get((home, date))
             away_elo = elo_lookup.get((away, date))
             row["home_elo"] = home_elo
             row["away_elo"] = away_elo
+            row["home_elo"] = float("nan") if home_elo is None else home_elo
+            row["away_elo"] = float("nan") if away_elo is None else away_elo
             row["elo_diff"] = (
-                None if home_elo is None or away_elo is None else home_elo - away_elo
+                float("nan")
+                if home_elo is None or away_elo is None
+                else home_elo - away_elo
             )
 
         # Derived differentials, which trees split on far more readily than the
         # raw pair.
         for window in FORM_WINDOWS:
             h, a = row[f"home_form_{window}"], row[f"away_form_{window}"]
-            row[f"form_diff_{window}"] = None if h is None or a is None else h - a
+            row[f"form_diff_{window}"] = h - a
         for window in FORM_WINDOWS:
             h, a = row[f"home_xg_for_{window}"], row[f"away_xg_for_{window}"]
-            row[f"xg_diff_{window}"] = None if h is None or a is None else h - a
+            row[f"xg_diff_{window}"] = h - a
         h_rest, a_rest = row["home_rest_days"], row["away_rest_days"]
-        row["rest_diff"] = None if h_rest is None or a_rest is None else h_rest - a_rest
+        row["rest_diff"] = h_rest - a_rest
         row["congestion_diff"] = row["home_matches_14d"] - row["away_matches_14d"]
+        for window in FORM_WINDOWS:
+            h = row[f"home_venue_form_{window}"]
+            a = row[f"away_venue_form_{window}"]
+            row[f"venue_form_diff_{window}"] = h - a
+        row["scoring_streak_diff"] = (
+            row["home_scoring_streak"] - row["away_scoring_streak"]
+        )
 
         rows.append(row)
 
@@ -250,8 +345,8 @@ def build_features(
         scored, conceded = int(m.home_goals), int(m.away_goals)
         home_points, away_points = _points(scored, conceded), _points(conceded, scored)
         home_xg, away_xg = (xg_lookup or {}).get(m.match_id, (None, None))
-        home_state.record(date, home_points, scored, conceded, home_xg, away_xg)
-        away_state.record(date, away_points, conceded, scored, away_xg, home_xg)
+        home_state.record(date, home_points, scored, conceded, home_xg, away_xg, "home")
+        away_state.record(date, away_points, conceded, scored, away_xg, home_xg, "away")
         history.append((home_points, home))
 
     frame = pd.DataFrame(rows)

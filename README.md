@@ -7,6 +7,15 @@ Specs live in `docs/`: `01_Requirements.md`, `02_Design.md`, `03_Tasks.md`. Ever
 module traces back to an FR/NFR and a design section; the docstrings carry those
 references so the code and the spec stay legible together.
 
+> **The headline result is negative, and it is the point.** The market-shrinkage
+> weight `w` fits at **0.000** on both criteria — this model does not beat the
+> closing line. What did survive measurement is closing line value on
+> sharp-reference selections (+0.51%, t=3.47). Read
+> **[`docs/MODEL_CARD.md`](docs/MODEL_CARD.md)** before anything else.
+>
+> Advisory only (NFR-11): no bookmaker integration, no wagers, no funds. Staking
+> is disabled in code, not by convention.
+
 ## Layout
 
 ```
@@ -18,10 +27,35 @@ src/statpitch/
   data/
     http.py            Polite, cached, rate-limited HTTP (NFR-5)
     football_data.py   football-data.co.uk results + full odds set (Design §3.1)
+    club_elo.py        As-of-date strength ratings, reported name reconciliation
+    openfootball.py    Domestic cups + UCL/UEL, with ET and shootout columns kept apart
+    understat.py       Shot-based xG; club map derived from fixture identity
+  features/
+    build.py           Single chronological pass — the leakage guarantee (NFR-10)
+  models/
+    dixon_coles.py     The score matrix: one source of truth for ~60 markets (§6.1)
+    goals.py           Poisson rates with a per-competition base_margin offset
+    calibration.py     Reliability curves and ECE (FR-16b)
+    entrant_prior.py   Entry-round Elo prior for unrated cup clubs (FR-9)
+    knockout.py        Extra time and shootouts, measured not assumed (FR-8, FR-7)
+    bracket.py         Fixed brackets vs random redraws — not interchangeable (FR-20)
+  decision/
+    devig.py           Proportional, power, Shin (FR-28)
+    devig_selection.py Empirical selection that refuses non-significant winners
+    shrinkage.py       p_used = w·p_model + (1−w)·q_fair — the truth serum
+    market_engine.py   86 selections, each with a full payoff distribution (FR-23)
+    value.py           Edge decomposed into price and model, which never mix (FR-16a)
+    bet_grader.py      Confidence that falls as the apparent edge grows (FR-25/33)
+    staking.py         Kelly over payoff distributions, correlation-aware (FR-27)
+    clv_tracker.py     Append-only ledger; refuses cross-source CLV (FR-26/29)
+  serving/
+    predictor.py       Format-aware inference, artifacts loaded once (§5.3, §7)
+    app.py             FastAPI; refusals carry the measurement behind them
 data/
-  competitions.json    12 Phase-1 competitions, incl. the odds_coverage gate
+  competitions.json    12 competitions, incl. the odds_coverage gate
   decision_config.json Placeholder parameters — nothing here has seen data yet
-  processed/           matches_clean.parquet, closing_odds.parquet
+  processed/           matches_clean, closing_odds, features, elo_ratings_all, …
+docs/MODEL_CARD.md     What was measured, what failed, and what it means
 tests/                 Offline; no test touches the network
 ```
 
@@ -45,28 +79,46 @@ Ingest the archive (downloads are cached; re-runs do not re-hit the origin):
 
 ## Current state
 
-Phase 0 complete, Phase 1 in progress.
+Phases 0–8 complete. **717 tests**, all offline.
 
-| Item | Status |
-|---|---|
-| Taxonomy for all 12 competitions, format resolution by stage and season | done |
-| `decision_config.json`, versioned, refuses to stake while placeholder | done |
-| API-Football quota guard, before any real API call exists | done |
-| football-data.co.uk ingestion, full odds column set, regime-tagged | done |
-| Club Elo ingestion, as-of-date lookups, name reconciliation | done |
-| openfootball cups + continental | next |
+| Layer | Item | Status |
+|---|---|---|
+| 0 | Taxonomy for 12 competitions, format resolved by stage and season | done |
+| 0 | `decision_config.json`, versioned, refuses to stake while placeholder | done |
+| 0 | API-Football quota guard, before any real API call exists | done |
+| 1 | football-data.co.uk, Club Elo, openfootball cups, Understat xG | done |
+| 2 | Leakage-safe chronological feature build | done |
+| 3 | Dixon-Coles matrix, Poisson goal model, calibration | done |
+| 3 | Extra time + shootouts (FR-8), bracket simulator (FR-20) | done |
+| 5 | **`w` checkpoint — fits at 0.000** | done |
+| 5.5 | Market engine, value, grading, staking, CLV ledger | done |
+| 7 | Format-aware predictor + FastAPI serving layer | done |
+| 8 | Model card | done |
 
-Ingested so far: **59,079 matches** across the 5 leagues, 1993/94 to date,
-**417,631 tidy odds rows**, and **926,697 Club Elo rating intervals** covering all
-245 clubs.
+Ingested: **64,795 matches** — 59,079 league (1993/94–), 5,716 cup and
+continental — **417,631 tidy odds rows**, **1,274,186 Club Elo rating intervals**
+across 428 clubs, and Understat xG joined on **100.0%** of covered fixtures.
+**61,321 feature rows**, 74 columns.
+
+### What the evaluation says
+
+| | log-loss | accuracy | ECE |
+|---|---|---|---|
+| Dixon-Coles + xG | 0.9845 | 0.5264 | **0.00317** |
+| market (de-vigged close) | **0.9698** | **0.5439** | 0.01012 |
+
+`w` = 0.000, CI [0.000, 0.100] on log-loss and [0.000, 0.215] on log-growth. The
+blend is the market. The full account — what was tried against this, what the
+odds-coverage gap means, and the eight corrections to the spec — is in the
+[model card](docs/MODEL_CARD.md).
 
 ### Known limitation in the Elo table
 
-It currently covers only clubs that have appeared in one of the five top leagues
-since 1993/94. Domestic cups admit entrants from far down the pyramid, and those
-clubs are not in it yet — they get added when the openfootball cup ingestion
-reveals their names. Club Elo itself covers them (that is why FR-9 is buildable
-at all); the roster is simply scoped to what has been needed so far.
+Club Elo rates only the top two tiers, contradicting FR-9 and Requirements §7.1.
+Clubs below that return an *empty CSV rather than a 404*, which is why the gap is
+easy to miss. Deeper cup entrants are handled by a fitted entry-round prior
+instead: FA Cup round-3 entrants come back at 1790 Elo against round-1's 1331, a
+460-point tier separation recovered from results rather than assumed.
 
 ## Three findings from Phase 1 that change the plan
 

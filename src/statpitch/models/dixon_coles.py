@@ -136,6 +136,36 @@ class ScoreMatrix:
         )
         return float(self.matrix[totals < line].sum())
 
+    def asian_handicap(self, line: float) -> tuple[float, float, float]:
+        """(win, push, loss) for the HOME side at handicap `line`.
+
+        `line` is applied to the home score, so -0.5 means the home side gives
+        half a goal. Three cases, and they settle differently:
+
+        * half lines (.5)     — no push is possible, win and loss exhaust it
+        * whole lines (.0)    — an exact tie after the handicap refunds the stake
+        * quarter lines (.25) — the stake splits across the two adjacent half and
+          whole lines, so a quarter-line bet can half-win or half-lose
+
+        The quarter case is why the full outcome distribution is returned rather
+        than a single win probability: staking cannot compute log-growth from a
+        win probability alone when half the stake can be refunded.
+        """
+        remainder = abs(line * 4) % 2
+        if remainder == 1:  # quarter line: average the two adjacent lines
+            low = self.asian_handicap(line - 0.25)
+            high = self.asian_handicap(line + 0.25)
+            return tuple((a + b) / 2.0 for a, b in zip(low, high, strict=True))  # type: ignore[return-value]
+
+        rows = np.arange(self.matrix.shape[0])
+        cols = np.arange(self.matrix.shape[1])
+        margin = np.subtract.outer(rows, cols) + line
+
+        win = float(self.matrix[margin > 0].sum())
+        push = float(self.matrix[margin == 0].sum())
+        loss = float(self.matrix[margin < 0].sum())
+        return win, push, loss
+
     def both_teams_to_score(self) -> float:
         return float(self.matrix[1:, 1:].sum())
 

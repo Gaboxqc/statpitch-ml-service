@@ -44,6 +44,10 @@ class PoliteSession:
     max_retries: int = 3
     backoff: float = 2.0
     cache_root: Path | None = None
+    #: Extra headers sent with every request from this session. Some endpoints
+    #: are only reachable with them — Understat's JSON routes return 404 without
+    #: `X-Requested-With: XMLHttpRequest`.
+    headers: dict[str, str] = field(default_factory=dict)
     _last_hit: dict[str, float] = field(default_factory=dict, repr=False)
     _session: requests.Session | None = field(default=None, repr=False)
 
@@ -53,6 +57,8 @@ class PoliteSession:
         self.cache_root.mkdir(parents=True, exist_ok=True)
         self._session = requests.Session()
         self._session.headers.update({"User-Agent": USER_AGENT})
+        if self.headers:
+            self._session.headers.update(self.headers)
 
     # --- caching --------------------------------------------------------
 

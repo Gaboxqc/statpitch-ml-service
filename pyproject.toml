@@ -18,6 +18,7 @@ dependencies = { file = ["requirements.txt"] }
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+markers = ["slow: statistical-power checks needing large simulated samples"]
 filterwarnings = ["error::DeprecationWarning:statpitch.*"]
 
 [tool.ruff]

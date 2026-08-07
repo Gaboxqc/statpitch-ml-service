@@ -212,14 +212,31 @@ class BetLedger:
 
     path: Path
     _entries: list[LedgerEntry] = field(default_factory=list)
-    #: Refuse writes. If None, defaults from STATPITCH_READ_ONLY so a deployment
-    #: can set it once in its environment rather than at every call site.
+    #: Refuse writes. Left as None it follows STATPITCH_READ_ONLY, so a host sets
+    #: it once in its environment rather than at every call site. Passing True
+    #: tightens that; passing False while the environment forbids writes raises,
+    #: because the environment is a floor and not a default (see below).
     read_only: bool | None = field(default=None)
 
     def __post_init__(self) -> None:
         self.path = Path(self.path)
+        host_is_read_only = os.environ.get("STATPITCH_READ_ONLY", "") not in ("", "0")
+        if self.read_only is False and host_is_read_only:
+            # The environment is set by a host whose disk is ephemeral, so a
+            # write there succeeds and is then discarded — the failure this flag
+            # exists to prevent, and the one nothing downstream can detect. A
+            # call site asking for a writable ledger anyway is either wrong or
+            # running somewhere it did not expect, and both are worth stopping
+            # for. Refusing loudly beats honouring it and losing the entry, and
+            # beats ignoring the argument in silence.
+            raise LedgerError(
+                f"refusing to open {self.path} writable: STATPITCH_READ_ONLY is "
+                "set, so this host discards anything written. The ledger is "
+                "owned by the scheduled job that commits it; unset the variable "
+                "if this process is that job."
+            )
         if self.read_only is None:
-            self.read_only = os.environ.get("STATPITCH_READ_ONLY", "") not in ("", "0")
+            self.read_only = host_is_read_only
         if not self.read_only:
             self.path.parent.mkdir(parents=True, exist_ok=True)
         if self.path.exists():

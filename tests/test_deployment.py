@@ -120,11 +120,41 @@ def test_writes_are_allowed_by_default(tmp_path, monkeypatch):
     assert clv.BetLedger(tmp_path / "bet_ledger.jsonl").read_only is False
 
 
-def test_explicit_writable_overrides_the_env_default(tmp_path, monkeypatch):
+def test_asking_for_a_writable_ledger_on_a_read_only_host_is_refused(
+    tmp_path, monkeypatch
+):
+    """The environment is a floor, not a default.
+
+    Honouring `read_only=False` here would let one call site opt out of a guard
+    the host set for the whole process, and the write would then succeed and
+    vanish — which is the failure the flag exists to prevent. Ignoring the
+    argument silently would be no better: this project's bugs have almost all
+    been confident wrong answers rather than errors.
+    """
     from statpitch.decision import clv_tracker as clv
 
     monkeypatch.setenv("STATPITCH_READ_ONLY", "1")
-    assert clv.BetLedger(tmp_path / "bet_ledger.jsonl", read_only=False).read_only is False
+    with pytest.raises(clv.LedgerError, match="STATPITCH_READ_ONLY"):
+        clv.BetLedger(tmp_path / "bet_ledger.jsonl", read_only=False)
+
+
+def test_an_explicit_flag_still_works_where_the_host_allows_writes(
+    tmp_path, monkeypatch
+):
+    """Nothing is taken away from a caller running somewhere writes survive."""
+    from statpitch.decision import clv_tracker as clv
+
+    monkeypatch.delenv("STATPITCH_READ_ONLY", raising=False)
+    assert clv.BetLedger(tmp_path / "a.jsonl", read_only=False).read_only is False
+    assert clv.BetLedger(tmp_path / "b.jsonl", read_only=True).read_only is True
+
+
+def test_the_flag_can_tighten_but_not_loosen(tmp_path, monkeypatch):
+    """read_only=True is always honoured; only the relaxing direction is barred."""
+    from statpitch.decision import clv_tracker as clv
+
+    monkeypatch.setenv("STATPITCH_READ_ONLY", "1")
+    assert clv.BetLedger(tmp_path / "c.jsonl", read_only=True).read_only is True
 
 
 # --- the workflows ------------------------------------------------------------

@@ -212,7 +212,16 @@ def test_only_a_scheduled_run_is_given_a_nominal_slot(name):
 
 @pytest.mark.parametrize("name", ["flag-card.yml", "settle-ledger.yml"])
 def test_the_slot_flag_is_omitted_rather_than_passed_empty(name):
-    """Passing `--scheduled-for ""` is accepted (it becomes `None`), but omitting the flag entirely is clearer."""
+    """Omitted, not empty — a choice rather than a necessity.
+
+    `--scheduled-for ""` happens to be harmless today: argparse hands the job an
+    empty string, which is falsy, so it reads as "no slot". That is one `if` away
+    from ceasing to be true, and the invocation in the log would still name a
+    flag the run had no value for. Omitting depends on nothing.
+
+    The tolerance itself is asserted in `test_jobs.py` rather than described
+    here, since a claim about behaviour belongs in a test that runs it.
+    """
     text = _workflow(name)
     assert "${SLOT:+--scheduled-for $SLOT}" in text
     assert '--scheduled-for "${{ steps.slot.outputs.at }}"' not in text

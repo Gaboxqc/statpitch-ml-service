@@ -136,6 +136,15 @@ So the service runs with `STATPITCH_READ_ONLY=1`, and `BetLedger` raises on
 commits it to the repository; the deployed API only ever serves what that job
 has already committed.
 
+That variable is a **floor, not a default**. `BetLedger(path, read_only=True)`
+tightens it and is always honoured, but `read_only=False` on a host that has set
+it *raises* rather than being obeyed or quietly ignored. Obeying it would let one
+call site opt out of a guard the host set for the whole process, and the write
+would then succeed and disappear — the exact failure the flag exists to prevent,
+and one nothing downstream can detect. Ignoring the argument in silence would be
+no better; almost every bug this project has found returned a confident wrong
+answer rather than an error.
+
 ### Why the build uses a different requirements file
 
 Nothing on a request path imports xgboost, shap, optuna, scikit-learn or the

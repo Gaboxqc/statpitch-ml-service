@@ -212,13 +212,13 @@ class BetLedger:
 
     path: Path
     _entries: list[LedgerEntry] = field(default_factory=list)
-    #: Refuse writes. Defaults from STATPITCH_READ_ONLY so a deployment can set
-    #: it once in its environment rather than at every call site.
-    read_only: bool = field(default=False)
+    #: Refuse writes. If None, defaults from STATPITCH_READ_ONLY so a deployment
+    #: can set it once in its environment rather than at every call site.
+    read_only: bool | None = field(default=None)
 
     def __post_init__(self) -> None:
         self.path = Path(self.path)
-        if not self.read_only:
+        if self.read_only is None:
             self.read_only = os.environ.get("STATPITCH_READ_ONLY", "") not in ("", "0")
         if not self.read_only:
             self.path.parent.mkdir(parents=True, exist_ok=True)

@@ -120,6 +120,13 @@ def test_writes_are_allowed_by_default(tmp_path, monkeypatch):
     assert clv.BetLedger(tmp_path / "bet_ledger.jsonl").read_only is False
 
 
+def test_explicit_writable_overrides_the_env_default(tmp_path, monkeypatch):
+    from statpitch.decision import clv_tracker as clv
+
+    monkeypatch.setenv("STATPITCH_READ_ONLY", "1")
+    assert clv.BetLedger(tmp_path / "bet_ledger.jsonl", read_only=False).read_only is False
+
+
 # --- the workflows ------------------------------------------------------------
 
 @pytest.mark.parametrize("name", ["ci.yml", "flag-card.yml", "settle-ledger.yml"])

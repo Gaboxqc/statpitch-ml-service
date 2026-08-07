@@ -104,6 +104,11 @@ class PredictRequest(BaseModel):
     neutral: bool | None = None
     first_leg_home_goals: int | None = Field(default=None, ge=0)
     first_leg_away_goals: int | None = Field(default=None, ge=0)
+    #: Round each club ENTERED the competition. Only consulted for a club with no
+    #: measured rating, and never defaulted from `stage` — a round-1 entrant that
+    #: wins three ties is still a round-1 calibre club in round 4.
+    home_entry_stage: str | None = None
+    away_entry_stage: str | None = None
 
 
 # --- helpers ------------------------------------------------------------------
@@ -161,6 +166,8 @@ def health() -> dict:
         "status": "ok",
         "artifacts_loaded": bool(predictor().artifacts.elo),
         "clubs_rated": len(predictor().artifacts.elo),
+        "club_name_aliases": len(predictor().artifacts.aliases),
+        "entrant_prior_buckets": len(predictor().artifacts.entrant_prior),
         "decision_config": config.config_version,
         "staking_enabled": not config.is_placeholder,
     }
@@ -202,10 +209,17 @@ def predict(
     away: str,
     stage: str | None = None,
     season: str | None = None,
+    home_entry_stage: str | None = Query(
+        None, description="Round the home club ENTERED, not the round played"
+    ),
+    away_entry_stage: str | None = Query(
+        None, description="Round the away club ENTERED, not the round played"
+    ),
 ) -> dict:
     competition = _competition_or_404(competition_id)
     prediction = predictor().predict(
-        competition_id, home, away, stage=stage, season=season
+        competition_id, home, away, stage=stage, season=season,
+        home_entry_stage=home_entry_stage, away_entry_stage=away_entry_stage,
     )
     return {**prediction.as_dict(), **_bet_recommendation(competition)}
 
@@ -224,6 +238,8 @@ def predict_post(request: PredictRequest) -> dict:
         request.competition_id, request.home_team, request.away_team,
         stage=request.stage, season=request.season, neutral=request.neutral,
         first_leg_score=first_leg,
+        home_entry_stage=request.home_entry_stage,
+        away_entry_stage=request.away_entry_stage,
     )
     return {**prediction.as_dict(), **_bet_recommendation(competition)}
 

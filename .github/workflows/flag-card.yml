@@ -1,0 +1,73 @@
+name: Flag card
+
+# 06:00 UTC daily. The hour is duplicated in the "Derive nominal slot" step
+# below; changing one without the other makes every run report itself as late.
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Never cancel a run in progress. This job can append to an append-only ledger,
+# and a run cancelled between the append and the push leaves the file written on
+# a runner that is about to be destroyed — the work is lost but a later run has
+# no way to know it happened. Queue instead.
+concurrency:
+  group: ledger
+  cancel-in-progress: false
+
+jobs:
+  flag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e . --no-deps
+
+      # GitHub exposes the cron expression, not the instant it was meant to fire,
+      # so the slot is reconstructed here. Scheduled workflows are best-effort and
+      # are routinely delayed at peak; the job compares this against its real
+      # start time and says so when the gap is large, rather than stamping a
+      # "Friday" snapshot on something taken hours later.
+      - name: Derive nominal slot
+        id: slot
+        run: echo "at=$(date -u +%Y-%m-%dT06:00:00+00:00)" >> "$GITHUB_OUTPUT"
+
+      - name: Flag today's card
+        run: python -m statpitch.ops.jobs flag_card --scheduled-for "${{ steps.slot.outputs.at }}"
+
+      - name: Commit the ledger if it changed
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- data/bet_ledger.jsonl; then
+            echo "ledger unchanged; nothing to commit"
+            exit 0
+          fi
+          git add data/bet_ledger.jsonl
+          git commit -m "flag_card: $(date -u +%Y-%m-%d)"
+          # Another queued run, or a human, may have pushed since checkout. Rebase
+          # rather than force: the ledger's whole value is that earlier entries
+          # are never rewritten.
+          for attempt in 1 2 3; do
+            if git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push; then
+              exit 0
+            fi
+            echo "push attempt ${attempt} lost a race; retrying"
+            sleep $((attempt * 5))
+          done
+          echo "could not push the ledger after 3 attempts" >&2
+          exit 1

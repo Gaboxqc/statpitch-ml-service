@@ -1,0 +1,65 @@
+name: Settle ledger
+
+# 04:00 UTC daily — before flag-card's 06:00 slot, so a day's settlements land
+# before that day's flags. Both share the `ledger` concurrency group, so if this
+# one is running late the flag job queues behind it rather than racing it.
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ledger
+  cancel-in-progress: false
+
+jobs:
+  settle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e . --no-deps
+
+      - name: Derive nominal slot
+        id: slot
+        run: echo "at=$(date -u +%Y-%m-%dT04:00:00+00:00)" >> "$GITHUB_OUTPUT"
+
+      # Settling only touches entries that are still pending, so a re-run is a
+      # no-op rather than a rewrite. An entry whose closing price has not been
+      # published yet stays pending on purpose.
+      - name: Settle played fixtures
+        run: python -m statpitch.ops.jobs settle_ledger --scheduled-for "${{ steps.slot.outputs.at }}"
+
+      - name: Commit the ledger if it changed
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- data/bet_ledger.jsonl; then
+            echo "ledger unchanged; nothing to commit"
+            exit 0
+          fi
+          git add data/bet_ledger.jsonl
+          git commit -m "settle_ledger: $(date -u +%Y-%m-%d)"
+          for attempt in 1 2 3; do
+            if git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push; then
+              exit 0
+            fi
+            echo "push attempt ${attempt} lost a race; retrying"
+            sleep $((attempt * 5))
+          done
+          echo "could not push the ledger after 3 attempts" >&2
+          exit 1

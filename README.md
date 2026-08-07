@@ -51,11 +51,16 @@ src/statpitch/
   serving/
     predictor.py       Format-aware inference, artifacts loaded once (§5.3, §7)
     app.py             FastAPI; refusals carry the measurement behind them
+  ops/
+    jobs.py            flag_card and settle_ledger, idempotent and clock-honest
 data/
   competitions.json    12 competitions, incl. the odds_coverage gate
   decision_config.json Placeholder parameters — nothing here has seen data yet
   processed/           matches_clean, closing_odds, features, elo_ratings_all, …
 docs/MODEL_CARD.md     What was measured, what failed, and what it means
+docs/DEPLOYMENT.md     Scheduled jobs, Render blueprint, and the free-tier limits
+render.yaml            Free-plan blueprint; read-only, serving deps only
+.github/workflows/     CI, plus the two scheduled ledger jobs
 tests/                 Offline; no test touches the network
 ```
 
@@ -79,7 +84,7 @@ Ingest the archive (downloads are cached; re-runs do not re-hit the origin):
 
 ## Current state
 
-Phases 0–8 complete. **717 tests**, all offline.
+Phases 0–9 complete. **782 tests**, all offline.
 
 | Layer | Item | Status |
 |---|---|---|
@@ -94,6 +99,7 @@ Phases 0–8 complete. **717 tests**, all offline.
 | 5.5 | Market engine, value, grading, staking, CLV ledger | done |
 | 7 | Format-aware predictor + FastAPI serving layer | done |
 | 8 | Model card | done |
+| 9 | Scheduled jobs, CI, Render blueprint | done |
 
 Ingested: **64,795 matches** — 59,079 league (1993/94–), 5,716 cup and
 continental — **417,631 tidy odds rows**, **1,274,186 Club Elo rating intervals**
@@ -119,6 +125,30 @@ Clubs below that return an *empty CSV rather than a 404*, which is why the gap i
 easy to miss. Deeper cup entrants are handled by a fitted entry-round prior
 instead: FA Cup round-3 entrants come back at 1790 Elo against round-1's 1331, a
 460-point tier separation recovered from results rather than assumed.
+
+## Deployment
+
+Two scheduled GitHub Actions jobs and one Render web service, all free-tier.
+Full detail, including the failure modes they are built around, is in
+[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+
+```bash
+python -m statpitch.ops.jobs flag_card
+```
+
+Three things worth knowing before relying on any of it:
+
+- **The jobs flag nothing today, and say so.** `w` is 0.000 and the decision
+  config is unfitted, so there is nothing to stake. Both jobs still run and both
+  emit a reason, because a job that silently produces an empty result is
+  indistinguishable from one that is broken.
+- **The free Render instance spins down after ~15 minutes.** The warm path is
+  3.9 ms against NFR-2's ~200 ms budget; the first request after idle is tens of
+  seconds. That is a plan limit, not a code path, and there is deliberately no
+  keep-alive ping to hide it.
+- **The deployed API is read-only.** A free instance's disk is ephemeral, so a
+  ledger write would succeed and then vanish. `BetLedger` refuses writes under
+  `STATPITCH_READ_ONLY`; the ledger is owned by the scheduled job that commits it.
 
 ## Three findings from Phase 1 that change the plan
 

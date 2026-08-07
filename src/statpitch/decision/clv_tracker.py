@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
@@ -211,10 +212,16 @@ class BetLedger:
 
     path: Path
     _entries: list[LedgerEntry] = field(default_factory=list)
+    #: Refuse writes. Defaults from STATPITCH_READ_ONLY so a deployment can set
+    #: it once in its environment rather than at every call site.
+    read_only: bool = field(default=False)
 
     def __post_init__(self) -> None:
         self.path = Path(self.path)
-        self.path.parent.mkdir(parents=True, exist_ok=True)
+        if not self.read_only:
+            self.read_only = os.environ.get("STATPITCH_READ_ONLY", "") not in ("", "0")
+        if not self.read_only:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
         if self.path.exists():
             self._entries = [
                 LedgerEntry.from_json(line)
@@ -222,13 +229,32 @@ class BetLedger:
                 if line.strip()
             ]
 
+    def _require_writable(self, action: str) -> None:
+        """Guard the one failure mode a read-only host makes silent.
+
+        On a free-tier host the filesystem is ephemeral: a write succeeds, the
+        instance spins down, and the entry is gone. The ledger's whole value is
+        that it is a record, so a lost append is worse than a refused one. The
+        ledger is owned by the scheduled job that commits it to the repository,
+        and the deployed API only ever reads it.
+        """
+        if self.read_only:
+            raise LedgerError(
+                f"refusing to {action}: this ledger is read-only "
+                "(STATPITCH_READ_ONLY). The deployed API serves the ledger the "
+                "scheduled job commits; writing here would be discarded when the "
+                "instance restarts, leaving a gap nothing can detect."
+            )
+
     def append(self, entry: LedgerEntry) -> None:
+        self._require_writable("append to the ledger")
         with self.path.open("a", encoding="utf-8") as fh:
             fh.write(entry.to_json() + "\n")
         self._entries.append(entry)
 
     def rewrite(self) -> None:
         """Persist settlements. Rewrites the file from the in-memory entries."""
+        self._require_writable("rewrite the ledger")
         self.path.write_text(
             "".join(e.to_json() + "\n" for e in self._entries), encoding="utf-8"
         )

@@ -109,8 +109,10 @@ FR-16b requires reliability curves and ECE regardless.
 state, updated only *after* each row is emitted. The strongest test truncates the
 future and asserts earlier feature rows come back byte-identical.
 
-**Latency (NFR-2, budget ~200ms).** Median 2.5 ms for a league prediction, 2.9 ms
-for a cup tie, 4.8 ms for the full 86-selection book.
+**Latency (NFR-2, budget ~200ms).** Median 3.9 ms for a league prediction, 4.4 ms
+for a cup tie, 6.5 ms for the full 86-selection book — on the warm path. The free
+deployment tier's cold start is a separate matter, stated in
+[`DEPLOYMENT.md`](DEPLOYMENT.md).
 
 ---
 
@@ -194,6 +196,15 @@ the API says so per request with a stated reason rather than omitting the field.
 real-time feed, so the CLV result above cannot currently be traded forward — only
 measured backward. This is the single largest gap, and it is a direct consequence
 of the $0 constraint rather than an oversight.
+
+**A club's rating is only as good as its source, and the response says which.**
+Every prediction reports whether each club carried a measured Club Elo rating, a
+fitted entry-round prior, the pooled entrant level, or a bare default. This is
+reported because it was once silent: ratings were keyed on the league name space
+alone, so 187 of 428 clubs — every club known only as a cup entrant — fell
+through to a flat 1400 and two fourth-tier sides came back as equals of each
+other and of the club hosting them. No error, no missing field, just a confident
+wrong number. `fully_rated` is now part of every response.
 
 **Club Elo covers only the top two tiers.** Requirements §7.1 and FR-9 both state
 otherwise; verified against the API, it does not. Clubs below tier 2 return an
@@ -322,4 +333,4 @@ of those near-misses are instructive:
   vector and correlated and independent slates allocated identically — silently
   defeating the entire purpose of allocating jointly.
 
-**717 tests**, all offline; no test touches the network.
+**782 tests**, all offline; no test touches the network.

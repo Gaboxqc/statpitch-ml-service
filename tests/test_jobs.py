@@ -178,6 +178,19 @@ def test_the_cli_accepts_a_nominal_slot(capsys):
     assert jobs.main(["flag_card", "--scheduled-for", "2026-08-06T06:00:00+00:00"]) == 0
 
 
+def test_an_empty_slot_reads_as_no_slot_rather_than_raising():
+    """Tolerated, but not relied on.
+
+    An empty string is falsy, so it never reaches `fromisoformat` and the run
+    reports no drift. The workflows still omit the flag rather than passing it
+    empty — this is the property that makes that a preference rather than a
+    requirement, and it is asserted here so the preference is not mistaken for a
+    load-bearing constraint.
+    """
+    assert jobs.main(["flag_card", "--scheduled-for", ""]) == 0
+    assert jobs.run("flag_card", scheduled_for=None).warnings == []
+
+
 def test_a_result_serialises_for_a_workflow_summary():
     payload = json.loads(json.dumps(jobs.flag_card(now=NOON).as_dict()))
     assert payload["job"] == "flag_card"

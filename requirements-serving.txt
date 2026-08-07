@@ -1,0 +1,20 @@
+# Runtime dependencies for the deployed API only.
+#
+# Serving does not train. It loads parquet artifacts, builds a score matrix and
+# sums over it, so the modelling and scraping stack is dead weight in the
+# deployed image — xgboost, shap, optuna, scikit-learn and the scrapers add
+# hundreds of megabytes to a build on a 512 MB free instance and are never
+# imported by a request.
+#
+# This split is only safe because it is enforced: tests/test_deployment.py
+# asserts that importing statpitch.serving.app pulls in nothing outside this
+# file. Add an import to the serving path without adding it here and that test
+# fails, rather than the next deploy failing.
+
+pandas>=2.2
+numpy>=1.26
+pyarrow>=16.0          # parquet artifacts
+scipy>=1.13            # brentq (devig), SLSQP (simultaneous Kelly)
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.8

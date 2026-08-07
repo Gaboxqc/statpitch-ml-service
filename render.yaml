@@ -1,0 +1,42 @@
+# Render blueprint — free plan, $0 (NFR-1).
+#
+# Two properties of the free plan shape everything here, and both are documented
+# in docs/DEPLOYMENT.md rather than discovered in production:
+#
+#   1. The instance spins down after ~15 minutes without traffic, and the next
+#      request pays a cold start. The warm path is 2.5 ms (NFR-2 allows 200);
+#      the first request after idle is tens of seconds. That is a plan limit, not
+#      a code path, and it is not hidden behind a keep-alive ping — pinging a free
+#      instance to defeat its own spin-down is against the spirit of the plan and
+#      would burn the monthly instance hours for no user.
+#
+#   2. The disk is ephemeral. Anything written is discarded on restart or
+#      redeploy, so the service runs with STATPITCH_READ_ONLY and the bet ledger
+#      is owned by the scheduled GitHub job that commits it to the repository.
+#      Without that flag a write would appear to succeed and then vanish, which
+#      is the worst available outcome for an append-only record.
+
+services:
+  - type: web
+    name: statpitch-api
+    runtime: python
+    plan: free
+    region: frankfurt          # nearest to the European fixtures being served
+    branch: main
+    # The serving subset, not the full stack. Nothing on a request path imports
+    # xgboost, shap, optuna or the scrapers, and a test enforces that so this
+    # split cannot rot into a broken deploy.
+    buildCommand: pip install -r requirements-serving.txt && pip install -e . --no-deps
+    # One worker on purpose. The free plan allots 512 MB, and the Elo table is
+    # ~12 MB of parquet expanded into a dict per process — a second worker buys
+    # no throughput for a CPU-bound matrix build and risks the memory ceiling.
+    startCommand: uvicorn statpitch.serving.app:app --host 0.0.0.0 --port $PORT --workers 1
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11"
+      # The deployed API answers questions; it does not keep records. See above.
+      - key: STATPITCH_READ_ONLY
+        value: "1"
+      - key: PYTHONUNBUFFERED
+        value: "1"

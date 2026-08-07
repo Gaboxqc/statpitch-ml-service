@@ -77,6 +77,14 @@ asserts the two agree. A run delayed across midnight computes *tomorrow's* slot
 and would otherwise report itself as early, so a slot in the future is flagged
 too.
 
+The slot is derived **only for `schedule` runs**. A manually dispatched run is
+neither early nor late, and deriving one anyway made both jobs report their slot
+as hours in the future on the first manual trigger — arithmetically correct,
+meaningless about the run. A warning that fires when nothing is wrong teaches the
+reader to skip it on the scheduled path, which is the only thing standing between
+a mislabelled snapshot and the CLV series. Dispatched runs get no `--scheduled-for`
+argument at all and report no drift.
+
 **A cancelled run can lose an append.** Both ledger workflows share one
 `concurrency: group: ledger` with `cancel-in-progress: false`. Cancelling a run
 between the append and the push destroys the runner with the file on it, and no

@@ -33,15 +33,20 @@ jobs:
           pip install -r requirements.txt
           pip install -e . --no-deps
 
+      # Only a scheduled run has a slot it can be late for; see the note in
+      # flag-card.yml. A dispatched run gets no nominal time and no drift warning.
       - name: Derive nominal slot
         id: slot
+        if: github.event_name == 'schedule'
         run: echo "at=$(date -u +%Y-%m-%dT04:00:00+00:00)" >> "$GITHUB_OUTPUT"
 
       # Settling only touches entries that are still pending, so a re-run is a
       # no-op rather than a rewrite. An entry whose closing price has not been
       # published yet stays pending on purpose.
       - name: Settle played fixtures
-        run: python -m statpitch.ops.jobs settle_ledger --scheduled-for "${{ steps.slot.outputs.at }}"
+        env:
+          SLOT: ${{ steps.slot.outputs.at }}
+        run: python -m statpitch.ops.jobs settle_ledger ${SLOT:+--scheduled-for $SLOT}
 
       - name: Commit the ledger if it changed
         run: |

@@ -26,3 +26,9 @@ pydantic>=2.8
 pytest>=8.3
 pytest-cov>=5.0
 ruff>=0.6
+# Required by fastapi.testclient, which nothing imports by name — starlette
+# reaches for an HTTP client at import time and raises without one. That made it
+# invisible to a dependency audit and invisible locally, where it was present as
+# somebody else's transitive dependency; the first clean install (CI) failed
+# collection outright. httpx2 rather than httpx: starlette deprecated the latter.
+httpx2>=2.9

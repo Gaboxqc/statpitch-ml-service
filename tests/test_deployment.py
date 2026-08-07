@@ -197,6 +197,47 @@ def test_the_cron_hour_matches_the_slot_the_job_is_told_about(name):
     assert cron_hour == slot_hour
 
 
+@pytest.mark.parametrize("name", ["flag-card.yml", "settle-ledger.yml"])
+def test_only_a_scheduled_run_is_given_a_nominal_slot(name):
+    """A dispatched run is neither early nor late.
+
+    Deriving a slot for one produced a drift warning that was correct about the
+    arithmetic and meaningless about the run, on the very first manual trigger.
+    A warning that fires when nothing is wrong teaches the reader to skip it on
+    the scheduled path, where it is the only thing standing between a mislabelled
+    snapshot and the CLV series.
+    """
+    assert "if: github.event_name == 'schedule'" in _workflow(name)
+
+
+@pytest.mark.parametrize("name", ["flag-card.yml", "settle-ledger.yml"])
+def test_the_slot_flag_is_omitted_rather_than_passed_empty(name):
+    """`--scheduled-for ""` would be an argument error, not a skipped one."""
+    text = _workflow(name)
+    assert "${SLOT:+--scheduled-for $SLOT}" in text
+    assert '--scheduled-for "${{ steps.slot.outputs.at }}"' not in text
+
+
+@pytest.mark.parametrize("name", ["flag-card.yml", "settle-ledger.yml"])
+def test_the_slot_reaches_the_shell_through_an_environment_variable(name):
+    """Workflow expressions are interpolated before the shell sees them.
+
+    Routing through `env:` keeps the value a value. It is our own `date` output
+    today, but the habit is what stops the next one being someone else's input.
+    """
+    assert "SLOT: ${{ steps.slot.outputs.at }}" in _workflow(name)
+
+
+def test_a_job_run_without_a_slot_reports_no_drift():
+    """The other half of the same contract, on the Python side."""
+    from datetime import UTC, datetime
+
+    from statpitch.ops import jobs
+
+    result = jobs.flag_card(now=datetime(2026, 8, 7, 3, 19, tzinfo=UTC))
+    assert result.warnings == []
+
+
 def test_settlement_is_scheduled_before_flagging():
     """A day's results should land before that day's card is built."""
     settle = int(re.search(r'cron: "0 (\d+)', _workflow("settle-ledger.yml")).group(1))

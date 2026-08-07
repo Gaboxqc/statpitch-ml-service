@@ -84,7 +84,7 @@ Ingest the archive (downloads are cached; re-runs do not re-hit the origin):
 
 ## Current state
 
-Phases 0–9 complete. **785 tests**, all offline.
+Phases 0–9 complete. **792 tests**, all offline.
 
 | Layer | Item | Status |
 |---|---|---|

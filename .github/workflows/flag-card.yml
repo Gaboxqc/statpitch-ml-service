@@ -41,12 +41,24 @@ jobs:
       # are routinely delayed at peak; the job compares this against its real
       # start time and says so when the gap is large, rather than stamping a
       # "Friday" snapshot on something taken hours later.
+      #
+      # Only a SCHEDULED run has a slot it can be late for. A manually dispatched
+      # run is neither early nor late, and deriving one anyway made both jobs
+      # report their slot as hours "in the future" on the first manual run —
+      # a warning that was correct about the arithmetic and meaningless about the
+      # run. Noise like that trains a reader to skip the warning on the scheduled
+      # path, which is the one it exists for.
       - name: Derive nominal slot
         id: slot
+        if: github.event_name == 'schedule'
         run: echo "at=$(date -u +%Y-%m-%dT06:00:00+00:00)" >> "$GITHUB_OUTPUT"
 
+      # The flag is omitted entirely when the slot is empty, so a dispatched run
+      # is not handed a nominal time it should not be judged against.
       - name: Flag today's card
-        run: python -m statpitch.ops.jobs flag_card --scheduled-for "${{ steps.slot.outputs.at }}"
+        env:
+          SLOT: ${{ steps.slot.outputs.at }}
+        run: python -m statpitch.ops.jobs flag_card ${SLOT:+--scheduled-for $SLOT}
 
       - name: Commit the ledger if it changed
         run: |

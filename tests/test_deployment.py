@@ -212,7 +212,7 @@ def test_only_a_scheduled_run_is_given_a_nominal_slot(name):
 
 @pytest.mark.parametrize("name", ["flag-card.yml", "settle-ledger.yml"])
 def test_the_slot_flag_is_omitted_rather_than_passed_empty(name):
-    """`--scheduled-for ""` would be an argument error, not a skipped one."""
+    """Passing `--scheduled-for ""` is accepted (it becomes `None`), but omitting the flag entirely is clearer."""
     text = _workflow(name)
     assert "${SLOT:+--scheduled-for $SLOT}" in text
     assert '--scheduled-for "${{ steps.slot.outputs.at }}"' not in text

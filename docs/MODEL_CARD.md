@@ -333,4 +333,4 @@ of those near-misses are instructive:
   vector and correlated and independent slates allocated identically — silently
   defeating the entire purpose of allocating jointly.
 
-**792 tests**, all offline; no test touches the network.
+**785 tests**, all offline; no test touches the network.

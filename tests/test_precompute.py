@@ -207,3 +207,55 @@ def test_a_fixture_without_a_precomputed_rate_falls_back_and_says_so(
             assert fixture["prediction_model_version"].startswith("elo-poisson")
     finally:
         artifacts.predicted_rates = saved
+
+
+# --- explanations (FR-32) -----------------------------------------------------
+
+@pytest.fixture(scope="module")
+def explained(client, precomputed):
+    if not predictor().artifacts.explanations:
+        pytest.skip("no explanations in this checkout")
+    return True
+
+
+def test_precomputed_fixtures_carry_an_explanation(client, explained):
+    body = client.get("/fixtures/upcoming?limit=3&include_predictions=true").json()
+    for fixture in body["fixtures"]:
+        explanation = fixture["explanation"]
+        assert set(explanation) >= {"home", "away", "units"}
+        assert explanation["home"], "no contributions for the home rate"
+
+
+def test_contributions_name_their_feature_and_its_value(client, explained):
+    fixture = client.get(
+        "/fixtures/upcoming?limit=1&include_predictions=true"
+    ).json()["fixtures"][0]
+    for contribution in fixture["explanation"]["home"]:
+        assert contribution["feature"]
+        assert "contribution" in contribution
+        # The log link is why this is carried: +0.31 is x1.36 on the rate, not
+        # +0.31 goals, and a frontend that renders it as goals would be wrong by
+        # however far the fixture sits from its competition's baseline.
+        assert contribution["multiplier"] > 0
+
+
+def test_the_units_are_stated_rather_than_assumed(client, explained):
+    fixture = client.get(
+        "/fixtures/upcoming?limit=1&include_predictions=true"
+    ).json()["fixtures"][0]
+    assert "log goal-rate" in fixture["explanation"]["units"]
+
+
+def test_no_explanation_is_attached_to_an_elo_fallback_prediction(client, explained):
+    """An explanation of the fitted rates beside an Elo number describes a
+    prediction nobody made."""
+    artifacts = predictor().artifacts
+    saved = artifacts.predicted_rates
+    artifacts.predicted_rates = {}
+    try:
+        body = client.get("/fixtures/upcoming?limit=3&include_predictions=true").json()
+        for fixture in body["fixtures"]:
+            assert fixture["prediction_source"] == "elo-poisson"
+            assert "explanation" not in fixture
+    finally:
+        artifacts.predicted_rates = saved

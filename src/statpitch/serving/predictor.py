@@ -119,6 +119,10 @@ class Artifacts:
     #: Which artifact produced them, for the per-fixture provenance a downstream
     #: store needs to tell fitted rows from Elo-fallback rows.
     predictions_model_version: str | None = None
+    #: fixture_id -> per-side SHAP contributions (FR-32), computed offline by the
+    #: same run that produced the rates. Serving never computes these: `shap` is
+    #: part of the training stack that `requirements-serving.txt` excludes.
+    explanations: dict[str, dict[str, list[dict]]] = field(default_factory=dict)
 
     @classmethod
     def load(cls, data_dir=None) -> Artifacts:
@@ -168,6 +172,26 @@ class Artifacts:
                 artifacts.predictions_model_version = str(
                     predicted["model_version"].iloc[0]
                 )
+
+        explanations_path = root / "explanations.parquet"
+        if explanations_path.exists():
+            frame = pd.read_parquet(explanations_path).sort_values("rank")
+            grouped: dict[str, dict[str, list[dict]]] = {}
+            for row in frame.itertuples():
+                grouped.setdefault(str(row.fixture_id), {}).setdefault(
+                    str(row.side), []
+                ).append(
+                    {
+                        "feature": str(row.feature),
+                        "feature_value": (
+                            None if pd.isna(row.feature_value)
+                            else float(row.feature_value)
+                        ),
+                        "contribution": float(row.value),
+                        "multiplier": float(row.multiplier),
+                    }
+                )
+            artifacts.explanations = grouped
 
         prior_path = paths.data_root() / "entrant_prior.json"
         if prior_path.exists():

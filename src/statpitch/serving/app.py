@@ -782,6 +782,21 @@ def _fixture_rows(frame, *, with_predictions: bool) -> list[dict]:
                     if rates is not None
                     else contract.model_version()
                 )
+                # FR-32. Only attached where the prediction came from the model
+                # that produced them: an explanation of the fitted rates next to
+                # an Elo-fallback number would describe a prediction nobody made.
+                explanation = artifacts.explanations.get(str(record.get("fixture_id")))
+                if explanation is not None and rates is not None:
+                    row["explanation"] = {
+                        "units": (
+                            "Contributions are additive in log goal-rate and "
+                            "multiplicative on goals: +0.31 multiplies the rate "
+                            "by e^0.31. The base is the competition's own goal "
+                            "environment, so these describe how far this fixture "
+                            "departs from it."
+                        ),
+                        **explanation,
+                    }
         rows.append(row)
     return rows
 

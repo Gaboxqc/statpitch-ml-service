@@ -539,6 +539,14 @@ MEASURED_INERT: frozenset[str] = frozenset(
         "home_elo_delta_5", "away_elo_delta_5",
         "home_elo_delta_10", "away_elo_delta_10",
         "elo_delta_diff_5", "elo_delta_diff_10",
+        # Roadmap §4.1. The pre-registered test was null (+0.00034, p = 0.29 over
+        # the whole frame). Restricting to the 30.6% of rows that carry a
+        # valuation gives +0.00105 at p = 0.014, but that restriction was chosen
+        # after seeing the first result, so it is exploratory rather than
+        # confirmatory and does not meet the standard the others were held to.
+        # This is the project's one live hypothesis; see MODEL_CARD §4.
+        "home_squad_value", "away_squad_value",
+        "squad_value_log_ratio", "squad_value_diff",
     }
 )
 

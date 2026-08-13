@@ -65,6 +65,15 @@ HYPOTHESES: dict[str, tuple[str, ...]] = {
         "home_elo_delta_5", "away_elo_delta_5", "home_elo_delta_10",
         "away_elo_delta_10", "elo_delta_diff_5", "elo_delta_diff_10",
     ),
+    # Roadmap §4.1. Registered as its own family of one, run with --only: the
+    # three above were a closed pre-registration and their correction is settled.
+    # Folding a fourth in afterwards would retroactively change thresholds that
+    # have already been reported, which is the manoeuvre a pre-registration
+    # exists to prevent.
+    "squad_value": (
+        "home_squad_value", "away_squad_value", "squad_value_log_ratio",
+        "squad_value_diff",
+    ),
 }
 
 FAMILY_ALPHA = 0.05
@@ -104,6 +113,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--frame", default="features.parquet")
     parser.add_argument("--out", default="ablation.json")
+    parser.add_argument(
+        "--only", nargs="+", default=None,
+        help="Test a subset of the registered groups as their own family.",
+    )
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 
@@ -114,7 +127,18 @@ def main() -> int:
     seasons = training.eligible_seasons(frame, holdout)
     training.assert_holdout_untouched(seasons, holdout)
 
+    hypotheses = (
+        HYPOTHESES if args.only is None
+        else {k: v for k, v in HYPOTHESES.items() if k in args.only}
+    )
+    if not hypotheses:
+        log.error("no registered group matched %s", args.only)
+        return 1
+
     every_column = fb.feature_columns(frame, include_inert=True)
+    # Groups outside this family are excluded from the baseline as well, so a
+    # test is always against the shipped feature set rather than against whatever
+    # other experiment happened to run first.
     added = {c for group in HYPOTHESES.values() for c in group}
     missing = sorted(added - set(every_column))
     if missing:
@@ -125,14 +149,15 @@ def main() -> int:
     log.info(
         "baseline %d features, %d added across %d pre-registered groups; folds "
         "validate %s..%s",
-        len(baseline_columns), len(added), len(HYPOTHESES),
+        len(baseline_columns), len(added), len(hypotheses),
         FIRST_VALIDATION_SEASON, seasons[-1],
     )
 
     configurations = {"baseline": baseline_columns}
-    for name, group in HYPOTHESES.items():
+    for name, group in hypotheses.items():
         configurations[name] = baseline_columns + [c for c in every_column if c in group]
-    configurations["all_groups"] = every_column
+    if len(hypotheses) > 1:
+        configurations["all_groups"] = every_column
 
     results: dict[str, list[dict]] = {}
     for name, columns in configurations.items():
@@ -145,7 +170,7 @@ def main() -> int:
     comparisons: dict[str, dict] = {}
     p_values: dict[str, float] = {}
 
-    for name in [*HYPOTHESES, "all_groups"]:
+    for name in [n for n in configurations if n != "baseline"]:
         paired = [
             (baseline_by_season[f["validation_season"]], f["log_loss"])
             for f in results[name]
@@ -165,7 +190,7 @@ def main() -> int:
             "t": float(test.statistic),
             "p_uncorrected": float(test.pvalue),
         }
-        if name in HYPOTHESES:
+        if name in hypotheses:
             p_values[name] = float(test.pvalue)
 
     corrected = holm(p_values)
@@ -177,7 +202,7 @@ def main() -> int:
         "%-18s %9s %9s %10s %8s %10s %8s",
         "group", "baseline", "variant", "improve", "t", "p", "Holm",
     )
-    for name in [*HYPOTHESES, "all_groups"]:
+    for name in [n for n in configurations if n != "baseline"]:
         c = comparisons[name]
         verdict = (
             "n/a" if name not in corrected
@@ -204,7 +229,7 @@ def main() -> int:
             {
                 "first_validation_season": FIRST_VALIDATION_SEASON,
                 "family_alpha": FAMILY_ALPHA,
-                "hypotheses": {k: list(v) for k, v in HYPOTHESES.items()},
+                "hypotheses": {k: list(v) for k, v in hypotheses.items()},
                 "comparisons": comparisons,
                 "folds": {k: v for k, v in results.items()},
             },

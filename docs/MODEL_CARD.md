@@ -282,6 +282,45 @@ continuous inputs is what they approximate worst; that wrapper cost ~0.024, an
 order of magnitude more than any effect being looked for. The test would have run
 through a channel lossier than its own signal.
 
+### Squad values: a pre-registered null, and one exploratory signal
+
+Transfermarkt squad valuations are the last free source that is a *different*
+measurement rather than a restatement — a forward-looking assessment of playing
+staff, where xG and momentum were both derivatives of what the model already
+held. 1,562 club-seasons across the five leagues, 2010/11–2025/26, joined at 100%
+after name resolution.
+
+**Lagged by one season, deliberately.** Transfermarkt's page for a past season
+does not state when within that season its figures were taken, and an
+end-of-season valuation reflects the season it would be used to predict. Each
+match gets its clubs' values from the *previous* season. A stale feature is
+weaker; a leaky one is a wrong answer that looks like a strong one.
+
+| test | population | improvement | t | p |
+|---|---|---|---|---|
+| **pre-registered** | all 61,321 rows | +0.00034 | 1.11 | **0.29** |
+| exploratory | the 19,785 rows that have a valuation | +0.00105 | 3.04 | 0.014 |
+
+**The pre-registered test is null**, and that is the result of record. Valuations
+exist for 30.6% of rows — leagues only, and only after the one-season lag — so
+testing on the whole frame dilutes the hypothesis by roughly three to one.
+
+Restricting to rows that actually carry a valuation gives a positive, nominally
+significant effect. It is reported as **exploratory and not as a finding**,
+because the restriction was chosen after seeing the pre-registered result. That
+is precisely the flexibility a pre-registration exists to remove, and the fact
+that the restriction is defensible does not make the p-value confirmatory.
+
+It is also small: +0.00105 against a remaining gap to the closing line of
++0.0096. Even taken at face value it closes about a tenth of the gap and does not
+touch `w`=0.
+
+So the columns are kept in the frame and **excluded from the model** by
+`MEASURED_INERT`, on the same standard as the momentum features. This is the one
+live hypothesis in the project: a confirmatory test on the restricted population,
+pre-registered before the data exists, on seasons after 2023/24 — never on the
+untouched 2024/25 holdout, which is reserved for a single final look.
+
 ### Momentum: three pre-registered hypotheses, three nulls
 
 Result streaks were genuinely missing — `scoring_streak` counted goals and nothing

@@ -93,6 +93,57 @@ def build_elo_lookup(
     return lookup
 
 
+def attach_squad_values(features: pd.DataFrame) -> pd.DataFrame:
+    """Join Transfermarkt squad valuations, lagged by one season (Roadmap §4.1).
+
+    **Lagged deliberately.** Transfermarkt's page for a past season does not state
+    when within that season its figures were taken, and an end-of-season valuation
+    reflects the season it would be used to predict. Each match therefore gets its
+    clubs' values from the *previous* season, which is unambiguously known before
+    a ball is kicked. A stale feature is weaker; a leaky one is a wrong answer
+    that looks like a strong one.
+
+    Absent when a club was in another division the previous year — promotion means
+    genuinely no top-flight valuation — which is left null rather than filled.
+    Zero would read as "worthless" for exactly the clubs most often underrated.
+    """
+    path = paths.processed_dir() / "squad_values.parquet"
+    if not path.exists():
+        log.info("no squad_values.parquet; skipping the valuation join")
+        return features
+
+    values = pd.read_parquet(path)
+    values = values.dropna(subset=["club_resolved", "total_value_eur"])
+    lookup = {
+        (str(row.club_resolved), int(row.season_start_year)): float(row.total_value_eur)
+        for row in values.itertuples()
+    }
+
+    def previous(season: str) -> int:
+        return int(str(season).split("-")[0]) - 1
+
+    out = features.copy()
+    for side in ("home", "away"):
+        out[f"{side}_squad_value"] = [
+            lookup.get((str(club), previous(season)))
+            for club, season in zip(out[f"{side}_team"], out["season"], strict=True)
+        ]
+
+    # Ratio in log space, which is the scale valuations actually vary on: the gap
+    # between a 50m and a 100m squad is the gap between 500m and 1bn, not the
+    # 450m the raw difference reports.
+    home, away = out["home_squad_value"], out["away_squad_value"]
+    out["squad_value_log_ratio"] = np.log(home / away)
+    out["squad_value_diff"] = home - away
+
+    covered = out["home_squad_value"].notna() & out["away_squad_value"].notna()
+    log.info(
+        "squad values on %d/%d rows (%.1f%%)",
+        int(covered.sum()), len(out), 100 * covered.mean(),
+    )
+    return out
+
+
 def build() -> pd.DataFrame:
     processed = paths.processed_dir()
     matches = pd.read_parquet(processed / "matches_clean.parquet")
@@ -120,6 +171,7 @@ def build() -> pd.DataFrame:
 
     features = fb.build_features(log_frame, elo_lookup=elo_lookup, xg_lookup=xg_lookup)
     features = fb.attach_outcomes(features, log_frame)
+    features = attach_squad_values(features)
     features = fb.drop_burn_in(features)
     log.info("features: %d rows, %d columns", len(features), len(features.columns))
     return features

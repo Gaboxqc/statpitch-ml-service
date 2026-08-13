@@ -42,18 +42,12 @@ jobs:
           pip install -r requirements.txt
           pip install -e . --no-deps
 
-      # The trained boosters are gitignored (1.7 MB a run), so a fresh checkout
-      # has a registry entry and no artifact to go with it. Rebuilding from the
-      # recorded commit is what makes that entry meaningful rather than a note
-      # about a file somebody once had. Roadmap §10.1 replaces this with a
-      # download from a GitHub Release.
-      # --gate is what makes an unattended retrain safe: a candidate replaces the
-      # incumbent only if its walk-forward score is within one standard deviation
-      # of fold noise, and a refusal is recorded with its reason rather than
-      # failing the run. On a week where nothing moved, this rebuilds the boosters
-      # and leaves the registry untouched.
-      - name: Train the model this checkout describes
-        run: python scripts/train.py --gate
+      # The boosters are gitignored (1.7 MB a run), so a fresh checkout has a
+      # registry entry and no artifact to go with it. This used to retrain from
+      # scratch every week -- 2.5 minutes rebuilding a model that had not changed
+      # -- purely to get the file back. precompute_predictions.py now downloads
+      # the published asset instead (Roadmap 10.1); retraining is retrain.yml, on
+      # its own schedule, because it is a different question.
 
       # See flag-card.yml for why the slot is reconstructed here, and why only a
       # scheduled run gets one.
@@ -65,6 +59,7 @@ jobs:
       - name: Rebuild fixtures and predictions
         env:
           SLOT: ${{ steps.slot.outputs.at }}
+          GH_TOKEN: ${{ github.token }}
         run: python -m statpitch.ops.jobs refresh_fixtures ${SLOT:+--scheduled-for $SLOT}
 
       - name: Commit what changed

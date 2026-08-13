@@ -112,6 +112,13 @@ class Artifacts:
     #: When that artifact was built. A fixture list is a claim about the future
     #: and kickoff times move, so its age is part of the answer.
     fixtures_generated_at: str | None = None
+    #: fixture_id -> (lambda_home, lambda_away, rho) from the fitted goal model,
+    #: computed offline by `scripts/precompute_predictions.py` (Roadmap §8). This
+    #: is how a request gets fitted rates without xgboost in the image.
+    predicted_rates: dict[str, tuple[float, float, float]] = field(default_factory=dict)
+    #: Which artifact produced them, for the per-fixture provenance a downstream
+    #: store needs to tell fitted rows from Elo-fallback rows.
+    predictions_model_version: str | None = None
 
     @classmethod
     def load(cls, data_dir=None) -> Artifacts:
@@ -147,6 +154,20 @@ class Artifacts:
             artifacts.fixtures = frame
             if "generated_at" in frame.columns and not frame.empty:
                 artifacts.fixtures_generated_at = str(frame["generated_at"].iloc[0])
+
+        predictions_path = root / "predictions.parquet"
+        if predictions_path.exists():
+            predicted = pd.read_parquet(predictions_path)
+            artifacts.predicted_rates = {
+                str(row.fixture_id): (
+                    float(row.lambda_home), float(row.lambda_away), float(row.rho)
+                )
+                for row in predicted.itertuples()
+            }
+            if "model_version" in predicted.columns and not predicted.empty:
+                artifacts.predictions_model_version = str(
+                    predicted["model_version"].iloc[0]
+                )
 
         prior_path = paths.data_root() / "entrant_prior.json"
         if prior_path.exists():
@@ -370,12 +391,21 @@ class Predictor:
         first_leg_score: tuple[int, int] | None = None,
         home_entry_stage: str | None = None,
         away_entry_stage: str | None = None,
+        rates: tuple[float, float, float] | None = None,
     ) -> Prediction:
         """Predict one fixture, branching on its resolved format (Design §5.3).
 
         `home_entry_stage` / `away_entry_stage` are the rounds each club entered
         the competition, and are only consulted for a club with no measured
         rating. They are deliberately not defaulted from `stage`.
+
+        `rates` overrides the Elo mapping with `(lambda_home, lambda_away, rho)`
+        computed elsewhere — in practice by the fitted goal model, offline. The
+        override exists because the Elo mapping costs +0.0064 log-loss
+        (MODEL_CARD §3) and the fitted model cannot run here: it needs rolling-form
+        features, which exist only for a fixture known in advance. Second legs
+        still derive their own rates from Elo, since a stored rate describes the
+        fixture as scheduled and not its reverse.
         """
         competition = taxonomy.get(competition_id)
         resolved = competition.resolve_format(stage=stage, season=season)
@@ -383,12 +413,20 @@ class Predictor:
             competition.is_neutral_venue(stage) if neutral is None else bool(neutral)
         )
 
-        lambda_home, lambda_away = self.rates(
-            competition_id, home, away,
-            neutral=at_neutral, resolved_format=resolved,
-            home_entry_stage=home_entry_stage, away_entry_stage=away_entry_stage,
-        )
-        rho = self.artifacts.rho.get(competition_id, 0.0)
+        if rates is None:
+            lambda_home, lambda_away = self.rates(
+                competition_id, home, away,
+                neutral=at_neutral, resolved_format=resolved,
+                home_entry_stage=home_entry_stage, away_entry_stage=away_entry_stage,
+            )
+            rho = self.artifacts.rho.get(competition_id, 0.0)
+        else:
+            # Rates computed offline by the fitted goal model (Roadmap §8), which
+            # needs rolling-form features this process does not have. Everything
+            # downstream — matrix, knockout resolution, markets — is unchanged, so
+            # a precomputed fixture and a live one differ only in where the two
+            # numbers came from, and the response says which.
+            lambda_home, lambda_away, rho = rates
         matrix = score_matrix(
             lambda_home, lambda_away,
             rho=_safe_rho(rho, lambda_home, lambda_away),

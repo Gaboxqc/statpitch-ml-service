@@ -201,7 +201,36 @@ Every row is a genuine attempt to overturn the headline result. None did.
 | Best market per match, ranked by log-growth | **−3.27%** |
 | Price edge at best available quotes | ~0 two-way, −4.5% on 1X2 |
 | Widening to 22 divisions | +1.29% ROI, **t = 1.19**, n = 38,763 |
+| Momentum features, pre-registered (below) | nothing; p = 0.43 / 0.94 / 0.90 |
 | **Sharp book as reference, measured by CLV** | **+0.51%, t = 3.47** ✅ |
+
+### Momentum: three pre-registered hypotheses, three nulls
+
+Result streaks were genuinely missing — `scoring_streak` counted goals and nothing
+counted wins — so they were built along with opponent strength and Elo momentum,
+and tested as a family of three under Holm–Bonferroni at α = 0.05, fixed before
+the answer was known. Paired per fold, ten folds validating 2014/15–2023/24:
+
+| group | baseline | with group | improvement | t | p | Holm |
+|---|---|---|---|---|---|---|
+| result streaks | 0.9808 | 0.9811 | −0.00031 | −0.82 | 0.43 | no |
+| opponent strength | 0.9808 | 0.9809 | −0.00003 | −0.08 | 0.94 | no |
+| Elo momentum | 0.9808 | 0.9809 | −0.00007 | −0.13 | 0.90 | no |
+| *all three together* | 0.9808 | 0.9806 | +0.00026 | 0.55 | 0.60 | *not in family* |
+
+**No group reached significance even before the correction.** The correction did
+not have to do any work, which is the cleanest form this result could take: there
+was nothing to correct away.
+
+The likely reason is the same one §4 gives for xG. Club Elo already integrates
+recent results — that is what a rating *is* — so a club's five-match form, the
+strength it was earned against, and the drift of its rating are three views of
+information the model holds twice over. `elo_diff` is the strongest feature in the
+frame, and these are its derivatives.
+
+The 25 columns are kept in `features.parquet` and excluded from the model by
+`build.MEASURED_INERT`. "Unbeaten in seven" belongs on a fixture page; it does not
+belong in a tree that already has the rating gap.
 
 Two of these are worth stating plainly.
 

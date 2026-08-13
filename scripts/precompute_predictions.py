@@ -40,7 +40,7 @@ import pandas as pd
 from statpitch import paths
 from statpitch.data import club_elo as ce
 from statpitch.features import build as fb
-from statpitch.models import registry
+from statpitch.models import explain, registry
 from statpitch.models.goals import GoalModel
 
 log = logging.getLogger("precompute")
@@ -180,6 +180,18 @@ def main() -> int:
 
     destination = processed / "predictions.parquet"
     out.to_parquet(destination, index=False)
+
+    # FR-32. Computed here for the same reason the rates are: `shap` is part of
+    # the training stack, and requirements-serving.txt excludes it. The
+    # explanation is written beside the prediction it explains, from the same
+    # model in the same run, so the two cannot describe different fixtures.
+    explanations = explain.explanations_frame(model, rows, rows["match_id"])
+    explanations["model_version"] = version
+    explanations.to_parquet(processed / "explanations.parquet", index=False)
+    log.info(
+        "wrote %d explanation rows (%d per fixture per side)",
+        len(explanations), explain.DEFAULT_TOP_N,
+    )
     log.info(
         "wrote %d predictions to %s using %s (mean lambda %.2f v %.2f)",
         len(out), destination, version,

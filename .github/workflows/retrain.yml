@@ -1,0 +1,87 @@
+name: Retrain
+
+# 03:00 UTC on the first of the month, and on demand.
+#
+# Monthly, not weekly. Retraining answers "is there a better model now", and that
+# only changes when the data does — a new season's results accrue over months,
+# and `features.parquet` is rebuilt by hand today. Running it weekly would spend
+# runner minutes producing a candidate the gate refuses for want of any change,
+# which trains a reader to ignore the one week it does not.
+#
+# Fixtures move on a different clock and are refreshed weekly by
+# refresh-fixtures.yml, which no longer retrains to get its artifact back.
+on:
+  schedule:
+    - cron: "0 3 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: model
+  cancel-in-progress: false
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e . --no-deps
+
+      # --gate is what makes an unattended retrain safe: a candidate replaces the
+      # incumbent only if its walk-forward score is within one standard deviation
+      # of the incumbent's own fold noise, and a refusal is recorded with its
+      # reason rather than failing the run. A month where nothing moved rebuilds
+      # the boosters and leaves the registry untouched.
+      - name: Train and gate
+        run: python scripts/train.py --gate --notes "retrain.yml $(date -u +%Y-%m-%d)"
+
+      # Publishing is what stops the next refresh having to retrain. Only the
+      # promoted model is published: an artifact the gate refused is recorded in
+      # the registry with its reason and does not need a binary to go with it.
+      - name: Publish the promoted artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/publish_model.py || echo "nothing promoted; skipping publish"
+
+      # Predictions are rebuilt here rather than waiting for the weekly refresh,
+      # because a promoted model that nothing has predicted with leaves the
+      # committed predictions describing the previous one.
+      - name: Refresh predictions against the current model
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python -m statpitch.ops.jobs refresh_fixtures
+
+      - name: Commit what changed
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          paths="models/registry.json data/processed/fixtures.parquet data/processed/predictions.parquet data/processed/explanations.parquet"
+          if git diff --quiet -- $paths; then
+            echo "registry and artifacts unchanged; nothing to commit"
+            exit 0
+          fi
+          git add $paths
+          git commit -m "retrain: $(date -u +%Y-%m-%d)"
+          for attempt in 1 2 3; do
+            if git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push; then
+              exit 0
+            fi
+            echo "push attempt ${attempt} lost a race; retrying"
+            sleep $((attempt * 5))
+          done
+          echo "could not push after 3 attempts" >&2
+          exit 1

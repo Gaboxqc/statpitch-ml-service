@@ -40,26 +40,58 @@ import pandas as pd
 from statpitch import paths
 from statpitch.data import club_elo as ce
 from statpitch.features import build as fb
-from statpitch.models import explain, registry
+from statpitch.models import explain, registry, release
 from statpitch.models.goals import GoalModel
 
 log = logging.getLogger("precompute")
 
 
 def _select_artifact(name: str | None):
+    """Locate the artifact to predict with, downloading it if it is not here.
+
+    Boosters are gitignored, so a fresh checkout has a registry describing files
+    nobody has. `release.ensure_local` fetches the published asset rather than
+    retraining to get it back — local copies win, so a developer who has just
+    trained is not overwritten by whatever was last published.
+    """
     store = registry.Registry.load(paths.models_dir())
+    version = None
     if name:
-        return paths.models_dir() / name, store.get(name).version
-    promoted = store.promoted
-    if promoted is not None:
-        return paths.models_dir() / promoted.version, promoted.version
+        version = store.get(name).version
+    elif store.promoted is not None:
+        version = store.promoted.version
+    elif store.entries:
+        # Nothing promoted. Falling back to the newest *registered* entry rather
+        # than the newest local directory matters in CI, where the boosters are
+        # gitignored and there is no local directory to find — the previous
+        # fallback would have failed the refresh outright.
+        version = store.entries[-1].version
+        log.warning(
+            "no promoted model; falling back to the newest registered artifact "
+            "%s. Promote deliberately with scripts/promote_model.py.", version,
+        )
+
+    if version is not None:
+        try:
+            return release.ensure_local(version), version
+        except release.ReleaseError as exc:
+            local = paths.models_dir() / version
+            if (local / "model.json").exists():
+                return local, version
+            raise SystemExit(
+                f"{version} is registered but neither present locally nor "
+                f"downloadable ({exc}). Rebuild it with `python scripts/train.py`."
+            ) from exc
+
     candidates = sorted(paths.models_dir().glob("goals-*"))
     if not candidates:
-        raise SystemExit("no trained artifact — run scripts/train.py first")
+        raise SystemExit(
+            "the registry is empty and no artifact is present — run "
+            "`python scripts/train.py` first"
+        )
     log.warning(
-        "no promoted model in the registry; falling back to the newest artifact "
-        "%s. Promote deliberately with scripts/promote_model.py.",
-        candidates[-1].name,
+        "registry is empty; using the unregistered local artifact %s, whose "
+        "training window and metrics are therefore unknown", candidates[-1].name,
     )
     return candidates[-1], candidates[-1].name
 

@@ -202,7 +202,45 @@ Every row is a genuine attempt to overturn the headline result. None did.
 | Price edge at best available quotes | ~0 two-way, −4.5% on 1X2 |
 | Widening to 22 divisions | +1.29% ROI, **t = 1.19**, n = 38,763 |
 | Momentum features, pre-registered (below) | nothing; p = 0.43 / 0.94 / 0.90 |
+| Market as an offset, model learns the residual (below) | **−0.031 log-loss, t = −8.50** — actively harmful |
 | **Sharp book as reference, measured by CLV** | **+0.51%, t = 3.47** ✅ |
+
+### The market as an offset: `w`=0 was the generous reading
+
+`w` is fitted on a **linear post-hoc blend**, `p_used = w·p_model + (1−w)·q_fair`.
+That is a narrow test: one dial for every match ever played, unable to express
+"the model is right about *this kind* of fixture". The nested formulation asks
+directly — give the model the de-vigged closing line as a `base_margin` offset and
+let it learn the residual. A model with nothing to add then scores exactly the
+market, and any improvement is attributable rather than merely visible.
+
+Pooled out-of-sample over 5,379 league matches (2021/22–2023/24):
+
+| | log-loss |
+|---|---|
+| **market, used directly** | **0.9683** |
+| features starting from the market (residual) | 0.9991 |
+| features alone, no market | 1.0136 |
+
+**+0.031 worse, t = −8.50, p < 0.0001.** Not "no improvement" — a strongly
+significant result in the wrong direction. Allowed to adjust an efficient price
+using 64 features, the model reliably makes it worse, because on this population
+there is nothing left to fit but noise.
+
+This strengthens `w`=0 rather than restating it. The blend said the optimal
+weight is zero; this says any nonzero contribution is actively costly, and says
+it with nonlinear interactions available that a blend cannot represent.
+
+The market baseline reproducing 0.9683 against §3's 0.9698 is the check that the
+offset passes through untouched — on a slightly shorter window, which is why the
+two are close rather than identical.
+
+A first attempt fed the market in as ordinary *features* rather than an offset and
+measured the market configuration at 0.9936, a quarter-point worse than the market
+it was handed. Trees are piecewise-constant and the identity map on three
+continuous inputs is what they approximate worst; that wrapper cost ~0.024, an
+order of magnitude more than any effect being looked for. The test would have run
+through a channel lossier than its own signal.
 
 ### Momentum: three pre-registered hypotheses, three nulls
 

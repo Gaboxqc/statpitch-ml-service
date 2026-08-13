@@ -63,6 +63,16 @@ def elo_file() -> Path:
     return processed_dir() / "elo_ratings.parquet"
 
 
+def fixtures_file() -> Path:
+    """Upcoming fixtures, built offline by `scripts/build_fixtures.py`.
+
+    Serving reads this at startup and never fetches it: NFR-2 forbids a network
+    call on a request path, so a fixture list that is live at request time is not
+    available at any latency this project accepts.
+    """
+    return processed_dir() / "fixtures.parquet"
+
+
 def ensure_dirs() -> None:
     for d in (raw_dir(), cache_dir(), processed_dir(), models_dir()):
         d.mkdir(parents=True, exist_ok=True)

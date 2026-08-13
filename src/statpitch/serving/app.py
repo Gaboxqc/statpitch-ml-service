@@ -34,8 +34,10 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from typing import Any
 
+import pandas as pd
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -707,24 +709,152 @@ def backtest(competition_id: str) -> dict:
     }
 
 
+#: Returned when the fixture artifact is absent entirely. Distinct from an empty
+#: list, which means the source is present and there is genuinely nothing on.
+NO_FIXTURES_REASON = (
+    "No fixture artifact is loaded. Upcoming fixtures are built offline by "
+    "scripts/build_fixtures.py and read at startup, because NFR-2 forbids a "
+    "network call on a request path."
+)
+
+
+def _fixture_refusal() -> dict[str, Any]:
+    return refusal(
+        ReasonCode.NO_FIXTURE_SOURCE,
+        NO_FIXTURES_REASON,
+        artifact="data/processed/fixtures.parquet",
+        loaded=False,
+    )
+
+
+def _fixture_rows(frame, *, with_predictions: bool) -> list[dict]:
+    """Serialise fixture rows, optionally attaching a prediction to each.
+
+    A prediction that raises is reported on the fixture rather than propagated: a
+    single unrecognised club name must not empty an entire matchday. The failure
+    is visible per fixture, which is the only place it can be acted on.
+    """
+    engine = predictor()
+    rows: list[dict] = []
+    for record in frame.to_dict("records"):
+        date = record.get("date")
+        row = {
+            "fixture_id": record.get("fixture_id"),
+            "competition_id": record.get("competition_id"),
+            "season": record.get("season"),
+            "stage": record.get("stage"),
+            "format": record.get("format"),
+            "date": None if date is None or pd.isna(date) else str(date.date()),
+            "home_team": record.get("home_team"),
+            "away_team": record.get("away_team"),
+            "neutral_venue": bool(record.get("neutral_venue", False)),
+            "odds_coverage": bool(record.get("odds_coverage", False)),
+        }
+        if with_predictions:
+            try:
+                prediction = engine.predict(
+                    str(record["competition_id"]),
+                    str(record["home_team"]),
+                    str(record["away_team"]),
+                    stage=record.get("stage"),
+                    season=record.get("season"),
+                )
+            except Exception as exc:  # noqa: BLE001 — surfaced, not swallowed
+                log.warning(
+                    "fixture %s: prediction failed: %s", record.get("fixture_id"), exc
+                )
+                row["prediction"] = None
+                row["prediction_error"] = f"{type(exc).__name__}: {exc}"
+            else:
+                row["prediction"] = prediction.as_dict()
+        rows.append(row)
+    return rows
+
+
+@app.get("/fixtures/upcoming")
+def fixtures_upcoming(
+    from_date: str | None = Query(None, alias="from", description="ISO date, inclusive"),
+    to_date: str | None = Query(None, alias="to", description="ISO date, inclusive"),
+    competition_id: str | None = None,
+    limit: int = Query(200, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+    include_predictions: bool = Query(
+        False, description="Attach a full prediction to each fixture"
+    ),
+) -> dict:
+    """A whole round in one round-trip (Roadmap §8.4).
+
+    The consuming API syncs from here on a schedule, so this is built to be
+    called once per matchday rather than once per fixture: hundreds of requests
+    into a free instance is the failure mode this endpoint exists to prevent.
+
+    `generated_at_source` is when the fixture artifact was built, which is not
+    when this response was generated. A fixture list is a claim about the future
+    and kickoff times move, so its age belongs in the payload rather than being
+    inferred from the fact that a response arrived.
+    """
+    artifacts = predictor().artifacts
+    if artifacts.fixtures is None:
+        return {
+            "fixtures": [], "count": 0, "total": 0,
+            "note": NO_FIXTURES_REASON,
+            **_fixture_refusal(),
+            **provenance(),
+        }
+
+    frame = artifacts.fixtures
+    if competition_id is not None:
+        _competition_or_404(competition_id)
+        frame = frame[frame["competition_id"] == competition_id]
+    if from_date is not None:
+        frame = frame[frame["date"] >= pd.Timestamp(from_date)]
+    if to_date is not None:
+        frame = frame[frame["date"] <= pd.Timestamp(to_date)]
+
+    total = len(frame)
+    window = frame.sort_values(["date", "competition_id"]).iloc[offset : offset + limit]
+    return {
+        "fixtures": _fixture_rows(window, with_predictions=include_predictions),
+        "count": len(window),
+        "total": total,
+        "offset": offset,
+        "limit": limit,
+        "generated_at_source": artifacts.fixtures_generated_at,
+        **provenance(),
+    }
+
+
 @app.get("/today")
 def today() -> dict:
     """Today's fixtures across all in-scope competitions, with predictions.
 
-    Still a stub. The refusal is structured so a consumer's sync job can tell
-    "no fixture source wired" apart from "no fixtures today" — an empty list
-    means the latter, and only the latter. Roadmap §7 closes this.
+    v1 shape preserved (NFR-13): `date`, `fixtures`, `note`. What changed is that
+    `fixtures` can now be non-empty.
+
+    An empty list here means there is genuinely no football today. The absence of
+    the artifact is a *refusal* instead, carrying NO_FIXTURE_SOURCE — a consumer
+    that cannot tell those apart will record a quiet Tuesday and a broken deploy
+    as the same thing.
     """
-    note = (
-        "Live fixture listing requires a fixture source, which is not yet wired. "
-        "The API-Football feed is quota-budgeted to 100 requests/day (NFR-9) and "
-        "not exercised here."
-    )
+    artifacts = predictor().artifacts
+    date = datetime.now(UTC).date()
+    if artifacts.fixtures is None:
+        return {
+            "date": None, "fixtures": [], "note": NO_FIXTURES_REASON,
+            **_fixture_refusal(), **provenance(),
+        }
+
+    frame = artifacts.fixtures
+    todays = frame[frame["date"] == pd.Timestamp(date)]
     return {
-        "date": None,
-        "fixtures": [],
-        "note": note,
-        **refusal(ReasonCode.NO_FIXTURE_SOURCE, note, fixture_source=None),
+        "date": str(date),
+        "fixtures": _fixture_rows(todays, with_predictions=True),
+        "note": (
+            f"{len(todays)} fixture(s) in scope today."
+            if len(todays)
+            else "No fixtures scheduled today in the twelve competitions in scope."
+        ),
+        "generated_at_source": artifacts.fixtures_generated_at,
         **provenance(),
     }
 

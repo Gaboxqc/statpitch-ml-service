@@ -105,6 +105,48 @@ NAME_ALIASES: dict[str, str] = {
     "Paris SG": "Paris SG",
 }
 
+#: openfootball name -> Club Elo name. A separate table from `NAME_ALIASES`
+#: because the two sources spell clubs differently in opposite directions:
+#: football-data.co.uk abbreviates ("Ath Bilbao"), openfootball uses the formal
+#: registered name ("Athletic Club"). One dictionary serving both would have to
+#: hold every club twice and would hide which source a fix was for.
+#:
+#: Only the residue is listed. Country-constrained matching resolves 80 of the 96
+#: clubs in a five-league fixture list on its own; these are the ones it cannot,
+#: and every entry was confirmed against the roster rather than accepted from a
+#: fuzzy match.
+#:
+#: The first two are why auto-accepting is not an option. "FC Bayern München"
+#: matches both `Bayern` and `Muenchen 60`, and "RCD Espanyol de Barcelona"
+#: matches both `Espanyol` and `Barcelona` — resolving either by picking the
+#: closest string would attach a title-winning club's rating to a different club
+#: for every fixture it plays, which is the failure `NAME_ALIASES` documents for
+#: "Ath Madrid".
+OPENFOOTBALL_ALIASES: dict[str, str] = {
+    # Ambiguous without help — see above.
+    "FC Bayern München": "Bayern",
+    "RCD Espanyol de Barcelona": "Espanyol",
+    # England
+    "Manchester City FC": "Man City",
+    "Manchester United FC": "Man United",
+    "Brighton & Hove Albion FC": "Brighton",
+    # Spain
+    "Athletic Club": "Bilbao",
+    "Real Betis Balompié": "Betis",
+    "RC Deportivo La Coruña": "Depor",
+    "Real Racing Club de Santander": "Santander",
+    # Germany
+    "Borussia Mönchengladbach": "Gladbach",
+    "Hamburger SV": "Hamburg",
+    # Italy
+    "FC Internazionale Milano": "Inter",
+    # France
+    "Olympique Lyonnais": "Lyon",
+    "Paris Saint-Germain FC": "Paris SG",
+    "Stade Brestois 29": "Brest",
+    "Stade Rennais FC 1901": "Rennes",
+}
+
 
 class ClubEloError(RuntimeError):
     pass

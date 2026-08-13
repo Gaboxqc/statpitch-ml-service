@@ -1,0 +1,141 @@
+{
+  "calibration_season": "2022-2023",
+  "evaluation_season": "2023-2024",
+  "n_train": 52618,
+  "curve": [
+    {
+      "alpha": 0.2,
+      "threshold": 0.9220799625687393,
+      "n_calibration": 2234,
+      "coverage": 0.9981051634296542,
+      "target": 0.8,
+      "mean_set_size": 2.9597347228801514,
+      "n": 2111,
+      "share_size_1": 0.0,
+      "share_size_2": 0.04026527711984841
+    },
+    {
+      "alpha": 0.3,
+      "threshold": 0.7888793406043222,
+      "n_calibration": 2234,
+      "coverage": 0.9535765040265277,
+      "target": 0.7,
+      "mean_set_size": 2.579819990525817,
+      "n": 2111,
+      "share_size_1": 0.030791094268119375,
+      "share_size_2": 0.3585978209379441
+    },
+    {
+      "alpha": 0.4,
+      "threshold": 0.7400779280856964,
+      "n_calibration": 2234,
+      "coverage": 0.8796778777830412,
+      "target": 0.6,
+      "mean_set_size": 2.2425390810042636,
+      "n": 2111,
+      "share_size_1": 0.06347702510658455,
+      "share_size_2": 0.6305068687825675
+    },
+    {
+      "alpha": 0.5,
+      "threshold": 0.7136281521555863,
+      "n_calibration": 2234,
+      "coverage": 0.8024632875414496,
+      "target": 0.5,
+      "mean_set_size": 1.9838938891520606,
+      "n": 2111,
+      "share_size_1": 0.0866887730933207,
+      "share_size_2": 0.842728564661298
+    },
+    {
+      "alpha": 0.6,
+      "threshold": 0.6288297646071139,
+      "n_calibration": 2234,
+      "coverage": 0.7598294647086689,
+      "target": 0.4,
+      "mean_set_size": 1.7972524869729987,
+      "n": 2111,
+      "share_size_1": 0.20274751302700142,
+      "share_size_2": 0.7972524869729986
+    },
+    {
+      "alpha": 0.7,
+      "threshold": 0.5438748772112627,
+      "n_calibration": 2234,
+      "coverage": 0.7105637138796779,
+      "target": 0.30000000000000004,
+      "mean_set_size": 1.6219801042160114,
+      "n": 2111,
+      "share_size_1": 0.37801989578398865,
+      "share_size_2": 0.6219801042160114
+    }
+  ],
+  "by_competition_alpha_0.5": [
+    {
+      "group": "ESP.LALIGA",
+      "coverage": 0.7868421052631579,
+      "mean_set_size": 1.9763157894736842,
+      "n": 380
+    },
+    {
+      "group": "ITA.SERIEA",
+      "coverage": 0.8473684210526315,
+      "mean_set_size": 2.0736842105263156,
+      "n": 380
+    },
+    {
+      "group": "ENG.PL",
+      "coverage": 0.8106666666666666,
+      "mean_set_size": 1.8746666666666667,
+      "n": 375
+    },
+    {
+      "group": "FRA.LIGUE1",
+      "coverage": 0.803921568627451,
+      "mean_set_size": 2.176470588235294,
+      "n": 306
+    },
+    {
+      "group": "GER.BUNDESLIGA",
+      "coverage": 0.7807308970099668,
+      "mean_set_size": 1.867109634551495,
+      "n": 301
+    },
+    {
+      "group": "ENG.FA_CUP",
+      "coverage": 0.7435897435897436,
+      "mean_set_size": 1.9743589743589745,
+      "n": 117
+    },
+    {
+      "group": "UEFA.UEL",
+      "coverage": 0.7980769230769231,
+      "mean_set_size": 1.9615384615384615,
+      "n": 104
+    },
+    {
+      "group": "UEFA.UCL",
+      "coverage": 0.8070175438596491,
+      "mean_set_size": 1.9473684210526316,
+      "n": 57
+    },
+    {
+      "group": "ESP.COPA_DEL_REY",
+      "coverage": 0.8285714285714286,
+      "mean_set_size": 1.9428571428571428,
+      "n": 35
+    },
+    {
+      "group": "GER.DFB_POKAL",
+      "coverage": 0.6875,
+      "mean_set_size": 1.84375,
+      "n": 32
+    },
+    {
+      "group": "ITA.COPPA_ITALIA",
+      "coverage": 0.875,
+      "mean_set_size": 1.875,
+      "n": 24
+    }
+  ]
+}

@@ -205,6 +205,46 @@ Every row is a genuine attempt to overturn the headline result. None did.
 | Market as an offset, model learns the residual (below) | **−0.031 log-loss, t = −8.50** — actively harmful |
 | **Sharp book as reference, measured by CLV** | **+0.51%, t = 3.47** ✅ |
 
+### Conformal prediction sets: valid, and barely informative
+
+`statpitch.models.conformal` turns the 1X2 probabilities into sets with a
+distribution-free coverage guarantee. Calibrated on 2022/23 and evaluated on
+2023/24 — across a season boundary, where the exchangeability assumption is
+actually tested:
+
+| target | coverage | mean set size | size 1 | size 2 |
+|---|---|---|---|---|
+| 0.80 | 0.998 | 2.96 | 0.0% | 4.0% |
+| 0.60 | 0.880 | 2.24 | 6.3% | 63.1% |
+| 0.50 | 0.802 | 1.98 | 8.7% | 84.3% |
+| 0.40 | 0.760 | 1.80 | 20.3% | 79.7% |
+| 0.30 | 0.711 | 1.62 | 37.8% | 62.2% |
+
+**At an 80% target the set is all three outcomes.** That is the method working, not
+failing: an honest 80% set on a market where the best model reaches 54% accuracy
+*is* "any of these three". A tighter set at that confidence would be a lie.
+
+Coverage also **over-shoots the target** everywhere — 0.802 at a target of 0.50.
+With three outcomes a set can only grow a whole outcome at a time, so coverage
+moves in steps rather than continuously. Randomised APS would tighten it to the
+nominal rate by dropping the marginal outcome with some probability, and that is
+deliberately not done: the API contract guarantees a given fixture returns
+byte-identical output on repeat calls, and a randomised set would break it. Over-
+covering is the conservative direction, so the cost is width rather than validity.
+
+And the guarantee is **marginal**, which is not a footnote. At a 0.50 target the
+overall coverage is 0.802, while DFB-Pokal covers 0.688 and Coppa Italia 0.875.
+Split conformal promises coverage averaged over fixtures and says nothing per
+competition, so `coverage_by` reports it rather than leaving a reader to assume
+the headline applies to the tie in front of them.
+
+The measurement is `scripts/evaluate_conformal.py`. **The sets are not served.**
+At the confidence levels a reader would want they carry almost no information,
+and a field that always says "H, D or A" is worse than no field: it occupies a
+place in the response where a reader expects something to have been narrowed
+down. The module and the numbers are kept so the decision can be revisited if the
+model ever sharpens.
+
 ### The market as an offset: `w`=0 was the generous reading
 
 `w` is fitted on a **linear post-hoc blend**, `p_used = w·p_model + (1−w)·q_fair`.

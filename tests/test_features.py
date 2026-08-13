@@ -370,3 +370,105 @@ def test_xg_window_is_not_shortened_by_matches_without_xg():
     assert last["home_xg_matches"] == 2
     assert last["home_xg_for_5"] == pytest.approx(2.0)   # both measured matches
     assert last["home_matches_played"] == 7              # full form history
+
+
+# --- momentum (Roadmap §3) ----------------------------------------------------
+
+def _sequence(results: list[tuple[int, int]], elos=None) -> pd.DataFrame:
+    """A single club's run of matches, always at home against fresh opponents."""
+    rows = []
+    day = pd.Timestamp("2024-08-01")
+    for i, (scored, conceded) in enumerate(results):
+        rows.append(
+            _match(f"m{i}", day + pd.Timedelta(days=7 * i), "Club A", f"Opp {i}",
+                   scored, conceded)
+        )
+    return pd.DataFrame(rows)
+
+
+def _last(features: pd.DataFrame, column: str):
+    return features.sort_values("date")[column].iloc[-1]
+
+
+def test_a_winning_run_is_counted():
+    """Nothing counted wins before this: `scoring_streak` counts goals."""
+    features = fb.build_features(_sequence([(2, 0), (1, 0), (3, 1), (0, 0)]))
+    # Three wins then a draw: the winning streak breaks, the unbeaten run does not.
+    assert _last(features, "home_win_streak") == 3
+    assert _last(features, "home_unbeaten_run") == 3
+
+
+def test_a_draw_breaks_a_winning_streak_but_extends_an_unbeaten_run():
+    features = fb.build_features(_sequence([(2, 0), (1, 1), (2, 1)]))
+    assert _last(features, "home_win_streak") == 0
+    assert _last(features, "home_unbeaten_run") == 2
+
+
+def test_a_loss_ends_both():
+    features = fb.build_features(_sequence([(2, 0), (2, 0), (0, 3), (1, 0)]))
+    assert _last(features, "home_win_streak") == 0
+    assert _last(features, "home_unbeaten_run") == 0
+    assert _last(features, "home_loss_streak") == 1
+
+
+def test_matches_since_a_win_differs_from_the_winless_run():
+    """They diverge the moment a run ends, which is why both are kept.
+
+    After W L, the club has not won in one match — but its winless run is 1 and
+    its `since_win` is also 1. After W L D, winless_run is 2 and since_win is 2.
+    The distinction bites when a club wins, then goes long without: the run
+    counts from the last win either way, but a reader asking "when did they last
+    win" wants `since_win`, which is capped rather than unbounded.
+    """
+    features = fb.build_features(_sequence([(3, 0)] + [(0, 1)] * 40))
+    assert _last(features, "home_since_win") == fb.MAX_SINCE
+    # 39, not 40: a row's features are computed before its own match is recorded,
+    # so the last of 41 matches sees the 39 losses that preceded it.
+    assert _last(features, "home_loss_streak") == 39
+
+
+def test_streaks_start_at_zero_not_null():
+    """A club with no history has not lost; it has not played."""
+    features = fb.build_features(_sequence([(1, 0)]))
+    assert features.sort_values("date")["home_win_streak"].iloc[0] == 0
+
+
+def test_elo_momentum_is_the_change_not_the_level():
+    log = _sequence([(1, 0)] * 6)
+    ratings = [1500, 1520, 1540, 1560, 1580, 1600]
+    lookup = {
+        ("Club A", pd.Timestamp("2024-08-01") + pd.Timedelta(days=7 * i)): float(e)
+        for i, e in enumerate(ratings)
+    }
+    features = fb.build_features(log, elo_lookup=lookup).sort_values("date")
+    # By the last row the club has five recorded ratings, 1500..1580, so the
+    # five-match delta is the span of that window and not the current level.
+    assert _last(features, "home_elo_delta_5") == pytest.approx(80.0)
+
+
+def test_elo_momentum_is_null_until_there_are_two_ratings():
+    """One rated match is a level with no trend; zero would claim it was flat."""
+    log = _sequence([(1, 0)] * 3)
+    lookup = {("Club A", pd.Timestamp("2024-08-01")): 1500.0}
+    features = fb.build_features(log, elo_lookup=lookup).sort_values("date")
+    assert pd.isna(features["home_elo_delta_5"].iloc[1])
+
+
+def test_opponent_strength_records_who_was_actually_played():
+    """Raw form cannot tell three wins over the bottom from three over the top."""
+    log = _sequence([(1, 0)] * 4)
+    day = pd.Timestamp("2024-08-01")
+    lookup = {}
+    for i in range(4):
+        date = day + pd.Timedelta(days=7 * i)
+        lookup[("Club A", date)] = 1500.0
+        lookup[(f"Opp {i}", date)] = 1200.0 + 100.0 * i
+    features = fb.build_features(log, elo_lookup=lookup).sort_values("date")
+    # Three opponents recorded by the last row: 1200, 1300, 1400.
+    assert _last(features, "home_opponent_elo_5") == pytest.approx(1300.0)
+
+
+def test_rating_derived_columns_are_absent_without_ratings():
+    """A frame built without ratings has no rating-derived columns to special-case."""
+    columns = fb.build_features(_sequence([(1, 0)] * 3)).columns
+    assert not [c for c in columns if "elo" in c]

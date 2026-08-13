@@ -55,6 +55,11 @@ H2H_WINDOW = 10
 #: Points for a win/draw under the modern three-point system.
 WIN_POINTS, DRAW_POINTS = 3.0, 1.0
 
+#: Cap on "matches since last win/loss". A club that has never won would
+#: otherwise emit a value that grows without bound and dominate a tree split,
+#: the same reasoning `MAX_REST_DAYS` already applies to a summer break.
+MAX_SINCE = 30
+
 
 @dataclass
 class _ClubState:
@@ -102,6 +107,48 @@ class _ClubState:
     clean_sheet_streak: dict[str, int] = field(
         default_factory=lambda: {"home": 0, "away": 0}
     )
+
+    #: Consecutive *results*, pooled across venues (Roadmap §3.1). The streak
+    #: columns above count goals and clean sheets; nothing counted wins or losses,
+    #: which is the streak anyone following a club would name first. Four are kept
+    #: rather than two because they are not redundant: a run of draws breaks a
+    #: winning streak while extending an unbeaten one, and those are different
+    #: claims about a club.
+    win_streak: int = 0
+    loss_streak: int = 0
+    unbeaten_run: int = 0
+    winless_run: int = 0
+    #: Matches since the last win / loss, capped. Distinct from the runs above at
+    #: the moment a run ends: a club that has just lost has `winless_run` 1 but may
+    #: not have won in fifteen.
+    since_win: int = MAX_SINCE
+    since_loss: int = MAX_SINCE
+
+    #: The club's own rating at each recent match, for Elo momentum (Roadmap §3.4).
+    #: Club Elo is already the strongest single feature as a *level*; its
+    #: derivative costs nothing to carry and is not in the frame.
+    elos: deque = field(default_factory=lambda: deque(maxlen=max(FORM_WINDOWS) + 1))
+    #: The opponent's rating at each recent match (Roadmap §3.2). Raw form treats
+    #: three wins over relegation sides as three wins over the top four; carrying
+    #: the strength of who was played lets a tree condition on it rather than
+    #: forcing an adjustment of a shape nobody measured.
+    opponent_elos: deque = field(default_factory=lambda: deque(maxlen=max(FORM_WINDOWS)))
+
+    def elo_delta(self, window: int) -> float:
+        """Change in the club's own rating over its last `window` matches.
+
+        NaN until there are two ratings to difference. A club with one rated match
+        has a level but no trend, and reporting zero would claim it was flat.
+        """
+        if len(self.elos) < 2:
+            return float("nan")
+        recent = list(self.elos)[-(window + 1):]
+        return float(recent[-1] - recent[0])
+
+    def opponent_strength(self, window: int) -> float:
+        """Mean rating of the last `window` opponents, NaN if none were rated."""
+        recent = list(self.opponent_elos)[-window:]
+        return float(np.mean(recent)) if recent else float("nan")
 
     def form(self, window: int) -> float:
         """Points per game over the last `window` matches, NaN if never played.
@@ -160,7 +207,25 @@ class _ClubState:
         xg_for: float | None = None,
         xg_against: float | None = None,
         venue: str | None = None,
+        own_elo: float | None = None,
+        opponent_elo: float | None = None,
     ) -> None:
+        won, lost = points == WIN_POINTS, points == 0.0
+        self.win_streak = self.win_streak + 1 if won else 0
+        self.loss_streak = self.loss_streak + 1 if lost else 0
+        self.unbeaten_run = 0 if lost else self.unbeaten_run + 1
+        self.winless_run = 0 if won else self.winless_run + 1
+        self.since_win = 0 if won else min(self.since_win + 1, MAX_SINCE)
+        self.since_loss = 0 if lost else min(self.since_loss + 1, MAX_SINCE)
+
+        # Ratings are appended only when measured, for the reason xG is: a club
+        # with no Club Elo entry would otherwise contribute a zero that reads as
+        # "the weakest opponent imaginable" and drag every window with it.
+        if own_elo is not None and not pd.isna(own_elo):
+            self.elos.append(float(own_elo))
+        if opponent_elo is not None and not pd.isna(opponent_elo):
+            self.opponent_elos.append(float(opponent_elo))
+
         self.results.append(points)
         self.goals_for.append(scored)
         self.goals_against.append(conceded)
@@ -313,6 +378,24 @@ def build_features(
             row[f"{side}_venue_matches"] = len(state.venue_results[side])
             row[f"{side}_scoring_streak"] = state.scoring_streak[side]
             row[f"{side}_clean_sheet_streak"] = state.clean_sheet_streak[side]
+            # Roadmap §3.1 — result streaks, pooled across venues.
+            row[f"{side}_win_streak"] = state.win_streak
+            row[f"{side}_loss_streak"] = state.loss_streak
+            row[f"{side}_unbeaten_run"] = state.unbeaten_run
+            row[f"{side}_winless_run"] = state.winless_run
+            row[f"{side}_since_win"] = state.since_win
+            row[f"{side}_since_loss"] = state.since_loss
+            # §3.4 Elo momentum, and §3.2 the strength of who was played. Emitted
+            # only when ratings were supplied, matching how the `home_elo` columns
+            # below already behave: a frame built without ratings has no
+            # rating-derived columns at all, rather than a set of all-null ones
+            # that every consumer then has to special-case.
+            if elo_lookup is not None:
+                for window in FORM_WINDOWS:
+                    row[f"{side}_elo_delta_{window}"] = state.elo_delta(window)
+                    row[f"{side}_opponent_elo_{window}"] = state.opponent_strength(
+                        window
+                    )
             row[f"{side}_goal_volatility"] = state.goal_volatility(max(FORM_WINDOWS))
             row[f"{side}_rest_days"] = state.rest_days(date)
             row[f"{side}_matches_14d"] = state.matches_within(date, CONGESTION_DAYS)
@@ -359,6 +442,19 @@ def build_features(
         row["scoring_streak_diff"] = (
             row["home_scoring_streak"] - row["away_scoring_streak"]
         )
+        row["unbeaten_run_diff"] = row["home_unbeaten_run"] - row["away_unbeaten_run"]
+        if elo_lookup is not None:
+            for window in FORM_WINDOWS:
+                row[f"elo_delta_diff_{window}"] = (
+                    row[f"home_elo_delta_{window}"] - row[f"away_elo_delta_{window}"]
+                )
+                # The differential that makes §3.2 usable: whether this club's
+                # recent form was earned against stronger opposition than its
+                # opponent's was.
+                row[f"opponent_elo_diff_{window}"] = (
+                    row[f"home_opponent_elo_{window}"]
+                    - row[f"away_opponent_elo_{window}"]
+                )
 
         rows.append(row)
 
@@ -377,8 +473,19 @@ def build_features(
         scored, conceded = int(m.home_goals), int(m.away_goals)
         home_points, away_points = _points(scored, conceded), _points(conceded, scored)
         home_xg, away_xg = (xg_lookup or {}).get(m.match_id, (None, None))
-        home_state.record(date, home_points, scored, conceded, home_xg, away_xg, "home")
-        away_state.record(date, away_points, conceded, scored, away_xg, home_xg, "away")
+        # The ratings recorded here are the ones read for THIS row above, which
+        # are as of strictly before kickoff. Re-reading them after the result
+        # would fold the match into its own opponent-strength window.
+        home_rating = row.get("home_elo")
+        away_rating = row.get("away_elo")
+        home_state.record(
+            date, home_points, scored, conceded, home_xg, away_xg, "home",
+            own_elo=home_rating, opponent_elo=away_rating,
+        )
+        away_state.record(
+            date, away_points, conceded, scored, away_xg, home_xg, "away",
+            own_elo=away_rating, opponent_elo=home_rating,
+        )
         history.append((home_points, home))
 
     frame = pd.DataFrame(rows)
@@ -401,12 +508,54 @@ def attach_outcomes(features: pd.DataFrame, matches: pd.DataFrame) -> pd.DataFra
     return features.merge(targets, on="match_id", how="left")
 
 
-def feature_columns(frame: pd.DataFrame) -> list[str]:
-    """Model input columns — everything that is neither an identifier nor a target."""
+#: Built, measured, and deliberately not fed to the model (Roadmap §3).
+#:
+#: These are the momentum features — result streaks, opponent strength, Elo
+#: momentum — tested as three pre-registered hypotheses by
+#: `scripts/ablate_features.py`. None improved log-loss, and none reached
+#: significance even *before* the Holm correction: p = 0.43, 0.94 and 0.90 over
+#: ten paired folds. The combined configuration moved 0.9808 to 0.9806, p = 0.60.
+#:
+#: They are kept in the frame rather than deleted because they are genuinely
+#: useful to a *reader* — "unbeaten in seven" belongs on a fixture page — and
+#: because a later re-test wants them already built. They are kept out of the
+#: model because twenty-five columns that measurably do nothing are twenty-five
+#: more chances for a future bug, at no gain.
+#:
+#: Removing a name from this set is a modelling decision. It needs a rerun of the
+#: ablation, not an opinion.
+MEASURED_INERT: frozenset[str] = frozenset(
+    {
+        "home_win_streak", "away_win_streak",
+        "home_loss_streak", "away_loss_streak",
+        "home_unbeaten_run", "away_unbeaten_run",
+        "home_winless_run", "away_winless_run",
+        "home_since_win", "away_since_win",
+        "home_since_loss", "away_since_loss",
+        "unbeaten_run_diff",
+        "home_opponent_elo_5", "away_opponent_elo_5",
+        "home_opponent_elo_10", "away_opponent_elo_10",
+        "opponent_elo_diff_5", "opponent_elo_diff_10",
+        "home_elo_delta_5", "away_elo_delta_5",
+        "home_elo_delta_10", "away_elo_delta_10",
+        "elo_delta_diff_5", "elo_delta_diff_10",
+    }
+)
+
+
+def feature_columns(frame: pd.DataFrame, *, include_inert: bool = False) -> list[str]:
+    """Model input columns — everything that is neither an identifier, a target,
+    nor measured to carry no information.
+
+    `include_inert` returns the `MEASURED_INERT` columns as well, which is what
+    the ablation script needs to test them and what nothing else should want.
+    """
     excluded = {
         "match_id", "competition_id", "season", "date", "home_team", "away_team",
         "home_goals", "away_goals", "result", "total_goals",
     }
+    if not include_inert:
+        excluded |= MEASURED_INERT
     return [c for c in frame.columns if c not in excluded]
 
 

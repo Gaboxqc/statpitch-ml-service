@@ -751,6 +751,12 @@ def _fixture_rows(frame, *, with_predictions: bool) -> list[dict]:
             "odds_coverage": bool(record.get("odds_coverage", False)),
         }
         if with_predictions:
+            # Precomputed rates come from the fitted goal model; the Elo mapping
+            # is the fallback for a fixture that was never precomputed. They
+            # differ by +0.0064 log-loss (MODEL_CARD §3), so which one answered
+            # is part of the answer rather than an implementation detail.
+            artifacts = engine.artifacts
+            rates = artifacts.predicted_rates.get(str(record.get("fixture_id")))
             try:
                 prediction = engine.predict(
                     str(record["competition_id"]),
@@ -758,6 +764,7 @@ def _fixture_rows(frame, *, with_predictions: bool) -> list[dict]:
                     str(record["away_team"]),
                     stage=record.get("stage"),
                     season=record.get("season"),
+                    rates=rates,
                 )
             except Exception as exc:  # noqa: BLE001 — surfaced, not swallowed
                 log.warning(
@@ -767,6 +774,14 @@ def _fixture_rows(frame, *, with_predictions: bool) -> list[dict]:
                 row["prediction_error"] = f"{type(exc).__name__}: {exc}"
             else:
                 row["prediction"] = prediction.as_dict()
+                row["prediction_source"] = (
+                    "fitted_goal_model" if rates is not None else contract.SERVED_MODEL
+                )
+                row["prediction_model_version"] = (
+                    artifacts.predictions_model_version
+                    if rates is not None
+                    else contract.model_version()
+                )
         rows.append(row)
     return rows
 

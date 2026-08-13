@@ -52,6 +52,7 @@ from datetime import date as Date
 from io import StringIO
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from statpitch import paths
@@ -582,6 +583,50 @@ def resolve_cup_clubs(
 
 
 # --- as-of lookups ------------------------------------------------------------
+
+def build_lookup(
+    table: pd.DataFrame,
+    pairs: list[tuple[str, pd.Timestamp]],
+    *,
+    column: str = "clubelo_name",
+) -> dict[tuple[str, pd.Timestamp], float]:
+    """(club, date) -> rating strictly before that date, for many pairs at once.
+
+    `elo_as_of` filters the whole table per call, which is fine for one lookup
+    and quadratic for a feature build: the Elo table is 1.27M intervals and a
+    season of fixtures needs thousands of lookups.
+
+    This sorts each club's intervals once and binary-searches them, preserving
+    the strict inequality that matters — Club Elo's interval covering a match
+    date already reflects that match's result, so a rating taken from it would
+    leak the outcome (NFR-10).
+
+    Keyed on `clubelo_name` rather than `source_name`, which is the difference
+    between 428 clubs and 241: `source_name` is the football-data spelling and is
+    **null for every club that entered the table as a cup entrant**. `elo_as_of`
+    keys on `source_name` because it was written for the league path; anything
+    resolving through the alias maps wants the canonical name.
+    """
+    lookup: dict[tuple[str, pd.Timestamp], float] = {}
+    wanted: dict[str, list[pd.Timestamp]] = {}
+    for club, date in pairs:
+        wanted.setdefault(str(club), []).append(pd.Timestamp(date))
+    if not wanted:
+        return lookup
+
+    relevant = table[table[column].isin(wanted)]
+    for club, group in relevant.groupby(column, sort=False):
+        ordered = group.sort_values("valid_from")
+        starts = ordered["valid_from"].to_numpy()
+        values = ordered["elo"].to_numpy(dtype=float)
+        for date in wanted[str(club)]:
+            # searchsorted with side="left" gives the count of intervals starting
+            # strictly before `date`; the last of those is the rating in force.
+            position = int(np.searchsorted(starts, np.datetime64(date), side="left"))
+            if position > 0:
+                lookup[(str(club), date)] = float(values[position - 1])
+    return lookup
+
 
 def build_elo_table(
     mapping: dict[str, str], *, session: PoliteSession | None = None

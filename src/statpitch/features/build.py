@@ -195,12 +195,25 @@ def _pair_key(a: str, b: str) -> tuple[str, str]:
 
 
 def merge_match_log(
-    league_matches: pd.DataFrame, cup_matches: pd.DataFrame | None = None
+    league_matches: pd.DataFrame,
+    cup_matches: pd.DataFrame | None = None,
+    fixtures: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """Combine league and cup matches into one chronological log.
 
     The merge is what makes cross-competition form and congestion possible; the
     columns are reduced to the intersection both sources can supply.
+
+    `fixtures` appends **scheduled** matches with null goals, so features can be
+    built for a fixture that has not been played (Roadmap §8). They are added
+    after the played-row filter rather than exempted from it, because the filter
+    is what keeps a result-less row out of the training log — a row with null
+    goals reaching `attach_outcomes` becomes a training example with no target.
+
+    `build_features` emits a row for a scheduled fixture and then skips the state
+    update, since there is no result to record. The leakage guarantee is
+    unaffected: a match that contributes nothing to club state cannot contribute
+    to anyone's features, including its own.
     """
     columns = [
         "match_id", "competition_id", "season", "date",
@@ -218,6 +231,16 @@ def merge_match_log(
     merged = merged[merged["date"].notna()]
     merged = merged[merged["home_goals"].notna() & merged["away_goals"].notna()]
     merged = merged.drop_duplicates(subset="match_id", keep="first")
+
+    if fixtures is not None and not fixtures.empty:
+        scheduled = fixtures.copy()
+        scheduled["match_id"] = scheduled["fixture_id"]
+        scheduled["home_goals"] = np.nan
+        scheduled["away_goals"] = np.nan
+        merged = pd.concat([merged, scheduled[columns]], ignore_index=True)
+        merged = merged[merged["date"].notna()]
+        merged = merged.drop_duplicates(subset="match_id", keep="first")
+
     # Sort by date, then match_id so the order is deterministic within a day.
     return merged.sort_values(["date", "match_id"]).reset_index(drop=True)
 
@@ -342,6 +365,15 @@ def build_features(
         # --- state update happens AFTER the row is emitted -------------------
         # This ordering is the leakage guarantee. Moving it above the append
         # would let each match contribute to its own features.
+        #
+        # A scheduled fixture has no result, so there is nothing to record. It
+        # still gets a feature row — that is the point of including it — but it
+        # contributes nothing to either club's form, congestion or head-to-head.
+        # Guessing a result to keep the state machine fed would put an invented
+        # match into every subsequent fixture's features.
+        if pd.isna(m.home_goals) or pd.isna(m.away_goals):
+            continue
+
         scored, conceded = int(m.home_goals), int(m.away_goals)
         home_points, away_points = _points(scored, conceded), _points(conceded, scored)
         home_xg, away_xg = (xg_lookup or {}).get(m.match_id, (None, None))

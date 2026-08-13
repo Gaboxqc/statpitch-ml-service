@@ -55,7 +55,13 @@ class PoliteSession:
         if self.cache_root is None:
             self.cache_root = paths.cache_dir() / "http"
         self.cache_root.mkdir(parents=True, exist_ok=True)
-        self._session = requests.Session()
+        if self._session is None:
+            self._session = requests.Session()
+        # An injected transport keeps the politeness policy — delay, retries,
+        # cache — while letting a caller supply something that can reach a host
+        # a bare requests.Session cannot. Transfermarkt sits behind a challenge
+        # and needs cloudscraper; putting that exception here rather than in the
+        # scraper means it still goes through the one rate limiter (NFR-5).
         self._session.headers.update({"User-Agent": USER_AGENT})
         if self.headers:
             self._session.headers.update(self.headers)

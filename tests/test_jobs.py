@@ -163,9 +163,13 @@ def test_run_rejects_an_unknown_job():
         jobs.run("definitely_not_a_job")
 
 
-def test_both_jobs_are_reachable_by_name():
-    assert set(jobs.JOBS) == {"flag_card", "settle_ledger"}
-    for name in jobs.JOBS:
+def test_every_job_is_reachable_by_name():
+    assert set(jobs.JOBS) == {"flag_card", "settle_ledger", "refresh_fixtures"}
+    # The ledger jobs are pure with respect to the outside world and safe to run
+    # here. `refresh_fixtures` downloads schedules and runs the fitted model, so
+    # invoking it would make this a network test that rewrites committed
+    # artifacts; its wiring is covered in tests/test_refresh_job.py instead.
+    for name in ("flag_card", "settle_ledger"):
         assert jobs.run(name).job == name
 
 

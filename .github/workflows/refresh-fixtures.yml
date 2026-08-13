@@ -1,0 +1,91 @@
+name: Refresh fixtures
+
+# 04:00 UTC on Mondays. The hour is duplicated in the "Derive nominal slot" step
+# below; changing one without the other makes every run report itself as late.
+#
+# Weekly rather than daily on purpose. openfootball publishes a whole season of
+# schedules at once and amends them as rounds are rearranged, so the list changes
+# on the scale of days, not hours. A daily rebuild would spend runner minutes and
+# produce a commit that is usually empty.
+on:
+  schedule:
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# These artifacts are derived, so a cancelled run loses nothing that cannot be
+# rebuilt — but two runs writing the same parquet and racing to push would
+# produce a pointless conflict. Queue instead.
+concurrency:
+  group: fixtures
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # The full stack, not the serving subset: precomputing predictions runs the
+      # fitted goal model, which is exactly what the deployed image excludes.
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e . --no-deps
+
+      # The trained boosters are gitignored (1.7 MB a run), so a fresh checkout
+      # has a registry entry and no artifact to go with it. Rebuilding from the
+      # recorded commit is what makes that entry meaningful rather than a note
+      # about a file somebody once had. Roadmap §10.1 replaces this with a
+      # download from a GitHub Release.
+      # --gate is what makes an unattended retrain safe: a candidate replaces the
+      # incumbent only if its walk-forward score is within one standard deviation
+      # of fold noise, and a refusal is recorded with its reason rather than
+      # failing the run. On a week where nothing moved, this rebuilds the boosters
+      # and leaves the registry untouched.
+      - name: Train the model this checkout describes
+        run: python scripts/train.py --gate
+
+      # See flag-card.yml for why the slot is reconstructed here, and why only a
+      # scheduled run gets one.
+      - name: Derive nominal slot
+        id: slot
+        if: github.event_name == 'schedule'
+        run: echo "at=$(date -u +%Y-%m-%dT04:00:00+00:00)" >> "$GITHUB_OUTPUT"
+
+      - name: Rebuild fixtures and predictions
+        env:
+          SLOT: ${{ steps.slot.outputs.at }}
+        run: python -m statpitch.ops.jobs refresh_fixtures ${SLOT:+--scheduled-for $SLOT}
+
+      - name: Commit what changed
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          paths="data/processed/fixtures.parquet data/processed/predictions.parquet models/registry.json"
+          if git diff --quiet -- $paths; then
+            echo "fixtures and predictions unchanged; nothing to commit"
+            exit 0
+          fi
+          git add $paths
+          git commit -m "refresh_fixtures: $(date -u +%Y-%m-%d)"
+          # A human may have pushed since checkout. Rebase rather than force.
+          for attempt in 1 2 3; do
+            if git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push; then
+              exit 0
+            fi
+            echo "push attempt ${attempt} lost a race; retrying"
+            sleep $((attempt * 5))
+          done
+          echo "could not push after 3 attempts" >&2
+          exit 1

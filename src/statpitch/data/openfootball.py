@@ -89,6 +89,26 @@ QUALIFIER_SOURCES: dict[str, tuple[str, str]] = {
     "UEFA.UEL": ("champions-league", "{season}/elq.txt"),
 }
 
+#: League schedule files. Deliberately **not** merged into `SOURCES`, because
+#: these are consulted for fixtures only: league *results* come from
+#: football-data.co.uk, which also carries the odds the Decision Layer needs.
+#: Ingesting league results from here as well would duplicate every match under
+#: two club-naming conventions and two match_id schemes.
+#:
+#: Note France sits in the consolidated `europe` repo under a different layout,
+#: the same exception `SOURCES` already documents for the Coupe de France.
+LEAGUE_SCHEDULE_SOURCES: dict[str, tuple[str, str]] = {
+    "ENG.PL": ("england", "{season}/1-premierleague.txt"),
+    "ESP.LALIGA": ("espana", "{season}/1-liga.txt"),
+    "GER.BUNDESLIGA": ("deutschland", "{season}/1-bundesliga.txt"),
+    "ITA.SERIEA": ("italy", "{season}/1-seriea.txt"),
+    "FRA.LIGUE1": ("europe", "france/{season}_fr1.txt"),
+}
+
+#: Everything a fixture list can be built from. Cups reuse their results files —
+#: one file holds played and scheduled matches together.
+SCHEDULE_SOURCES: dict[str, tuple[str, str]] = {**LEAGUE_SCHEDULE_SOURCES, **SOURCES}
+
 STAGE_MARKER = "▪"
 
 #: Canonical stage names, matching the keys in competitions.json `stage_formats`.
@@ -175,6 +195,27 @@ class Match:
     away_pens: int | None
     went_to_extra_time: bool
     went_to_penalties: bool
+    #: False for a scheduled fixture that has not been played. Every score column
+    #: is null in that case, which is indistinguishable from a played match whose
+    #: score failed to parse — hence the explicit flag rather than inferring it.
+    played: bool = True
+
+
+#: Every score column, absent. A scheduled fixture is not a match with missing
+#: data; it is a match that has not happened, and the two must not be confused
+#: downstream by a null check.
+_NO_SCORE: dict[str, int | bool | None] = {
+    "home_goals": None,
+    "away_goals": None,
+    "home_goals_ht": None,
+    "away_goals_ht": None,
+    "home_goals_aet": None,
+    "away_goals_aet": None,
+    "home_pens": None,
+    "away_pens": None,
+    "went_to_extra_time": False,
+    "went_to_penalties": False,
+}
 
 
 def season_label(season: str) -> str:
@@ -296,8 +337,25 @@ def _parse_scores(block: re.Match) -> dict[str, int | bool | None]:
     }
 
 
-def parse_football_txt(text: str, season_start: int) -> list[Match]:
-    """Parse one football.txt file into matches."""
+def parse_football_txt(
+    text: str, season_start: int, *, include_unplayed: bool = False
+) -> list[Match]:
+    """Parse one football.txt file into matches.
+
+    `include_unplayed` also emits **scheduled** fixtures — a line carrying the
+    ``v`` separator and no score::
+
+        20:00  Arsenal FC              v Coventry City FC
+
+    It defaults off because every existing caller builds training data, where a
+    scoreless row is not merely useless but harmful: it would join into the match
+    log as a real fixture with null goals and silently enter feature windows.
+
+    The two layouts cannot be told apart without the separator. A cup line puts
+    the score *between* the names, so a scoreless cup line is indistinguishable
+    from a club name containing whitespace — which is why only the ``v`` form is
+    recognised as scheduled, and an unparseable line is still skipped.
+    """
     matches: list[Match] = []
     stage = "unknown"
     current_date: pd.Timestamp | None = None
@@ -331,6 +389,24 @@ def parse_football_txt(text: str, season_start: int) -> list[Match]:
             remainder = body[separator.end():].strip()
             score = _SCORE_RE.search(remainder)
             if score is None:
+                if not include_unplayed:
+                    continue
+                home, home_country = _strip_country(home_raw)
+                away, away_country = _strip_country(remainder)
+                if not home or not away:
+                    continue
+                matches.append(
+                    Match(
+                        stage=stage,
+                        date=current_date,
+                        home_team=home,
+                        away_team=away,
+                        home_country=home_country,
+                        away_country=away_country,
+                        played=False,
+                        **_NO_SCORE,  # type: ignore[arg-type]
+                    )
+                )
                 continue
             away_raw = remainder[: score.start()].strip()
         else:
@@ -510,6 +586,147 @@ def build_competition(
     )
     frame = frame.drop_duplicates(subset="match_id", keep="first")
     return frame.sort_values(["date", "stage"]).reset_index(drop=True)
+
+
+# --- schedules ----------------------------------------------------------------
+#
+# Fixture listing, not training data. `build_competition` above answers "what has
+# happened"; these answer "what is about to". They are separate functions rather
+# than a flag on one because the outputs are used for opposite purposes and the
+# failure modes do not overlap: a missing result silently shortens a feature
+# window, while a missing fixture is simply a fixture nobody sees.
+
+def fixture_id(competition_id: str, season: str, home: str, away: str,
+               stage: str, *, knockout: bool) -> str:
+    """A key that survives a rescheduling.
+
+    Date is deliberately excluded. A postponed match keeps its identity, and a
+    downstream store keyed on date would record the rearranged fixture as a new
+    one and the original as vanished.
+
+    Stage is included only for knockouts, where the same pair legitimately meets
+    twice in one tie (FR-7). In a round robin each ordered pair meets exactly
+    once per season, so the pair alone identifies it — and including the matchday
+    label would reintroduce the very instability the date was dropped to avoid.
+    """
+    parts = [competition_id, season, stage, home, away] if knockout else [
+        competition_id, season, home, away
+    ]
+    return "|".join(p.replace("|", "/") for p in parts)
+
+
+def build_schedule(
+    competition_id: str,
+    seasons: list[int],
+    *,
+    session: PoliteSession | None = None,
+    include_qualifiers: bool = True,
+) -> pd.DataFrame:
+    """Scheduled, not-yet-played fixtures for one competition.
+
+    Returns an empty frame — not an error — when a season's file does not exist
+    upstream. That is the normal state for a cup before its draw is made: at the
+    time of writing every 2026-27 league schedule is published while every cup
+    and continental file still 404s. A caller that treated absence as failure
+    would be broken for most of the calendar.
+    """
+    if competition_id not in SCHEDULE_SOURCES:
+        raise OpenFootballError(f"no openfootball schedule mapped for {competition_id!r}")
+
+    comp = taxonomy.get(competition_id)
+    session = session or PoliteSession()
+    rows: list[dict] = []
+
+    targets = [(*SCHEDULE_SOURCES[competition_id], False)]
+    if include_qualifiers and competition_id in QUALIFIER_SOURCES:
+        targets.append((*QUALIFIER_SOURCES[competition_id], True))
+
+    undated = 0
+    for start_year in seasons:
+        directory = season_dir(start_year)
+        season = season_label(directory)
+        for repo, template, is_qualifier in targets:
+            text = fetch_file(repo, template.format(season=directory), session=session)
+            if text is None:
+                continue
+            for m in parse_football_txt(text, start_year, include_unplayed=True):
+                if m.played:
+                    continue
+                if m.date is None:
+                    # A fixture with no date cannot be listed by date, and
+                    # guessing one would put it on a matchday it is not on.
+                    undated += 1
+                    continue
+                stage = "qualifying" if is_qualifier else m.stage
+                stage_format = comp.resolve_format(stage=stage, season=season)
+                rows.append(
+                    {
+                        "fixture_id": fixture_id(
+                            competition_id, season, m.home_team, m.away_team, stage,
+                            knockout=comp.is_knockout,
+                        ),
+                        "competition_id": competition_id,
+                        "season": season,
+                        "stage": stage,
+                        "stage_detail": m.stage,
+                        "format": stage_format,
+                        "neutral_venue": comp.is_neutral_venue(m.stage),
+                        "date": m.date,
+                        "home_team": m.home_team,
+                        "away_team": m.away_team,
+                        "home_country": m.home_country,
+                        "away_country": m.away_country,
+                        "source": "openfootball",
+                        # Requirements §9 — carried onto the fixture so a consumer
+                        # knows before asking that no bet can be recommended.
+                        "odds_coverage": comp.odds_coverage,
+                    }
+                )
+
+    if undated:
+        log.warning(
+            "openfootball: %s — %d scheduled fixture(s) dropped for having no date",
+            competition_id, undated,
+        )
+    if not rows:
+        return pd.DataFrame()
+
+    frame = pd.DataFrame(rows)
+    # A rearranged fixture can appear in two matchday sections of the same file.
+    # The later date is the live one.
+    frame = (
+        frame.sort_values("date")
+        .drop_duplicates(subset="fixture_id", keep="last")
+        .sort_values(["date", "competition_id"])
+        .reset_index(drop=True)
+    )
+    return frame
+
+
+def build_all_schedules(
+    seasons: list[int],
+    *,
+    session: PoliteSession | None = None,
+) -> pd.DataFrame:
+    """Scheduled fixtures across every mapped competition."""
+    session = session or PoliteSession()
+    frames = []
+    for competition_id in SCHEDULE_SOURCES:
+        try:
+            frame = build_schedule(competition_id, seasons, session=session)
+        except Exception:
+            log.exception("openfootball: failed to build schedule for %s", competition_id)
+            continue
+        if not frame.empty:
+            log.info(
+                "openfootball: %s — %d scheduled fixtures", competition_id, len(frame)
+            )
+            frames.append(frame)
+    if not frames:
+        return pd.DataFrame()
+    return pd.concat(frames, ignore_index=True).sort_values(
+        ["date", "competition_id"]
+    ).reset_index(drop=True)
 
 
 def build_all(

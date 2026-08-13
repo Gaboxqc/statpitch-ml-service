@@ -49,8 +49,10 @@ REFUSING_ROUTES = [
     ("/card/today", contract.ReasonCode.DECISION_CONFIG_UNFITTED),
     ("/value-bets/today", contract.ReasonCode.SHRINKAGE_WEIGHT_ZERO),
     ("/bankroll/simulate", contract.ReasonCode.EMPTY_LEDGER),
-    ("/today", contract.ReasonCode.NO_FIXTURE_SOURCE),
 ]
+# `/today` is deliberately absent: once a fixture artifact is built it answers
+# rather than refusing. Its refusal path — artifact missing, which must not be
+# confused with a day that has no football — is covered in test_fixtures.py.
 
 
 @pytest.fixture(scope="module")
@@ -166,16 +168,16 @@ def test_cup_fixture_refuses_bet_recommendation_with_a_code(client):
     assert body["bet_recommendation_reason"]
 
 
-def test_empty_fixture_list_is_not_the_same_as_no_fixture_source(client):
-    """A consumer must not read "source not wired" as "nothing on today".
+def test_today_answers_in_the_v1_shape_whether_or_not_it_refuses(client):
+    """Both paths keep the keys a v1 consumer reads (NFR-13).
 
-    Once Roadmap §7 lands, `/today` returns an empty list with no refusal on a
-    quiet day. Today it returns an empty list *with* one. The distinction is the
-    whole point of the code.
+    Whether `/today` lists fixtures or refuses for want of an artifact, `date`,
+    `fixtures` and `note` are present. Which of the two happened is carried by
+    the presence of `refusal`, not by the shape changing underneath the client.
     """
     body = client.get("/today").json()
-    assert body["fixtures"] == []
-    assert body["refusal"]["reason_code"] == str(contract.ReasonCode.NO_FIXTURE_SOURCE)
+    assert {"date", "fixtures", "note"} <= set(body)
+    assert isinstance(body["fixtures"], list)
 
 
 def test_reason_codes_are_unique(client):

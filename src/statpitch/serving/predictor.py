@@ -91,6 +91,13 @@ class Artifacts:
     pooled_entrant_elo: float | None = None
     home_advantage_elo: float = LEAGUE_HOME_ADVANTAGE_ELO
     cup_home_advantage_elo: float = CUP_HOME_ADVANTAGE_ELO
+    #: Upcoming fixtures, built offline by `scripts/build_fixtures.py`. None when
+    #: the artifact is absent, which the API reports as a refusal rather than as
+    #: an empty slate — "no source" and "nothing on today" are different answers.
+    fixtures: pd.DataFrame | None = None
+    #: When that artifact was built. A fixture list is a claim about the future
+    #: and kickoff times move, so its age is part of the answer.
+    fixtures_generated_at: str | None = None
 
     @classmethod
     def load(cls, data_dir=None) -> Artifacts:
@@ -110,10 +117,22 @@ class Artifacts:
         if elo_path.exists():
             artifacts.elo = _latest_ratings(pd.read_parquet(elo_path))
 
-        alias_path = root / "cup_club_elo_map.json"
-        if alias_path.exists():
+        # Two alias maps, kept separate at rest because they were built for
+        # different sources — cup rosters and league fixture lists — and merged
+        # here because a lookup does not care which file a name came from.
+        for alias_name in ("cup_club_elo_map.json", "fixture_club_elo_map.json"):
+            alias_path = root / alias_name
+            if not alias_path.exists():
+                continue
             matched = json.loads(alias_path.read_text(encoding="utf-8")).get("matched", {})
-            artifacts.aliases = {str(k): str(v) for k, v in matched.items()}
+            artifacts.aliases.update({str(k): str(v) for k, v in matched.items()})
+
+        fixtures_path = root / "fixtures.parquet"
+        if fixtures_path.exists():
+            frame = pd.read_parquet(fixtures_path)
+            artifacts.fixtures = frame
+            if "generated_at" in frame.columns and not frame.empty:
+                artifacts.fixtures_generated_at = str(frame["generated_at"].iloc[0])
 
         prior_path = paths.data_root() / "entrant_prior.json"
         if prior_path.exists():
@@ -122,8 +141,9 @@ class Artifacts:
             )
 
         log.info(
-            "artifacts: %d ratings, %d aliases, %d entrant buckets",
+            "artifacts: %d ratings, %d aliases, %d entrant buckets, %s fixtures",
             len(artifacts.elo), len(artifacts.aliases), len(artifacts.entrant_prior),
+            "no" if artifacts.fixtures is None else len(artifacts.fixtures),
         )
         return artifacts
 

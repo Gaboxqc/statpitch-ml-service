@@ -1,0 +1,213 @@
+"""The downstream integration contract (Roadmap §8).
+
+StatPitch owns no database. A separate API consumes it and persists the results,
+which makes the response shape the product rather than an implementation detail.
+These tests cover the three ways that contract breaks without anyone noticing
+until a season of rows has already been stored.
+
+**A response_model that silently truncates.** Documenting a route by attaching a
+`response_model` normally *filters* the payload to the declared fields. Every key
+a model forgets to declare disappears — a field removal, forbidden by NFR-13,
+delivered as a side effect of adding documentation. `contract.OpenModel` allows
+extras precisely to prevent this, and that behaviour is asserted here rather than
+assumed from a pydantic setting that a future refactor could drop.
+
+**Provenance going missing.** A stored prediction with no `model_version` cannot
+be interpreted once the weekly retrain lands: two rows under the same fixture key
+may come from different models and nothing distinguishes them.
+
+**Refusals degrading to prose.** This project refuses rather than answering badly,
+and every refusal cites its measurement. Stored downstream, an English sentence is
+a blob; the structured form is what lets a consumer group by cause and chart the
+number the sentence quotes.
+"""
+
+from __future__ import annotations
+
+import pytest
+from fastapi.testclient import TestClient
+
+from statpitch.serving import contract
+from statpitch.serving.app import app
+
+PROVENANCE_KEYS = {
+    "model_version", "config_version", "schema_version", "generated_at",
+}
+
+#: Every route a downstream consumer is expected to store rows from.
+CONSUMED_ROUTES = [
+    "/", "/health", "/competitions", "/teams/ENG.PL",
+    "/predict/ENG.PL/Arsenal/Chelsea", "/markets/ENG.PL/Arsenal/Chelsea",
+    "/value-bets/today", "/best-bet/ENG.PL/Arsenal/Chelsea", "/card/today",
+    "/clv/report", "/ledger", "/edge-map", "/bankroll/simulate",
+    "/backtest/ENG.PL", "/today",
+]
+
+#: Routes that decline to answer, and the code each must report.
+REFUSING_ROUTES = [
+    ("/best-bet/ENG.PL/Arsenal/Chelsea", contract.ReasonCode.MAX_EDGE_SELECTION_HARMFUL),
+    ("/card/today", contract.ReasonCode.DECISION_CONFIG_UNFITTED),
+    ("/value-bets/today", contract.ReasonCode.SHRINKAGE_WEIGHT_ZERO),
+    ("/bankroll/simulate", contract.ReasonCode.EMPTY_LEDGER),
+    ("/today", contract.ReasonCode.NO_FIXTURE_SOURCE),
+]
+
+
+@pytest.fixture(scope="module")
+def client():
+    with TestClient(app) as c:
+        yield c
+
+
+# --- provenance ---------------------------------------------------------------
+
+@pytest.mark.parametrize("route", CONSUMED_ROUTES)
+def test_every_consumed_route_carries_provenance(client, route):
+    body = client.get(route).json()
+    assert set(body) >= PROVENANCE_KEYS, f"{route} is missing {PROVENANCE_KEYS - set(body)}"
+
+
+def test_model_version_names_the_served_path_not_the_package(client):
+    """The served path is the Elo mapping, not the fitted goal model.
+
+    MODEL_CARD §3 measures a matrix driven by fitted XGBoost rates; the deployed
+    predictor derives goal rates from Elo. Reporting the package version here
+    would let a consumer believe it had stored the evaluated model's output.
+    Roadmap §2 closes that gap, and this string is how the change becomes visible.
+    """
+    version = client.get("/health").json()["model_version"]
+    assert version.startswith(contract.SERVED_MODEL)
+
+
+def test_post_predict_carries_provenance_too(client):
+    body = client.post(
+        "/predict",
+        json={
+            "competition_id": "ENG.PL",
+            "home_team": "Arsenal",
+            "away_team": "Chelsea",
+        },
+    ).json()
+    assert set(body) >= PROVENANCE_KEYS
+
+
+# --- the response_model must not truncate (NFR-13) ----------------------------
+
+def test_response_model_does_not_drop_undeclared_fields(client):
+    """`PredictionResponse` declares a core; the rest of the payload must survive.
+
+    These four keys are deliberately undeclared, so they only appear if extras
+    pass through. If a refactor tightens the model to `extra="forbid"` or
+    `"ignore"`, this is the test that fails instead of a consumer's ETL.
+    """
+    body = client.get("/predict/ENG.PL/Arsenal/Chelsea").json()
+    for undeclared in ("over_under", "btts", "correct_scores", "ratings"):
+        assert undeclared in body, f"response_model truncated {undeclared!r}"
+
+
+def test_declared_core_fields_are_present_and_typed(client):
+    body = client.get("/predict/ENG.PL/Arsenal/Chelsea").json()
+    assert isinstance(body["fully_rated"], bool)
+    assert isinstance(body["odds_coverage"], bool)
+    assert set(body["probabilities"]) == {"home", "draw", "away"}
+    assert abs(sum(body["probabilities"].values()) - 1.0) < 1e-6
+
+
+def test_openapi_documents_the_typed_routes(client):
+    """A consumer codegens its client from this document."""
+    schema = client.get("/openapi.json").json()
+    health = schema["paths"]["/health"]["get"]["responses"]["200"]
+    assert "application/json" in health["content"]
+    assert "$ref" in str(health["content"]["application/json"]["schema"])
+
+
+# --- structured refusals ------------------------------------------------------
+
+@pytest.mark.parametrize("route,code", REFUSING_ROUTES)
+def test_refusals_are_machine_readable(client, route, code):
+    body = client.get(route).json()
+    assert "refusal" in body, f"{route} refuses in prose only"
+    assert body["refusal"]["reason_code"] == str(code)
+    assert body["refusal"]["available"] is False
+
+
+@pytest.mark.parametrize("route,_code", REFUSING_ROUTES)
+def test_refusal_prose_is_preserved_alongside_the_structure(client, route, _code):
+    """NFR-13: the structure is additive. The sentence consumers already read stays."""
+    body = client.get(route).json()
+    prose = body.get("reason") or body.get("note")
+    assert prose, f"{route} lost its human-readable reason"
+    assert body["refusal"]["reason"] == prose
+
+
+def test_best_bet_refusal_carries_both_findings(client):
+    """Two independent measurements close this route; a consumer needs both.
+
+    w=0 says the model adds nothing over the market. Max-edge selection measuring
+    -2.12% is a separate finding that would keep the route closed even if w moved.
+    """
+    measurement = client.get("/best-bet/ENG.PL/Arsenal/Chelsea").json()["refusal"][
+        "measurement"
+    ]
+    assert measurement["w"] == 0.0
+    assert measurement["n_validation_matches"] == 5306
+    assert measurement["best_bet_per_match_roi"] == -0.0212
+
+
+def test_cup_fixture_refuses_bet_recommendation_with_a_code(client):
+    """Requirements §9: no free odds source covers cups, and the API says so."""
+    body = client.get("/predict/ENG.FA_CUP/Arsenal/Chelsea").json()
+    assert body["bet_recommendation"] is None
+    assert (
+        body["bet_recommendation_refusal"]["reason_code"]
+        == str(contract.ReasonCode.NO_ODDS_COVERAGE)
+    )
+    # The v1 prose field is untouched.
+    assert body["bet_recommendation_reason"]
+
+
+def test_empty_fixture_list_is_not_the_same_as_no_fixture_source(client):
+    """A consumer must not read "source not wired" as "nothing on today".
+
+    Once Roadmap §7 lands, `/today` returns an empty list with no refusal on a
+    quiet day. Today it returns an empty list *with* one. The distinction is the
+    whole point of the code.
+    """
+    body = client.get("/today").json()
+    assert body["fixtures"] == []
+    assert body["refusal"]["reason_code"] == str(contract.ReasonCode.NO_FIXTURE_SOURCE)
+
+
+def test_reason_codes_are_unique(client):
+    """They are stored downstream, so a duplicate value would merge two causes."""
+    values = [c.value for c in contract.ReasonCode]
+    assert len(values) == len(set(values))
+
+
+# --- readiness (Roadmap §9.2) -------------------------------------------------
+
+def test_health_reports_readiness_and_version(client):
+    body = client.get("/health").json()
+    assert body["status"] == "ok"
+    assert body["ready"] is True
+    assert body["artifacts_loaded"] is True
+    assert body["staking_enabled"] is False
+
+
+def test_health_reports_not_ready_instead_of_raising(client, monkeypatch):
+    """A sync job must tell "still starting" from "broken".
+
+    Raising a 500 here makes both look identical to a client that only sees a
+    failed request, so it either abandons a healthy instance or retries a dead
+    one forever.
+    """
+    from statpitch.serving import app as app_module
+
+    def boom():
+        raise RuntimeError("artifacts not on disk")
+
+    monkeypatch.setattr(app_module, "predictor", boom)
+    body = client.get("/health").json()
+    assert body["ready"] is False
+    assert body["status"] == "starting"
+    assert "artifacts not on disk" in body["error"]

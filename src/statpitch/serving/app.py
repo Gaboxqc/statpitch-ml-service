@@ -9,7 +9,12 @@ Three contracts this module exists to keep
 **NFR-13, backward compatibility.** Every v1 route keeps its exact path and
 parameter order, and no existing response field is renamed, removed or retyped.
 New capability lives at new routes; `disclaimer` and `bet_recommendation` are
-added as new keys, which a client that ignores unknown keys will never see.
+added as new keys, which a client that ignores unknown keys will never see. The
+provenance and `refusal` keys added for the downstream consumer follow the same
+rule — additive, alongside the prose they describe rather than in place of it.
+See `statpitch.serving.contract` for why response models here allow extra fields:
+a filtering `response_model` would remove keys as a side effect of documenting
+them, which is the one thing NFR-13 forbids.
 
 **NFR-11, advisory only.** Any response carrying a stake recommendation carries a
 disclaimer saying so. Nothing here places a bet or talks to a bookmaker.
@@ -38,6 +43,8 @@ from statpitch import __version__, decision_config, paths, taxonomy
 from statpitch.decision import clv_tracker as clv
 from statpitch.decision.market_engine import MarketFamily
 from statpitch.models import bracket as bk
+from statpitch.serving import contract
+from statpitch.serving.contract import ReasonCode, provenance, refusal
 from statpitch.serving.predictor import Artifacts, Predictor
 
 log = logging.getLogger(__name__)
@@ -111,6 +118,41 @@ class PredictRequest(BaseModel):
     away_entry_stage: str | None = None
 
 
+# Response models declare the fields a downstream consumer may rely on and store.
+# They are deliberately partial: `contract.OpenModel` allows extras through, so
+# these document and guarantee a core without truncating the fuller payload the
+# routes already return. See `contract.OpenModel` for why filtering would be a
+# NFR-13 violation delivered as a side effect of adding documentation.
+
+class HealthResponse(contract.OpenModel):
+    status: str
+    ready: bool
+    model_version: str
+    config_version: str
+    schema_version: int
+    generated_at: str
+    artifacts_loaded: bool
+    staking_enabled: bool
+
+
+class PredictionResponse(contract.OpenModel):
+    competition_id: str
+    home_team: str
+    away_team: str
+    format: str
+    probabilities: dict[str, float]
+    expected_goals: dict[str, float]
+    odds_coverage: bool
+    #: False when either club's rating is a prior rather than a measured Elo. Part
+    #: of the contract because it once was not: 187 of 428 clubs silently fell
+    #: through to a flat 1400 and the probabilities could not express it.
+    fully_rated: bool
+    model_version: str
+    config_version: str
+    schema_version: int
+    generated_at: str
+
+
 # --- helpers ------------------------------------------------------------------
 
 def _competition_or_404(competition_id: str):
@@ -127,19 +169,41 @@ def _competition_or_404(competition_id: str):
 
 
 def _bet_recommendation(competition) -> dict[str, Any]:
-    """The odds-coverage gate, applied per request (Requirements §9)."""
+    """The odds-coverage gate, applied per request (Requirements §9).
+
+    `bet_recommendation_reason` keeps its exact prose; `bet_recommendation_refusal`
+    carries the same fact as data, so a consumer storing the response can group and
+    alert on the cause instead of only rendering the sentence.
+    """
     if not competition.odds_coverage:
-        return {"bet_recommendation": None, "bet_recommendation_reason": NO_ODDS_REASON}
+        return {
+            "bet_recommendation": None,
+            "bet_recommendation_reason": NO_ODDS_REASON,
+            "bet_recommendation_refusal": contract.refusal_object(
+                ReasonCode.NO_ODDS_COVERAGE,
+                NO_ODDS_REASON,
+                competition_id=competition.competition_id,
+                odds_coverage=False,
+            ),
+        }
 
     config = decision_config.config()
     if config.is_placeholder:
+        reason = (
+            f"decision_config '{config.config_version}' is unfitted "
+            f"(status={config.status}). Staking is disabled until the market "
+            "shrinkage weight w is fitted — a stake sized from placeholder "
+            "parameters is indistinguishable from a real one."
+        )
         return {
             "bet_recommendation": None,
-            "bet_recommendation_reason": (
-                f"decision_config '{config.config_version}' is unfitted "
-                f"(status={config.status}). Staking is disabled until the market "
-                "shrinkage weight w is fitted — a stake sized from placeholder "
-                "parameters is indistinguishable from a real one."
+            "bet_recommendation_reason": reason,
+            "bet_recommendation_refusal": contract.refusal_object(
+                ReasonCode.DECISION_CONFIG_UNFITTED,
+                reason,
+                config_version=config.config_version,
+                status=config.status,
+                w_fitted=config.w_fitted,
             ),
             "disclaimer": DISCLAIMER,
         }
@@ -156,20 +220,53 @@ def root() -> dict:
         "competitions": len(taxonomy.registry()),
         "docs": "/docs",
         "disclaimer": DISCLAIMER,
+        **provenance(),
     }
 
 
-@app.get("/health")
+@app.get("/health", response_model=HealthResponse)
 def health() -> dict:
+    """Liveness, readiness and version, in one call.
+
+    The consuming API's sync job polls this before a batch, and the free plan's
+    ~15-minute spin-down means it is routinely the call that pays the cold start.
+    Two things follow.
+
+    It must distinguish "still starting" from "broken". A failure to load
+    artifacts is reported as `ready: false` with the error, not raised as a 500 —
+    a job that cannot tell a boot in progress from a broken deploy will either
+    give up on a healthy instance or retry a dead one forever.
+
+    And it carries `model_version`, because a retrain (Roadmap §11) changes what
+    the same fixture key returns. Polling this is how a downstream store learns to
+    segregate its rows without diffing predictions to find out.
+    """
     config = decision_config.config()
-    return {
-        "status": "ok",
-        "artifacts_loaded": bool(predictor().artifacts.elo),
-        "clubs_rated": len(predictor().artifacts.elo),
-        "club_name_aliases": len(predictor().artifacts.aliases),
-        "entrant_prior_buckets": len(predictor().artifacts.entrant_prior),
+    base = {
         "decision_config": config.config_version,
         "staking_enabled": not config.is_placeholder,
+        **provenance(),
+    }
+    try:
+        artifacts = predictor().artifacts
+    except Exception as exc:  # noqa: BLE001 — reported, not swallowed
+        log.exception("statpitch: artifacts unavailable")
+        return {
+            **base,
+            "status": "starting",
+            "ready": False,
+            "artifacts_loaded": False,
+            "error": f"{type(exc).__name__}: {exc}",
+        }
+
+    return {
+        **base,
+        "status": "ok",
+        "ready": bool(artifacts.elo),
+        "artifacts_loaded": bool(artifacts.elo),
+        "clubs_rated": len(artifacts.elo),
+        "club_name_aliases": len(artifacts.aliases),
+        "entrant_prior_buckets": len(artifacts.entrant_prior),
     }
 
 
@@ -187,7 +284,8 @@ def competitions() -> dict:
                 "odds_coverage": c.odds_coverage,
             }
             for c in taxonomy.registry()
-        ]
+        ],
+        **provenance(),
     }
 
 
@@ -199,10 +297,11 @@ def teams(competition_id: str) -> dict:
     return {
         "competition_id": competition_id,
         "teams": [{"team": t, "elo": round(e, 1)} for t, e in ranked],
+        **provenance(),
     }
 
 
-@app.get("/predict/{competition_id}/{home}/{away}")
+@app.get("/predict/{competition_id}/{home}/{away}", response_model=PredictionResponse)
 def predict(
     competition_id: str,
     home: str,
@@ -221,10 +320,10 @@ def predict(
         competition_id, home, away, stage=stage, season=season,
         home_entry_stage=home_entry_stage, away_entry_stage=away_entry_stage,
     )
-    return {**prediction.as_dict(), **_bet_recommendation(competition)}
+    return {**prediction.as_dict(), **_bet_recommendation(competition), **provenance()}
 
 
-@app.post("/predict")
+@app.post("/predict", response_model=PredictionResponse)
 def predict_post(request: PredictRequest) -> dict:
     competition = _competition_or_404(request.competition_id)
     first_leg = None
@@ -241,7 +340,7 @@ def predict_post(request: PredictRequest) -> dict:
         home_entry_stage=request.home_entry_stage,
         away_entry_stage=request.away_entry_stage,
     )
-    return {**prediction.as_dict(), **_bet_recommendation(competition)}
+    return {**prediction.as_dict(), **_bet_recommendation(competition), **provenance()}
 
 
 @app.get("/predict/tie/{competition_id}/{team_a}/{team_b}")
@@ -267,7 +366,7 @@ def predict_tie(
             status_code=400,
             detail=f"{competition_id} does not play two-legged ties at this stage",
         )
-    return {**prediction.as_dict(), **_bet_recommendation(competition)}
+    return {**prediction.as_dict(), **_bet_recommendation(competition), **provenance()}
 
 
 @app.get("/value-bets/today")
@@ -278,17 +377,29 @@ def value_bets_today() -> dict:
     untouched and the existing frontend keeps working.
     """
     config = decision_config.config()
-    return {
-        "date": None,
-        "value_bets": [],
-        "note": (
+    if config.is_placeholder:
+        note = (
             "No value bets are flagged. The fitted market-shrinkage weight w is "
             "0.000, meaning the model adds nothing over the closing line, and the "
             "decision config is unfitted."
-            if config.is_placeholder
-            else "No value bets flagged for today."
-        ),
+        )
+        structured = refusal(
+            ReasonCode.SHRINKAGE_WEIGHT_ZERO,
+            note,
+            config_version=config.config_version,
+            **contract.W_MEASUREMENT,
+        )
+    else:
+        note = "No value bets flagged for today."
+        structured = {}
+
+    return {
+        "date": None,
+        "value_bets": [],
+        "note": note,
+        **structured,
         "disclaimer": DISCLAIMER,
+        **provenance(),
     }
 
 
@@ -336,6 +447,7 @@ def simulate(
             }}
             for t, p in result.ranked()
         ],
+        **provenance(),
     }
 
 
@@ -373,6 +485,7 @@ def markets(competition_id: str, home: str, away: str,
         ],
         "count": len(book),
         **_bet_recommendation(competition),
+        **provenance(),
     }
 
 
@@ -386,20 +499,31 @@ def best_bet(competition_id: str, home: str, away: str) -> dict:
     +0.13%), because maximum-edge selection finds the model's own largest errors.
     """
     competition = _competition_or_404(competition_id)
+    reason = (
+        "No selection is recommended. The fitted market-shrinkage weight w is "
+        "0.000 over 5,306 validation matches, so the model demonstrates no "
+        "information beyond the closing line. Separately, best-bet-per-match "
+        "selection was measured at -2.12% ROI against +0.13% for committing to "
+        "a single market, because ranking on model-versus-market disagreement "
+        "selects the model's largest errors."
+    )
     return {
         "competition_id": competition_id,
         "home_team": home,
         "away_team": away,
         "best_bet": None,
-        "reason": (
-            "No selection is recommended. The fitted market-shrinkage weight w is "
-            "0.000 over 5,306 validation matches, so the model demonstrates no "
-            "information beyond the closing line. Separately, best-bet-per-match "
-            "selection was measured at -2.12% ROI against +0.13% for committing to "
-            "a single market, because ranking on model-versus-market disagreement "
-            "selects the model's largest errors."
+        "reason": reason,
+        # Two independent findings refuse this route, and a consumer that stores
+        # only one of them loses the reason the endpoint would stay closed even if
+        # the other were overturned.
+        **refusal(
+            ReasonCode.MAX_EDGE_SELECTION_HARMFUL,
+            reason,
+            **contract.W_MEASUREMENT,
+            **contract.MAX_EDGE_MEASUREMENT,
         ),
         **_bet_recommendation(competition),
+        **provenance(),
     }
 
 
@@ -407,17 +531,30 @@ def best_bet(competition_id: str, home: str, away: str) -> dict:
 def card_today() -> dict:
     """Graded matchday slate with correlation-aware sizing (FR-27)."""
     config = decision_config.config()
+    if config.is_placeholder:
+        reason = (
+            f"Staking is disabled: decision_config '{config.config_version}' is "
+            f"unfitted (status={config.status})."
+        )
+        structured = refusal(
+            ReasonCode.DECISION_CONFIG_UNFITTED,
+            reason,
+            config_version=config.config_version,
+            status=config.status,
+            w_fitted=config.w_fitted,
+        )
+    else:
+        reason = "No qualifying bets on today's slate."
+        structured = {}
+
     return {
         "date": None,
         "bets": [],
         "total_exposure": 0.0,
-        "reason": (
-            f"Staking is disabled: decision_config '{config.config_version}' is "
-            f"unfitted (status={config.status})."
-            if config.is_placeholder
-            else "No qualifying bets on today's slate."
-        ),
+        "reason": reason,
+        **structured,
         "disclaimer": DISCLAIMER,
+        **provenance(),
     }
 
 
@@ -441,6 +578,7 @@ def clv_report() -> dict:
             for k, v in clv.report_by(entries, "competition_id").items()
         },
         "disclaimer": DISCLAIMER,
+        **provenance(),
     }
 
 
@@ -471,6 +609,7 @@ def ledger_route(
             for e in window
         ],
         "disclaimer": DISCLAIMER,
+        **provenance(),
     }
 
 
@@ -498,6 +637,7 @@ def edge_map() -> dict:
             ),
         },
         "disclaimer": DISCLAIMER,
+        **provenance(),
     }
 
 
@@ -509,16 +649,29 @@ def bankroll_simulate(
     config = decision_config.config()
     settled = ledger().settled()
     if config.is_placeholder or not settled:
+        reason = (
+            "No settled bets in the ledger to resample. A bankroll simulation "
+            "over an empty track record would be a simulation of nothing."
+        )
         return {
             "lambda": kelly_lambda,
             "paths": 0,
-            "reason": (
-                "No settled bets in the ledger to resample. A bankroll simulation "
-                "over an empty track record would be a simulation of nothing."
+            "reason": reason,
+            **refusal(
+                ReasonCode.EMPTY_LEDGER
+                if not settled
+                else ReasonCode.DECISION_CONFIG_UNFITTED,
+                reason,
+                settled_bets=len(settled),
+                config_version=config.config_version,
+                staking_enabled=not config.is_placeholder,
             ),
             "disclaimer": DISCLAIMER,
+            **provenance(),
         }
-    return {"lambda": kelly_lambda, "paths": 0, "disclaimer": DISCLAIMER}
+    return {
+        "lambda": kelly_lambda, "paths": 0, "disclaimer": DISCLAIMER, **provenance(),
+    }
 
 
 @app.get("/backtest/{competition_id}")
@@ -530,6 +683,13 @@ def backtest(competition_id: str) -> dict:
             "competition_id": competition_id,
             "available": False,
             "reason": NO_ODDS_REASON,
+            **refusal(
+                ReasonCode.NO_ODDS_COVERAGE,
+                NO_ODDS_REASON,
+                competition_id=competition_id,
+                odds_coverage=False,
+            ),
+            **provenance(),
         }
     return {
         "competition_id": competition_id,
@@ -543,19 +703,29 @@ def backtest(competition_id: str) -> dict:
             "Model trails the de-vigged closing consensus. Reported as measured "
             "(NFR-3), including where it does not beat the market."
         ),
+        **provenance(),
     }
 
 
 @app.get("/today")
 def today() -> dict:
-    """Today's fixtures across all in-scope competitions, with predictions."""
+    """Today's fixtures across all in-scope competitions, with predictions.
+
+    Still a stub. The refusal is structured so a consumer's sync job can tell
+    "no fixture source wired" apart from "no fixtures today" — an empty list
+    means the latter, and only the latter. Roadmap §7 closes this.
+    """
+    note = (
+        "Live fixture listing requires a fixture source, which is not yet wired. "
+        "The API-Football feed is quota-budgeted to 100 requests/day (NFR-9) and "
+        "not exercised here."
+    )
     return {
         "date": None,
         "fixtures": [],
-        "note": (
-            "Live fixture listing requires the API-Football feed, which is "
-            "quota-budgeted to 100 requests/day (NFR-9) and not exercised here."
-        ),
+        "note": note,
+        **refusal(ReasonCode.NO_FIXTURE_SOURCE, note, fixture_source=None),
+        **provenance(),
     }
 
 

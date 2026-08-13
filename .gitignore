@@ -25,3 +25,10 @@ data/processed/elo_shards/
 # state, and churn on every session.
 .idea/
 .claude/settings.local.json
+
+# Trained goal-model artifacts: ~1.7 MB per run, and Roadmap §11's weekly retrain
+# would add that every week. The registry entry — window, metrics, feature list,
+# input checksums and git SHA — is the durable record and IS committed; the
+# boosters are rebuilt by scripts/train.py, or fetched from a GitHub Release once
+# Roadmap §10.1 lands.
+models/goals-*/

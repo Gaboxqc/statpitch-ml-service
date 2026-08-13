@@ -25,16 +25,22 @@ competition with few matches — which, after Phase 1, describes most of the cup
 
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import dataclass, field
 
 import numpy as np
 import pandas as pd
+import xgboost
 from xgboost import XGBRegressor
 
 from statpitch.models import dixon_coles as dc
 
 log = logging.getLogger(__name__)
+
+#: Bumped when the saved layout changes in a way older code cannot read. `load`
+#: refuses an unknown schema rather than silently reading a partial model.
+ARTIFACT_SCHEMA = 1
 
 #: Fallback goal environment for a competition with too little history to
 #: estimate one. Roughly the Big-5 average per side.
@@ -184,6 +190,77 @@ class GoalModel:
                 dc.score_matrix(float(lh), float(la), float(np.clip(rho, low, high)))
             )
         return matrices
+
+    # --- persistence -----------------------------------------------------
+
+    def save(self, directory) -> None:
+        """Write the model as two boosters plus a sidecar of everything else.
+
+        Boosters go through xgboost's own `save_model`, **not pickle**. A pickled
+        estimator embeds the exact scikit-learn and Python versions that created
+        it and stops loading when either moves; the native format is the one
+        xgboost commits to reading back. An artifact that cannot survive a
+        runtime upgrade is not an artifact, it is a cache.
+
+        The sidecar carries what the boosters do not: the per-competition
+        environments the base_margin offsets are computed from, the fitted rho,
+        and the feature column order. All three are as load-bearing as the trees
+        — a model reloaded without its environments predicts against the pooled
+        goal rate for every competition and looks merely slightly wrong.
+        """
+        from pathlib import Path
+
+        if self.home_model is None or self.away_model is None:
+            raise ValueError("cannot save an unfitted goal model")
+
+        directory = Path(directory)
+        directory.mkdir(parents=True, exist_ok=True)
+        self.home_model.save_model(directory / "home.json")
+        self.away_model.save_model(directory / "away.json")
+        (directory / "model.json").write_text(
+            json.dumps(
+                {
+                    "schema": ARTIFACT_SCHEMA,
+                    "xgboost_version": xgboost.__version__,
+                    "feature_columns": list(self.feature_columns),
+                    "environments": {k: list(v) for k, v in self.environments.items()},
+                    "pooled_environment": list(self.pooled_environment),
+                    "rho": dict(self.rho),
+                },
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+    @classmethod
+    def load(cls, directory) -> GoalModel:
+        """Reload a saved model, refusing a schema it does not understand."""
+        from pathlib import Path
+
+        directory = Path(directory)
+        meta = json.loads((directory / "model.json").read_text(encoding="utf-8"))
+        schema = meta.get("schema")
+        if schema != ARTIFACT_SCHEMA:
+            raise ValueError(
+                f"goal model artifact schema {schema!r} is not {ARTIFACT_SCHEMA}; "
+                "retrain rather than loading a shape this code cannot read"
+            )
+
+        model = cls(feature_columns=list(meta["feature_columns"]))
+        model.environments = {
+            str(k): (float(v[0]), float(v[1])) for k, v in meta["environments"].items()
+        }
+        pooled = meta["pooled_environment"]
+        model.pooled_environment = (float(pooled[0]), float(pooled[1]))
+        model.rho = {str(k): float(v) for k, v in meta["rho"].items()}
+
+        model.home_model = XGBRegressor()
+        model.home_model.load_model(directory / "home.json")
+        model.away_model = XGBRegressor()
+        model.away_model.load_model(directory / "away.json")
+        return model
 
     def predict_one_x_two(self, features: pd.DataFrame) -> np.ndarray:
         """1X2 probabilities implied by the score matrices, as (n, 3)."""

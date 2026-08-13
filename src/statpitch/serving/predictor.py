@@ -83,6 +83,20 @@ class Artifacts:
     elo: dict[str, float] = field(default_factory=dict)
     #: Openfootball's formal club names ("1. FC Köln") to Club Elo's short ones.
     aliases: dict[str, str] = field(default_factory=dict)
+    #: Deliberately left empty, which is not an oversight — it was measured.
+    #:
+    #: Populating these with the fitted model's per-competition environments and
+    #: rho makes the served path WORSE: 0.9900 -> 0.9996 log-loss and ECE from
+    #: 0.01283 to 0.02424 over 3,569 matches (MODEL_CARD §3, reproduced by
+    #: `scripts/evaluate_served_path.py`). The environments are fitted as
+    #: `base_margin` offsets under XGBoost's log link, with the trees learning the
+    #: residual against them; this mapping is a multiplicative shift on a fixed
+    #: base, and the offsets do not transfer into it.
+    #:
+    #: The consequence is that production serves independent Poisson — rho is 0.0
+    #: for every competition — rather than Dixon-Coles. Closing that requires
+    #: serving actual fitted rates, which needs rolling-form features serving does
+    #: not have for an arbitrary fixture. Roadmap §8's precompute is the route.
     goal_environment: dict[str, tuple[float, float]] = field(default_factory=dict)
     rho: dict[str, float] = field(default_factory=dict)
     #: (competition_id, entry_stage) -> fitted Elo for clubs entering there (FR-9).

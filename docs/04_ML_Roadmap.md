@@ -107,22 +107,45 @@ clearing only an uncorrected threshold does not ship.
 **Exit:** `python scripts/train.py` reproduces 0.9852 from a clean checkout and
 registers an artifact.
 
-## Phase 2 — Serve what was actually measured
+## Phase 2 — Serve what was actually measured ✅ measured, and 2.2 falsified
 
-The deployed path is not the evaluated path.
-[`predictor.py`](../src/statpitch/serving/predictor.py) derives λ from Elo via
-`ELO_GOAL_SENSITIVITY = 0.55`; the card measures a matrix driven by *fitted* rates.
-The served numbers have no row in the evaluation table.
+**2.1 is done.** The deployed Elo mapping now has a row in MODEL_CARD §3:
+**0.9900** log-loss over 3,569 matches, against **0.9836** for the fitted model
+scored out-of-sample on the same window and 0.9698 for the market. The deployed
+path costs **+0.0064**.
 
-The 512 MB split stays — `requirements-serving.txt` excludes xgboost deliberately,
-enforced by `tests/test_deployment.py`.
+The measurement also found two artifacts the serving code reads and nothing
+writes. `Artifacts.goal_environment` and `Artifacts.rho` are consulted at
+`predictor.py:204` and `:377` and populated nowhere, so production prices every
+competition at the pooled 1.45/1.20 rate and runs with **rho = 0** — independent
+Poisson, not Dixon-Coles. `SERVED_MODEL` is now `elo-poisson` for that reason.
 
-**2.1** Add `elo→λ` as a row in MODEL_CARD §3 on the same validation window.
-**2.2** If it costs more than ~0.005 log-loss, export fitted rates: train offline,
-write a λ lookup or distilled coefficient table to parquet, load at startup.
-Serving still imports no xgboost.
+**2.2 does not work, and this is the useful part.** The plan said: if the gap
+exceeds ~0.005, export the fitted rates. It does exceed it. But exporting the
+fitted environments and rho into those empty fields makes the served path
+*worse* — 0.9900 → 0.9996, with ECE nearly doubling. The environments are fitted
+as `base_margin` offsets under XGBoost's log link, with the trees learning the
+residual against them; the Elo mapping is a multiplicative shift on a fixed base
+and the offsets do not transfer into it.
 
-**Exit:** every probability the API serves traces to a measured number.
+So the fields stay empty deliberately, with the measurement recorded beside them
+in code so the next reader does not "fix" it.
+
+**What actually closes the gap.** Serving real fitted rates needs the rolling-form
+features, which serving does not have for an arbitrary fixture — it has them only
+for a *known* fixture, computed ahead of time. **Phase 8's precompute is the route,
+and it now has a measured justification rather than an architectural preference.**
+That reorders the plan: Phase 8 is no longer only about latency and cost.
+
+**Unrelated finding, recorded in `tests/test_elo_rates.py`.** `predictor._rates`
+claims the symmetric split "keeps total goals roughly stable as the edge grows".
+For `f(s) = a·10^(s/2) + b·10^(−s/2)` the derivative at zero is `(ln10/2)·(a−b)`,
+positive whenever `a > b`, and the rates are 1.45 against 1.20. A 400-point edge
+lifts expected totals from 2.65 to 3.37 — 27%, landing on Over/Under. Asserted as
+behaviour so that correcting it is deliberate.
+
+**Exit:** met for 2.1 — every probability the API serves now traces to a measured
+number, including the ones that measure badly.
 
 ## Phase 3 — Momentum and form
 

@@ -93,6 +93,31 @@ On the validation window, against the de-vigged closing consensus:
 | **market (de-vigged close)** | **0.9698** | **0.5439** | 0.01012 |
 | *what the API actually serves* | *0.9900* | *0.5172* | *0.01283* |
 
+### Rating coverage was worth a third of the gap
+
+The feature frame is now rebuilt by `scripts/build_features.py`, and rebuilding it
+with the alias maps added for the fixture source resolved **2,214 previously-null
+club ratings** — every one of them in a cup or continental fixture, and none lost.
+Those matches had been falling through to the entrant prior inside the *training*
+data, not merely at serving time.
+
+Re-measured on the same window, restricted to the five odds-covered leagues so the
+comparison against the market is like for like:
+
+| | log-loss | gap to market |
+|---|---|---|
+| published (§3 above) | 0.9845 | +0.0147 |
+| **after resolving the ratings** | **0.9794** | **+0.0096** |
+
+Across all fixtures in the window, including cups, it is 0.9758 — better still,
+but not comparable to a market number that covers only the leagues, so the
+league-only figure is the one quoted.
+
+This is a data-coverage fix, not a modelling change: no feature was added, no
+parameter tuned. It does not overturn `w`=0, which is fitted against the closing
+line on league fixtures and would need re-fitting to move; the gap narrowed by a
+third and is still a gap.
+
 ### The deployed path is not the evaluated path
 
 The last row is the Elo-to-goal-rate mapping in `serving/predictor.py`, measured

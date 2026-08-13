@@ -41,6 +41,12 @@ def main() -> int:
                         help="Evaluate and report; write no artifact.")
     parser.add_argument("--params", default=None,
                         help="JSON overrides for the XGBoost parameters.")
+    parser.add_argument(
+        "--gate", action="store_true",
+        help="Apply the promotion gate (Roadmap §11.2) and promote only if the "
+             "candidate is not worse than the incumbent. Without this, training "
+             "registers and never promotes.",
+    )
     parser.add_argument("--notes", default="")
     args = parser.parse_args()
 
@@ -141,6 +147,41 @@ def main() -> int:
     )
 
     store = registry.Registry.load(paths.models_dir())
+    existing = next((e for e in store.entries if e.version == version), None)
+    if existing is not None:
+        # Same day, same commit, same inputs: this is the artifact that is already
+        # registered, rebuilt. The weekly workflow retrains from a checkout that
+        # has no boosters (they are gitignored), so it lands here on any week the
+        # code and data have not moved. Re-registering would either raise or
+        # invent a second identity for one model.
+        if existing.input_checksums == entry.input_checksums:
+            log.info(
+                "%s is already registered with identical inputs; rebuilt the "
+                "artifact and left the registry unchanged", version,
+            )
+            return 0
+        log.error(
+            "%s is registered but its recorded input checksums differ from this "
+            "run's. Same commit and day, different data — commit the data change "
+            "so the version can differ too.", version,
+        )
+        return 1
+
+    if args.gate:
+        decision = registry.gate(entry, store.promoted)
+        entry.notes = "; ".join(filter(None, [entry.notes, f"gate: {decision.reason}"]))
+        store.add(entry)
+        if decision.promote:
+            store.promote(version)
+            log.info("gate passed, promoted %s — %s", version, decision.reason)
+        else:
+            log.warning(
+                "gate refused %s, keeping %s — %s",
+                version, decision.incumbent or "nothing", decision.reason,
+            )
+        store.save()
+        return 0
+
     store.add(entry)
     store.save()
 

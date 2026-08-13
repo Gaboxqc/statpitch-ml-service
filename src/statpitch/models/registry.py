@@ -194,6 +194,121 @@ class Registry:
         return target
 
 
+@dataclass(frozen=True)
+class GateDecision:
+    """Whether a candidate may replace the incumbent, and why."""
+
+    promote: bool
+    reason: str
+    candidate: str
+    incumbent: str | None
+    candidate_log_loss: float | None = None
+    incumbent_log_loss: float | None = None
+    #: The fold-to-fold spread the difference is judged against.
+    noise: float | None = None
+
+    def as_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+def _walk_forward(entry: Entry) -> dict[str, Any]:
+    return entry.metrics.get("walk_forward", {}) or {}
+
+
+def gate(
+    candidate: Entry, incumbent: Entry | None, *, margin: float = 1.0
+) -> GateDecision:
+    """Roadmap §11.2. A new artifact serves only if it is not worse.
+
+    Retraining that promotes whatever it just built is a mechanism for shipping
+    a regression quietly, so the default is to keep the incumbent and the burden
+    is on the candidate.
+
+    **Not worse, rather than better.** Requiring an improvement would pin the
+    served model to whichever week got a lucky validation split, and a model that
+    matches the incumbent on fresher data is worth having. The comparison is
+    against fold noise — `margin` standard deviations of the incumbent's own
+    fold-to-fold spread — because a difference smaller than the disagreement
+    between seasons is not a difference. Comparing means alone promotes noise,
+    which is the entire reason `aggregate` reports a standard deviation.
+
+    Refusals are as informative as promotions: the reason is recorded either way,
+    so a run that declined can be read months later without rerunning it.
+    """
+    if candidate.holdout_touched:
+        return GateDecision(
+            promote=False,
+            reason=(
+                "candidate was trained or validated on the holdout season "
+                f"{candidate.holdout_season}; NFR-10 reserves it and a model that "
+                "has seen it cannot be evaluated against it"
+            ),
+            candidate=candidate.version,
+            incumbent=incumbent.version if incumbent else None,
+        )
+
+    candidate_metrics = _walk_forward(candidate)
+    candidate_loss = candidate_metrics.get("mean_log_loss")
+    if candidate_loss is None:
+        return GateDecision(
+            promote=False,
+            reason="candidate has no walk-forward score to judge",
+            candidate=candidate.version,
+            incumbent=incumbent.version if incumbent else None,
+        )
+
+    if incumbent is None:
+        return GateDecision(
+            promote=True,
+            reason="no incumbent; the first scored artifact is promoted",
+            candidate=candidate.version,
+            incumbent=None,
+            candidate_log_loss=candidate_loss,
+        )
+
+    incumbent_metrics = _walk_forward(incumbent)
+    incumbent_loss = incumbent_metrics.get("mean_log_loss")
+    if incumbent_loss is None:
+        return GateDecision(
+            promote=False,
+            reason=(
+                f"incumbent {incumbent.version} has no walk-forward score, so "
+                "there is nothing to compare against; promote by hand if intended"
+            ),
+            candidate=candidate.version,
+            incumbent=incumbent.version,
+            candidate_log_loss=candidate_loss,
+        )
+
+    if candidate.feature_columns != incumbent.feature_columns:
+        # Not a refusal — a feature change is usually the point of a retrain —
+        # but it is recorded, because the two scores are then not measuring the
+        # same model on the same inputs.
+        log.info(
+            "gate: %s and %s were trained on different feature sets",
+            candidate.version, incumbent.version,
+        )
+
+    noise = incumbent_metrics.get("std_log_loss") or 0.0
+    threshold = incumbent_loss + margin * noise
+    promote = candidate_loss <= threshold
+    return GateDecision(
+        promote=promote,
+        reason=(
+            f"{candidate_loss:.4f} is within {margin:g} SD ({noise:.4f}) of the "
+            f"incumbent's {incumbent_loss:.4f}"
+            if promote
+            else f"{candidate_loss:.4f} is worse than the incumbent's "
+                 f"{incumbent_loss:.4f} by more than {margin:g} SD ({noise:.4f})"
+        ),
+        candidate=candidate.version,
+        incumbent=incumbent.version,
+        candidate_log_loss=candidate_loss,
+        incumbent_log_loss=incumbent_loss,
+        noise=noise,
+    )
+
+
 def verify_features(expected: list[str], actual: list[str]) -> None:
     """Fail loudly when a frame does not match what the artifact was trained on.
 

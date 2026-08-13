@@ -250,9 +250,87 @@ def _load_results() -> pd.DataFrame | None:
     return pd.read_parquet(path)
 
 
+# --- refresh_fixtures ---------------------------------------------------------
+
+def refresh_fixtures(
+    *, scheduled_for: datetime | None = None, now: datetime | None = None
+) -> JobResult:
+    """Rebuild the fixture list and its predictions (Roadmap §11.1).
+
+    Both artifacts are claims about the future that decay: kickoff times move,
+    rounds are drawn, and a precomputed prediction is only as current as the
+    fixture list it was built from. Serving reads them at startup and cannot
+    refresh them itself — NFR-2 forbids a network call on a request path — so
+    something scheduled has to.
+
+    The two steps are deliberately coupled. Rebuilding fixtures without
+    re-predicting leaves `predictions.parquet` keyed on fixture ids that may no
+    longer exist, and the API would answer a newly added fixture from the Elo
+    fallback while reporting a fitted-model version for its neighbours. Whatever
+    is written, the pair is consistent.
+
+    Idempotent in the way that matters here: rebuilding produces the same rows
+    for the same upstream data, so a re-run is a no-op rather than a duplicate.
+    Unlike the ledger jobs there is nothing append-only to protect — these
+    artifacts are derived, and the correct response to a bad one is to rebuild.
+    """
+    ran_at = _now(now)
+    result = JobResult(job="refresh_fixtures", ran_at=ran_at.isoformat())
+    warning = _schedule_warning(ran_at, scheduled_for)
+    if warning:
+        result.warnings.append(warning)
+
+    from statpitch import paths
+
+    before = 0
+    if paths.fixtures_file().exists():
+        before = len(pd.read_parquet(paths.fixtures_file()))
+
+    # Imported here rather than at module scope: these pull in the scrapers, and
+    # `tests/test_deployment.py` asserts the serving path imports nothing outside
+    # requirements-serving.txt. `jobs` is on that path via the API's job routes.
+    import runpy
+
+    for script, label in (
+        ("scripts/build_fixtures.py", "fixtures"),
+        ("scripts/precompute_predictions.py", "predictions"),
+    ):
+        try:
+            runpy.run_path(script, run_name="__main__")
+        except SystemExit as exit_code:
+            if exit_code.code not in (0, None):
+                result.ok = False
+                result.reason = f"{label} step exited {exit_code.code}"
+                return result
+
+    after = len(pd.read_parquet(paths.fixtures_file()))
+    predictions = 0
+    predictions_path = paths.processed_dir() / "predictions.parquet"
+    if predictions_path.exists():
+        predictions = len(pd.read_parquet(predictions_path))
+
+    result.counts = {
+        "fixtures_before": before,
+        "fixtures_after": after,
+        "predictions": predictions,
+    }
+    if predictions != after:
+        # Not fatal — a fixture whose clubs cannot be rated still belongs in the
+        # list — but a growing gap means the two artifacts are drifting apart.
+        result.warnings.append(
+            f"{after} fixtures but {predictions} predictions; the difference will "
+            "be answered from the Elo fallback and reported as such per fixture"
+        )
+    return result
+
+
 # --- entry point --------------------------------------------------------------
 
-JOBS = {"flag_card": flag_card, "settle_ledger": settle_ledger}
+JOBS = {
+    "flag_card": flag_card,
+    "settle_ledger": settle_ledger,
+    "refresh_fixtures": refresh_fixtures,
+}
 
 
 def run(name: str, *, scheduled_for: datetime | None = None) -> JobResult:

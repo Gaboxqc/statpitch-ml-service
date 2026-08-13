@@ -91,6 +91,53 @@ On the validation window, against the de-vigged closing consensus:
 | Dixon-Coles (goal model) | 0.9852 | 0.5264 | **0.00499** |
 | Dixon-Coles + xG | 0.9845 | — | **0.00317** |
 | **market (de-vigged close)** | **0.9698** | **0.5439** | 0.01012 |
+| *what the API actually serves* | *0.9900* | *0.5172* | *0.01283* |
+
+### The deployed path is not the evaluated path
+
+The last row is the Elo-to-goal-rate mapping in `serving/predictor.py`, measured
+by `scripts/evaluate_served_path.py` over the same seasons (3,569 of the 5,306
+matches carry an as-of-date rating on both sides). It had no row here until
+Roadmap §2, which meant the API returned numbers whose log-loss nobody had
+computed, on a page reporting 0.9845.
+
+It costs **+0.0064 log-loss** against the fitted model scored out-of-sample on
+the same window (0.9836 by walk-forward), and sits +0.0202 from the market.
+
+Two artifacts the serving code reads are never written. `Artifacts.goal_environment`
+and `Artifacts.rho` are declared, consulted at `predictor.py:204` and `:377`, and
+populated by nothing — so in production every competition is priced at the pooled
+1.45/1.20 rate, and **rho is 0.0 everywhere**, which makes the served matrix
+independent Poisson rather than Dixon-Coles.
+
+The obvious repair does not work. Exporting the fitted per-competition
+environments and rho into those fields makes the served path **worse**, 0.9900 →
+0.9996, and nearly doubles ECE:
+
+| variant | log-loss | accuracy | ECE |
+|---|---|---|---|
+| deployed — pooled rates, rho = 0 | **0.9900** | 0.5172 | 0.01283 |
+| + fitted environments and rho | 0.9996 | 0.5035 | 0.02424 |
+| fitted goal model, out-of-sample | 0.9836 | 0.5314 | 0.01541 |
+
+The environments are fitted as `base_margin` offsets under XGBoost's log link,
+with the trees learning the residual against them. The Elo mapping is a different
+functional form — a multiplicative shift on a fixed base — and the offsets do not
+transfer into it. The 1.45/1.20 constants suit the mapping they were chosen for.
+
+So the fields stay empty, deliberately, and the gap closes only by serving actual
+fitted rates. That needs the rolling-form features, which serving does not have
+for an arbitrary fixture — it has them only for a *known* fixture, computed ahead
+of time. Roadmap §8's precompute is therefore what closes this, and now has a
+measured reason rather than an architectural preference.
+
+**A second finding, unrelated to the gap.** `predictor._rates` states that the
+symmetric split "keeps total goals roughly stable as the edge grows". It does not:
+for `f(s) = a·10^(s/2) + b·10^(−s/2)` the derivative at zero is `(ln10/2)·(a−b)`,
+positive whenever `a > b`, and the base rates are 1.45 against 1.20. A 400-point
+Elo edge lifts expected total goals from 2.65 to 3.37 — 27%, landing on the
+Over/Under market. Asserted in `tests/test_elo_rates.py` as behaviour, so that
+correcting it is a deliberate change rather than an accident.
 
 Routing 1X2 through the score matrix rather than predicting it directly closed a
 third of the gap to the market (0.0229 → 0.0154). Adding xG closed another 0.0007.

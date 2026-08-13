@@ -64,8 +64,16 @@ SCHEMA_VERSION = 1
 
 #: The inference path currently serving predictions. Not the package version: two
 #: releases can serve identical numbers, and one release could serve different
-#: ones. Changes when Roadmap §2 replaces the Elo mapping with fitted goal rates.
-SERVED_MODEL = "elo-dixon-coles"
+#: ones.
+#:
+#: "poisson", not "dixon-coles", and the correction is the point. `Artifacts.rho`
+#: is never populated, so the served matrix applies no low-score correction at
+#: all — it is independent Poisson wearing a Dixon-Coles code path. Roadmap §2
+#: measured this and found the obvious repair makes things worse; see the note on
+#: `Artifacts.goal_environment`. Naming it accurately is the whole function of
+#: this string, and a consumer keying on it deserves the version that says what
+#: it will actually get.
+SERVED_MODEL = "elo-poisson"
 
 
 def model_version() -> str:

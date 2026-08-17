@@ -293,6 +293,7 @@ def refresh_fixtures(
     # `tests/test_deployment.py` asserts the serving path imports nothing outside
     # requirements-serving.txt. `jobs` is on that path via the API's job routes.
     import runpy
+    import sys
 
     # Order is load-bearing. build_fixtures REBUILDS the list from openfootball,
     # so correcting dates before it would be overwritten; precompute keys on the
@@ -304,7 +305,16 @@ def refresh_fixtures(
         ("scripts/precompute_predictions.py", "predictions"),
     ):
         try:
-            runpy.run_path(script, run_name="__main__")
+            # `run_path` executes in THIS process, so a script reading sys.argv
+            # sees the JOB's arguments: build_fixtures.py received the literal
+            # "refresh_fixtures" and argparse rejected it. Scrubbing argv is what
+            # makes "run this script" mean the same thing here as on a shell.
+            saved_argv = sys.argv
+            sys.argv = [script]
+            try:
+                runpy.run_path(script, run_name="__main__")
+            finally:
+                sys.argv = saved_argv
         except SystemExit as exit_code:
             if exit_code.code not in (0, None):
                 result.ok = False

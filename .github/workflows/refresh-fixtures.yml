@@ -64,6 +64,7 @@ jobs:
           SLOT: ${{ steps.slot.outputs.at }}
           GH_TOKEN: ${{ github.token }}
           STATPITCH_API_FOOTBALL_KEY: ${{ secrets.STATPITCH_API_FOOTBALL_KEY }}
+          STATPITCH_FOOTBALL_DATA_ORG_KEY: ${{ secrets.STATPITCH_FOOTBALL_DATA_ORG_KEY }}
         run: python -m statpitch.ops.jobs refresh_fixtures ${SLOT:+--scheduled-for $SLOT}
 
       - name: Commit what changed

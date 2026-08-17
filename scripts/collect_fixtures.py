@@ -54,6 +54,7 @@ import pandas as pd
 
 from statpitch import paths
 from statpitch.data import api_football as af
+from statpitch.data import football_data_org as fdo
 
 log = logging.getLogger("collect")
 
@@ -108,15 +109,44 @@ def match_fixture(
     return {**candidate, "confirmed_at": stamp}
 
 
+def _candidates(competition_id: str, season: int, start, end, stats: dict) -> list[dict]:
+    """Confirmed fixtures for one competition, from whichever source can answer.
+
+    football-data.org first: its free tier covers all five leagues and the
+    current season, which is exactly what API-Football's free plan does not
+    (seasons 2022-2024 only, verified 2026-08-17). API-Football stays as the
+    fallback so a key that *does* have a paid plan is still used, and so the
+    quota machinery has a live caller.
+    """
+    matches = fdo.fetch_matches(competition_id, start, end)
+    if matches:
+        stats["from_football_data_org"] += 1
+        return [
+            {
+                "api_fixture_id": m.source_id,
+                "home_team": m.home_team,
+                "away_team": m.away_team,
+                "kickoff_utc": m.kickoff_utc,
+            }
+            for m in matches
+        ]
+
+    payload = af.ApiFootball().fixtures_in_range(competition_id, start, end, season)
+    if payload is None:
+        return []
+    stats["from_api_football"] += 1
+    return af.parse_fixtures(payload)
+
+
 def correct_dates(fixtures: pd.DataFrame, horizon_days: int) -> tuple[pd.DataFrame, dict]:
-    """Rewrite provisional dates where API-Football has a confirmed one."""
-    client = af.ApiFootball()
+    """Rewrite provisional dates where a source has a confirmed one."""
     today = pd.Timestamp(datetime.now(UTC).date())
     horizon = today + pd.Timedelta(days=horizon_days)
 
     in_window = fixtures[(fixtures["date"] >= today) & (fixtures["date"] <= horizon)]
     stats: dict = {"in_window": int(len(in_window)), "corrected": 0, "moved": 0,
-                   "unmatched": 0, "calls_skipped": 0, "seasons": set()}
+                   "unmatched": 0, "calls_skipped": 0, "seasons": set(),
+                   "from_football_data_org": 0, "from_api_football": 0}
     if in_window.empty:
         return fixtures, stats
 
@@ -124,17 +154,16 @@ def correct_dates(fixtures: pd.DataFrame, horizon_days: int) -> tuple[pd.DataFra
     if "api_fixture_id" not in out.columns:
         out["api_fixture_id"] = pd.NA
     for competition_id, group in in_window.groupby("competition_id"):
-        if competition_id not in af.LEAGUE_IDS:
+        if competition_id not in fdo.COMPETITIONS and competition_id not in af.LEAGUE_IDS:
             continue
         season = int(str(group["season"].iloc[0]).split("-")[0])
         stats["seasons"].add(season)
-        payload = client.fixtures_in_range(
-            str(competition_id), today.date(), horizon.date(), season
+        candidates = _candidates(
+            str(competition_id), season, today.date(), horizon.date(), stats
         )
-        if payload is None:
+        if not candidates:
             stats["calls_skipped"] += 1
             continue
-        candidates = af.parse_fixtures(payload)
         log.info("%s — %d confirmed fixtures upstream", competition_id, len(candidates))
 
         for index, row in group.iterrows():
@@ -160,10 +189,11 @@ def main() -> int:
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 
-    if not af.configured():
+    if not (fdo.configured() or af.configured()):
         log.warning(
-            "%s is not set — nothing to collect. openfootball's provisional dates "
-            "are served as-is and flagged date_confirmed=false.", af.ENV_KEY,
+            "neither %s nor %s is set — nothing to collect. openfootball's "
+            "provisional dates are served as-is and flagged date_confirmed=false.",
+            fdo.ENV_KEY, af.ENV_KEY,
         )
         return 0
 
@@ -182,6 +212,10 @@ def main() -> int:
         "day), %d unmatched; confirmed dates %d -> %d",
         stats["in_window"], args.horizon_days, stats["corrected"], stats["moved"],
         stats["unmatched"], before, after,
+    )
+    log.info(
+        "sources: football-data.org answered %d competition(s), API-Football %d",
+        stats["from_football_data_org"], stats["from_api_football"],
     )
     if stats["calls_skipped"]:
         seasons = sorted(stats["seasons"])

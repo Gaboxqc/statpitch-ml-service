@@ -129,3 +129,32 @@ def test_a_dispatched_run_is_neither_early_nor_late(artifacts, monkeypatch):
     artifacts(10, 10)
     _stub_scripts(monkeypatch)
     assert jobs.refresh_fixtures().warnings == []
+
+
+def test_each_script_sees_only_its_own_argv(artifacts, monkeypatch):
+    """`run_path` executes in-process, so argv leaks from the job to the script.
+
+    It did: build_fixtures.py received the literal "refresh_fixtures" from
+    `python -m statpitch.ops.jobs refresh_fixtures` and argparse rejected it,
+    failing the first real workflow run. The earlier tests stub the scripts, so
+    the one thing they could not check was how those scripts are invoked.
+    """
+    import sys
+
+    artifacts(10, 10)
+    seen: list[list[str]] = []
+
+    def record_argv(script, run_name=None):
+        seen.append(list(sys.argv))
+
+    monkeypatch.setattr("runpy.run_path", record_argv)
+    monkeypatch.setattr(sys, "argv", ["-m statpitch.ops.jobs", "refresh_fixtures"])
+    jobs.refresh_fixtures()
+
+    assert seen == [
+        ["scripts/build_fixtures.py"],
+        ["scripts/collect_fixtures.py"],
+        ["scripts/precompute_predictions.py"],
+    ]
+    # And the job's own argv is restored, so a caller after it is unaffected.
+    assert sys.argv == ["-m statpitch.ops.jobs", "refresh_fixtures"]

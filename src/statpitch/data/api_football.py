@@ -73,6 +73,27 @@ LEAGUE_IDS: dict[str, int] = {
 
 TIMEOUT = 30
 
+#: Seasons the FREE plan can see, inclusive. Verified against the live API on
+#: 2026-08-17, which answered a request for season 2026 with:
+#:
+#:     {'plan': 'Free plans do not have access to this season,
+#:               try from 2022 to 2024.'}
+#:
+#: This is the constraint that decides what §4.5 and §7.2 can be. Neither
+#: correcting an upcoming fixture's date nor collecting a confirmed XI is
+#: possible at $0, because both concern the CURRENT season and the free plan
+#: cannot see it. NFR-1 makes that a limit rather than a bug to fix.
+#:
+#: Checked before spending rather than after failing: the API answers an
+#: out-of-plan request with HTTP 200 and an `errors` object, and the budget is
+#: reserved before the call, so a request that cannot succeed still costs one of
+#: the ninety. The first real run burned five that way.
+FREE_PLAN_SEASONS = (2022, 2024)
+
+
+class PlanRestricted(RuntimeError):
+    """The requested season is outside what the configured plan can see."""
+
 
 class ApiFootballError(RuntimeError):
     pass
@@ -86,6 +107,12 @@ def api_key() -> str | None:
 def configured() -> bool:
     """Whether a key is present. False is a normal state, not a failure."""
     return api_key() is not None
+
+
+def season_available(season: int) -> bool:
+    """Whether the free plan can see this season at all."""
+    low, high = FREE_PLAN_SEASONS
+    return low <= season <= high
 
 
 @dataclass
@@ -115,6 +142,10 @@ class ApiFootball:
         # a bad key or an exhausted plan looks like success to `raise_for_status`.
         errors = payload.get("errors")
         if errors:
+            # A plan restriction is not a transient failure, so it is raised as
+            # its own type: retrying it spends budget to be told the same thing.
+            if isinstance(errors, dict) and "plan" in errors:
+                raise PlanRestricted(str(errors["plan"]))
             raise ApiFootballError(f"api-football returned errors: {errors}")
         return payload.get("response", [])
 
@@ -122,6 +153,17 @@ class ApiFootball:
         if not configured():
             log.debug("api-football: no key configured; skipping %s", cache_key)
             return None
+
+        season = params.get("season")
+        if season is not None and not season_available(int(season)):
+            low, high = FREE_PLAN_SEASONS
+            log.warning(
+                "api-football: season %s is outside the free plan's %d-%d window, "
+                "so %s cannot succeed; skipping without spending a call",
+                season, low, high, cache_key,
+            )
+            return None
+
         return self.budget.spend(cache_key, lambda: self._get(path, params))
 
     # --- fixtures ---------------------------------------------------------

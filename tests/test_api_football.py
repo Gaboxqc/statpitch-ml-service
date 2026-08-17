@@ -152,3 +152,54 @@ def test_a_different_opponent_does_not_match():
 def test_legal_forms_do_not_decide_a_match():
     """"Real" and "Borussia" are noise; several clubs in a league carry each."""
     assert cf.normalise("Real Sociedad") == cf.normalise("Sociedad")
+
+
+# --- the free-plan season window ----------------------------------------------
+
+def test_the_free_plan_window_is_what_the_api_reported():
+    """Verified 2026-08-17: "try from 2022 to 2024"."""
+    assert af.FREE_PLAN_SEASONS == (2022, 2024)
+    assert af.season_available(2023)
+    assert not af.season_available(2026)
+
+
+def test_an_out_of_plan_season_costs_no_budget(monkeypatch):
+    """The point of checking before spending.
+
+    API-Football answers an out-of-plan request with HTTP 200 and an `errors`
+    object, and quota reserves budget BEFORE the call — so a request that cannot
+    succeed still costs one of the ninety. The first real run burned five that
+    way, weekly, forever.
+    """
+    monkeypatch.setenv(af.ENV_KEY, "abc123")
+    client = af.ApiFootball()
+
+    def explode(*args, **kwargs):
+        raise AssertionError("spent budget on a season the plan cannot see")
+
+    monkeypatch.setattr(client.budget, "spend", explode)
+    assert client.fixtures_in_range("ENG.PL", date(2026, 8, 1), date(2026, 8, 21), 2026) is None
+
+
+def test_an_in_plan_season_is_attempted(monkeypatch):
+    monkeypatch.setenv(af.ENV_KEY, "abc123")
+    client = af.ApiFootball()
+    monkeypatch.setattr(client.budget, "spend", lambda key, fetch: ["reached"])
+    assert client.fixtures_in_range(
+        "ENG.PL", date(2023, 8, 1), date(2023, 8, 21), 2023
+    ) == ["reached"]
+
+
+def test_a_plan_restriction_is_its_own_error(monkeypatch):
+    """Not transient: retrying spends budget to be told the same thing."""
+    monkeypatch.setenv(af.ENV_KEY, "abc123")
+    client = af.ApiFootball()
+
+    class FakeResponse:
+        def raise_for_status(self): pass
+        def json(self):
+            return {"errors": {"plan": "Free plans do not have access to this season"}}
+
+    monkeypatch.setattr(client.session, "get", lambda *a, **k: FakeResponse())
+    with pytest.raises(af.PlanRestricted, match="Free plans"):
+        client._get("/fixtures", {"league": 39})

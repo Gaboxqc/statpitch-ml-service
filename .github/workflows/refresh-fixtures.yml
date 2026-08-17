@@ -56,10 +56,14 @@ jobs:
         if: github.event_name == 'schedule'
         run: echo "at=$(date -u +%Y-%m-%dT04:00:00+00:00)" >> "$GITHUB_OUTPUT"
 
+      # The date correction runs INSIDE this job, between the rebuild and the
+      # precompute — see ops/jobs.py. Ordering it here instead would rebuild the
+      # fixture list after correcting it and silently discard every correction.
       - name: Rebuild fixtures and predictions
         env:
           SLOT: ${{ steps.slot.outputs.at }}
           GH_TOKEN: ${{ github.token }}
+          STATPITCH_API_FOOTBALL_KEY: ${{ secrets.STATPITCH_API_FOOTBALL_KEY }}
         run: python -m statpitch.ops.jobs refresh_fixtures ${SLOT:+--scheduled-for $SLOT}
 
       - name: Commit what changed

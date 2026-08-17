@@ -42,16 +42,35 @@ log = logging.getLogger("build_fixtures")
 #: is the least reliable — kickoff times beyond a few months are provisional.
 DEFAULT_HORIZON_DAYS = 120
 
+#: How far BACK to keep fixtures, and why this is not zero.
+#:
+#: A provisional date is a nominal matchday date, and the real kickoffs spread
+#: around it — La Liga matchday 1 2026/27 sat on Sunday 16 August and was played
+#: from the 14th to the 17th. Filtering to `date >= today` therefore drops
+#: fixtures that have not been played yet, because their *placeholder* is in the
+#: past while their *actual* kickoff is ahead. That is exactly what happened: the
+#: whole of matchday 1 vanished from the artifact on the 17th, and /today
+#: returned nothing on a day with real matches.
+#:
+#: Wider than `collect_fixtures.MAX_DATE_SHIFT_DAYS` (3), so any fixture the
+#: correction could still move forward survives long enough to be corrected.
+#: Genuinely past fixtures are hidden at request time instead, where
+#: /fixtures/upcoming defaults `from` to today.
+LOOKBACK_DAYS = 5
 
-def build(seasons: list[int], horizon_days: int) -> pd.DataFrame:
+
+def build(
+    seasons: list[int], horizon_days: int, lookback_days: int = LOOKBACK_DAYS
+) -> pd.DataFrame:
     session = PoliteSession()
     frame = of.build_all_schedules(seasons, session=session)
     if frame.empty:
         return frame
 
     today = pd.Timestamp(datetime.now(UTC).date())
+    floor = today - pd.Timedelta(days=lookback_days)
     horizon = today + pd.Timedelta(days=horizon_days)
-    upcoming = frame[(frame["date"] >= today) & (frame["date"] <= horizon)]
+    upcoming = frame[(frame["date"] >= floor) & (frame["date"] <= horizon)]
     return upcoming.sort_values(["date", "competition_id"]).reset_index(drop=True)
 
 
@@ -62,6 +81,7 @@ def main() -> int:
         help="Season start years. Defaults to the current and next season.",
     )
     parser.add_argument("--horizon-days", type=int, default=DEFAULT_HORIZON_DAYS)
+    parser.add_argument("--lookback-days", type=int, default=LOOKBACK_DAYS)
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -72,7 +92,7 @@ def main() -> int:
         current = now.year if now.month >= 7 else now.year - 1
         args.seasons = [current, current + 1]
 
-    frame = build(args.seasons, args.horizon_days)
+    frame = build(args.seasons, args.horizon_days, args.lookback_days)
     if frame.empty:
         log.error("no fixtures found for seasons %s — artifact not written", args.seasons)
         return 1

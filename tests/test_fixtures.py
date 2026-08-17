@@ -283,3 +283,22 @@ def test_each_fixture_reports_whether_its_date_is_confirmed(client, fixtures):
         # A confirmed date carries the time it was confirmed at.
         if fixture["date_confirmed"]:
             assert fixture["kickoff"]
+
+
+def test_the_artifact_keeps_recently_past_fixtures(fixtures):
+    """A provisional date that has just passed does not mean the match was played.
+
+    La Liga matchday 1 2026/27 sat on a nominal Sunday and was played across four
+    days. Building with `date >= today` dropped the whole matchday the morning
+    after that Sunday — including fixtures still to be played — and `/today`
+    returned nothing on a day with real matches. The artifact now keeps a few
+    days of lookback so the date correction can still move them forward, and
+    `/fixtures/upcoming` hides genuinely past ones at request time instead.
+    """
+    from datetime import UTC, datetime
+
+    today = datetime.now(UTC).date()
+    earliest = fixtures["date"].min().date()
+    assert (today - earliest).days <= 10, (
+        "the artifact starts too far in the past to be a lookback window"
+    )

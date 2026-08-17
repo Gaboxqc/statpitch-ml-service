@@ -180,7 +180,7 @@ once per matchday, not once per fixture.
 
 | name | type | default | notes |
 |---|---|---|---|
-| `from` | ISO date | — | inclusive lower bound |
+| `from` | ISO date | **today** | inclusive lower bound; past fixtures are excluded unless you ask |
 | `to` | ISO date | — | inclusive upper bound |
 | `competition_id` | string | — | 404 if unknown |
 | `limit` | int 1–1000 | `200` | |
@@ -200,9 +200,13 @@ GET /fixtures/upcoming?from=2026-08-21&to=2026-08-24&include_predictions=true&li
   "total": 655,
   "offset": 0,
   "limit": 100,
-  "generated_at_source": "2026-08-13T10:27:00+00:00"
+  "from": "2026-08-17",
+  "generated_at_source": "2026-08-13T15:13:00+00:00"
 }
 ```
+
+`from` echoes the lower bound actually applied, so you can tell a default from a
+value you sent.
 
 `generated_at_source` is when the **fixture list was built**, which is not when the
 response was generated. A fixture list is a claim about the future and kickoff
@@ -219,6 +223,8 @@ week or two old, treat kickoff times as provisional.
   "stage": "matchday_1",
   "format": "round_robin",
   "date": "2026-08-16",
+  "kickoff": null,
+  "date_confirmed": false,
   "home_team": "Club Atlético de Madrid",
   "away_team": "Málaga CF",
   "neutral_venue": false,
@@ -229,6 +235,36 @@ week or two old, treat kickoff times as provisional.
   "explanation": { /* §5.3 */ }
 }
 ```
+
+### Dates are provisional until `date_confirmed` is true
+
+**Read this before building a "today's matches" view.**
+
+openfootball publishes a matchday before the league confirms individual kickoff
+slots. Every fixture in that matchday lands on **one nominal date** with a time
+only on the first line. La Liga matchday 1 2026/27 is the worked example: ten
+fixtures stacked on Sunday 16 August, actually played across the 14th to the 17th.
+
+`date_confirmed` is `true` only when the schedule published a kickoff time for
+that fixture, which is the signal the date is real. **Currently 12% of the fixture
+list.** The other 88% sit on a matchday placeholder.
+
+| field | meaning |
+|---|---|
+| `kickoff` | `"20:00"`, or `null` when none was published |
+| `date_confirmed` | `true` only when `kickoff` is present |
+
+Practical consequences:
+
+- `/today` can legitimately return `[]` on a day that has real matches, because
+  those fixtures are filed under the matchday's nominal date. **This is the most
+  likely surprise in the whole API.**
+- Show unconfirmed fixtures as "week of…" or "date TBC" rather than a specific day.
+- Re-sync often: the weekly rebuild picks up dates as the league confirms them,
+  and a fixture can move between dates as that happens.
+
+`fixture_id` deliberately excludes the date, so a fixture that moves keeps its
+identity — which is what makes re-syncing safe.
 
 `fixture_id` **excludes the date on purpose**, so a postponed match keeps its
 identity rather than appearing as a new fixture plus a vanished one. Use it as your
@@ -252,9 +288,15 @@ Today's fixtures, with predictions always attached. Same fixture shape as above.
 }
 ```
 
-**`fixtures: []` means no football today.** If the fixture artifact is missing you
-get a `refusal` with `NO_FIXTURE_SOURCE` instead. Do not treat those as the same
-thing — one is a quiet Tuesday, the other is a broken deploy.
+**`fixtures: []` means no fixture is *filed* under today's date.** That is not the
+same as "no football today": with 88% of dates provisional, a real match can sit
+under its matchday's nominal date instead. See
+[Dates are provisional](#dates-are-provisional-until-date_confirmed-is-true) —
+this is the most likely surprise you will hit.
+
+If the fixture artifact is missing entirely you get a `refusal` with
+`NO_FIXTURE_SOURCE`. Do not treat that as the same thing — one is a quiet
+Tuesday, the other is a broken deploy.
 
 ---
 

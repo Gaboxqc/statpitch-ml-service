@@ -223,3 +223,63 @@ def test_today_without_the_artifact_refuses_rather_than_returning_empty(client):
 def test_today_with_the_artifact_present_does_not_refuse(client, fixtures):
     body = client.get("/today").json()
     assert "refusal" not in body
+
+
+# --- provisional dates (openfootball publishes matchdays before slots) --------
+
+SCHEDULE_MIXED = """\
+▪ Matchday 1
+  Fri Aug 21 2026
+    20:00  Arsenal FC              v Coventry City FC
+  Sat Aug 22
+           Everton FC              v Crystal Palace FC
+"""
+
+
+def test_a_published_kickoff_time_is_captured():
+    matches = of.parse_football_txt(SCHEDULE_MIXED, 2026, include_unplayed=True)
+    assert matches[0].kickoff == "20:00"
+
+
+def test_a_fixture_without_a_time_reports_no_kickoff():
+    """Which is how a provisional matchday date announces itself.
+
+    openfootball publishes a matchday before the league confirms slots: every
+    fixture lands on one nominal date with a time only on the first line. La Liga
+    matchday 1 2026/27 stacked ten fixtures on Sunday 16 August that were played
+    across the 14th to the 17th. Only 12% of the current fixture list carries a
+    confirmed time, so a consumer that treats every date as final will show
+    matches on the wrong day.
+    """
+    matches = of.parse_football_txt(SCHEDULE_MIXED, 2026, include_unplayed=True)
+    assert matches[1].kickoff is None
+
+
+def test_the_schedule_marks_which_dates_are_confirmed(fixtures):
+    assert "date_confirmed" in fixtures.columns
+    assert fixtures["date_confirmed"].dtype == bool
+
+
+def test_upcoming_excludes_past_fixtures_by_default(client, fixtures):
+    """The artifact is filtered to the future when BUILT, so without a request-time
+    floor the window of already-played fixtures grows every day it ages."""
+    from datetime import UTC, datetime
+
+    body = client.get("/fixtures/upcoming?limit=500").json()
+    today = str(datetime.now(UTC).date())
+    assert body["from"] == today
+    assert all(f["date"] >= today for f in body["fixtures"])
+
+
+def test_an_explicit_from_still_reaches_back(client, fixtures):
+    body = client.get("/fixtures/upcoming?from=2000-01-01&limit=5").json()
+    assert body["from"] == "2000-01-01"
+
+
+def test_each_fixture_reports_whether_its_date_is_confirmed(client, fixtures):
+    body = client.get("/fixtures/upcoming?limit=20").json()
+    for fixture in body["fixtures"]:
+        assert isinstance(fixture["date_confirmed"], bool)
+        # A confirmed date carries the time it was confirmed at.
+        if fixture["date_confirmed"]:
+            assert fixture["kickoff"]

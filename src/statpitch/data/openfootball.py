@@ -199,6 +199,15 @@ class Match:
     #: is null in that case, which is indistinguishable from a played match whose
     #: score failed to parse — hence the explicit flag rather than inferring it.
     played: bool = True
+    #: Published kickoff time, "HH:MM", or None when the line carried none.
+    #:
+    #: Its absence is the signal that a fixture's DATE is provisional. openfootball
+    #: publishes a matchday before the league confirms slots, and every fixture in
+    #: it lands on one nominal date with a single time on the first line. La Liga
+    #: matchday 1 2026/27 is the worked example: ten fixtures stacked on Sunday
+    #: 16 August, played across the 14th to the 17th. Without this, a consumer
+    #: cannot tell a confirmed Saturday 15:00 kickoff from a placeholder.
+    kickoff: str | None = None
 
 
 #: Every score column, absent. A scheduled fixture is not a match with missing
@@ -374,6 +383,10 @@ def parse_football_txt(
             current_date = parsed_date
             continue
 
+        time_match = _TIME_RE.match(line)
+        kickoff = None
+        if time_match is not None:
+            kickoff = time_match.group(1).replace(".", ":")
         body = _TIME_RE.sub("", line).strip()
         if not body:
             continue
@@ -404,6 +417,7 @@ def parse_football_txt(
                         home_country=home_country,
                         away_country=away_country,
                         played=False,
+                        kickoff=kickoff,
                         **_NO_SCORE,  # type: ignore[arg-type]
                     )
                 )
@@ -672,6 +686,10 @@ def build_schedule(
                         "format": stage_format,
                         "neutral_venue": comp.is_neutral_venue(m.stage),
                         "date": m.date,
+                        "kickoff": m.kickoff,
+                        # A fixture with no published kickoff time sits on a
+                        # nominal matchday date rather than a confirmed one.
+                        "date_confirmed": m.kickoff is not None,
                         "home_team": m.home_team,
                         "away_team": m.away_team,
                         "home_country": m.home_country,

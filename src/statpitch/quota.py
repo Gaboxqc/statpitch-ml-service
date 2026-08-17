@@ -218,6 +218,23 @@ class QuotaBudget:
             self._write({"day": self._today(), "used": 0, "cache": {}})
 
 
+def describe() -> dict[str, Any]:
+    """What is configured, by name and never by value.
+
+    A startup line saying which optional sources are available is worth having;
+    one that leaks a key into a log is not, so this reports presence only.
+    """
+    from statpitch.data import api_football
+
+    budget = budget_from_env()
+    return {
+        "api_football_configured": api_football.configured(),
+        "daily_limit": DAILY_LIMIT,
+        "hard_stop": budget.hard_stop,
+        "remaining_today": budget.remaining,
+    }
+
+
 def budget_from_env() -> QuotaBudget:
     """Construct the shared budget, honouring STATPITCH_QUOTA_HARD_STOP."""
     hard_stop = int(os.environ.get("STATPITCH_QUOTA_HARD_STOP", DEFAULT_HARD_STOP))

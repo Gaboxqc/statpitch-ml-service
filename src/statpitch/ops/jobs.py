@@ -263,7 +263,10 @@ def refresh_fixtures(
     refresh them itself — NFR-2 forbids a network call on a request path — so
     something scheduled has to.
 
-    The two steps are deliberately coupled. Rebuilding fixtures without
+    Three steps now: rebuild, correct dates against API-Football, predict. The
+    middle one is a no-op without a key.
+
+    The steps are deliberately coupled. Rebuilding fixtures without
     re-predicting leaves `predictions.parquet` keyed on fixture ids that may no
     longer exist, and the API would answer a newly added fixture from the Elo
     fallback while reporting a fitted-model version for its neighbours. Whatever
@@ -291,8 +294,13 @@ def refresh_fixtures(
     # requirements-serving.txt. `jobs` is on that path via the API's job routes.
     import runpy
 
+    # Order is load-bearing. build_fixtures REBUILDS the list from openfootball,
+    # so correcting dates before it would be overwritten; precompute keys on the
+    # corrected dates, so correcting after it would leave predictions filed under
+    # the provisional ones. The correction belongs strictly between the two.
     for script, label in (
         ("scripts/build_fixtures.py", "fixtures"),
+        ("scripts/collect_fixtures.py", "date correction"),
         ("scripts/precompute_predictions.py", "predictions"),
     ):
         try:

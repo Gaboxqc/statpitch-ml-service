@@ -52,14 +52,20 @@ def _stub_scripts(monkeypatch, *, fail_on: str | None = None):
     return calls
 
 
-def test_it_runs_both_steps_in_order(artifacts, monkeypatch):
-    """Rebuilding fixtures without re-predicting leaves the pair inconsistent."""
+def test_it_runs_every_step_in_order(artifacts, monkeypatch):
+    """The order is load-bearing, and getting it wrong loses work silently.
+
+    build_fixtures REBUILDS the list from openfootball, so correcting dates
+    before it would be overwritten. precompute keys on the corrected dates, so
+    correcting after it would leave predictions filed under provisional ones.
+    The correction belongs strictly between the two.
+    """
     artifacts(10, 10)
     calls = _stub_scripts(monkeypatch)
     result = jobs.refresh_fixtures()
     assert result.ok
     assert [c.split("/")[-1] for c in calls] == [
-        "build_fixtures.py", "precompute_predictions.py",
+        "build_fixtures.py", "collect_fixtures.py", "precompute_predictions.py",
     ]
 
 
@@ -86,6 +92,17 @@ def test_it_stops_before_predicting_when_the_fixture_step_fails(artifacts, monke
     calls = _stub_scripts(monkeypatch, fail_on="build_fixtures")
     jobs.refresh_fixtures()
     assert len(calls) == 1
+
+
+def test_a_failing_date_correction_stops_the_run(artifacts, monkeypatch):
+    """It rewrites the fixture file in place, so a half-done pass must not be
+    handed to precompute as if it were complete."""
+    artifacts(10, 10)
+    calls = _stub_scripts(monkeypatch, fail_on="collect_fixtures")
+    result = jobs.refresh_fixtures()
+    assert not result.ok
+    assert "date correction step exited 1" in result.reason
+    assert len(calls) == 2
 
 
 def test_artifacts_drifting_apart_is_warned_about(artifacts, monkeypatch):

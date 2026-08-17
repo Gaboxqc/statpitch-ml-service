@@ -496,6 +496,7 @@ code and tests rather than left in prose.
 | NFR-3: ~+15pp over naive baseline | Unreachable here. +15pp means 59% accuracy; the closing line itself manages 54.4%. Model gets +8.4pp |
 | §7.1: `openfootball/europa-league` repo | Does not exist; UEL lives as `el.txt` in the champions-league repo |
 | §7.1: `openfootball/france` | Redirects to consolidated `openfootball/europe` |
+| NFR-9: API-Football's 100/day free tier serves the live path | The free **plan** covers seasons 2022-2024 only. Every current-season call is refused, so lineups (FR-33) and fixture-date correction are unreachable at $0 |
 
 Two further findings that changed the model rather than the spec:
 
@@ -504,6 +505,24 @@ rated-vs-rated cup matches, against 54.4 Elo from 19,763 league matches.
 Substituting a league constant into cup fixtures would over-favour the host by
 ~30 Elo, precisely in the lower-division-hosts-a-big-club ties the entrant prior
 exists to handle.
+
+**Fixture dates cannot be confirmed at $0, and the schedule is provisional.**
+openfootball publishes a matchday before the league confirms kickoff slots, so
+88% of the fixture list sits on a nominal date — ten La Liga fixtures stacked on
+one Sunday, played across four days. API-Football was the designed correction
+(Roadmap §7.2), and its free plan answers a current-season request with "Free
+plans do not have access to this season, try from 2022 to 2024." Verified live on
+2026-08-17.
+
+The consequence is served rather than hidden: `date_confirmed` is true only for
+the 12% of fixtures whose kickoff time openfootball published, and `/today` can
+return an empty list on a day that has real matches. The collector now checks the
+season before spending, so a run costs nothing instead of burning five of the
+ninety daily calls weekly to be told the same thing.
+
+This also closes FR-33's lineup collection at $0. That experiment needed to start
+accumulating now because it cannot be backfilled; it cannot start at all on this
+plan.
 
 **Extra time is more open than a pro-rata extrapolation, not less.** The usual
 account of cagey, defensive extra time does not survive the data: 1.101 goals in

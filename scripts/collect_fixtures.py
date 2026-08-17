@@ -4,6 +4,13 @@
 
 Two jobs against one 100/day budget, and they are worth different things.
 
+**Neither works on the free plan.** Verified 2026-08-17: API-Football answers a
+current-season request with "Free plans do not have access to this season, try
+from 2022 to 2024." Both jobs below concern the *current* season, so both are
+blocked at $0 (NFR-1). The season guard means a run now costs nothing and says
+so, rather than burning five calls to be told the same thing weekly. Everything
+below describes what the collector does when a plan can see the season.
+
 **Date correction** is the immediate one. openfootball publishes a matchday
 before the league confirms kickoff slots, so 88% of the fixture list sits on a
 nominal date — ten La Liga fixtures stacked on one Sunday, played across four
@@ -108,8 +115,8 @@ def correct_dates(fixtures: pd.DataFrame, horizon_days: int) -> tuple[pd.DataFra
     horizon = today + pd.Timedelta(days=horizon_days)
 
     in_window = fixtures[(fixtures["date"] >= today) & (fixtures["date"] <= horizon)]
-    stats = {"in_window": int(len(in_window)), "corrected": 0, "moved": 0,
-             "unmatched": 0, "calls_skipped": 0}
+    stats: dict = {"in_window": int(len(in_window)), "corrected": 0, "moved": 0,
+                   "unmatched": 0, "calls_skipped": 0, "seasons": set()}
     if in_window.empty:
         return fixtures, stats
 
@@ -120,6 +127,7 @@ def correct_dates(fixtures: pd.DataFrame, horizon_days: int) -> tuple[pd.DataFra
         if competition_id not in af.LEAGUE_IDS:
             continue
         season = int(str(group["season"].iloc[0]).split("-")[0])
+        stats["seasons"].add(season)
         payload = client.fixtures_in_range(
             str(competition_id), today.date(), horizon.date(), season
         )
@@ -176,10 +184,23 @@ def main() -> int:
         stats["unmatched"], before, after,
     )
     if stats["calls_skipped"]:
-        log.warning(
-            "%d competition(s) skipped — budget exhausted or the call failed. Those "
-            "fixtures keep their provisional dates.", stats["calls_skipped"],
-        )
+        seasons = sorted(stats["seasons"])
+        out_of_plan = [s for s in seasons if not af.season_available(s)]
+        if out_of_plan:
+            low, high = af.FREE_PLAN_SEASONS
+            log.warning(
+                "%d competition(s) skipped: season(s) %s are outside the free "
+                "plan's %d-%d window, so no current-season fixture can be "
+                "confirmed at $0. Dates stay provisional and are flagged "
+                "date_confirmed=false. See MODEL_CARD §8.",
+                stats["calls_skipped"], out_of_plan, low, high,
+            )
+        else:
+            log.warning(
+                "%d competition(s) skipped — budget exhausted or the call failed. "
+                "Those fixtures keep their provisional dates.",
+                stats["calls_skipped"],
+            )
 
     fixtures.to_parquet(path, index=False)
     log.info("wrote %s", path)

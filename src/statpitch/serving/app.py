@@ -745,6 +745,10 @@ def _fixture_rows(frame, *, with_predictions: bool) -> list[dict]:
             "stage": record.get("stage"),
             "format": record.get("format"),
             "date": None if date is None or pd.isna(date) else str(date.date()),
+            "kickoff": record.get("kickoff") or None,
+            # False when the schedule published no kickoff time, which is how a
+            # provisional matchday date announces itself. See §7 of docs/API.md.
+            "date_confirmed": bool(record.get("date_confirmed", False)),
             "home_team": record.get("home_team"),
             "away_team": record.get("away_team"),
             "neutral_venue": bool(record.get("neutral_venue", False)),
@@ -803,7 +807,11 @@ def _fixture_rows(frame, *, with_predictions: bool) -> list[dict]:
 
 @app.get("/fixtures/upcoming")
 def fixtures_upcoming(
-    from_date: str | None = Query(None, alias="from", description="ISO date, inclusive"),
+    from_date: str | None = Query(
+        None, alias="from",
+        description="ISO date, inclusive. Defaults to today — past fixtures are "
+                    "excluded unless you ask for them.",
+    ),
     to_date: str | None = Query(None, alias="to", description="ISO date, inclusive"),
     competition_id: str | None = None,
     limit: int = Query(200, ge=1, le=1000),
@@ -836,8 +844,15 @@ def fixtures_upcoming(
     if competition_id is not None:
         _competition_or_404(competition_id)
         frame = frame[frame["competition_id"] == competition_id]
-    if from_date is not None:
-        frame = frame[frame["date"] >= pd.Timestamp(from_date)]
+
+    # Default to today rather than to the start of the artifact. The list is
+    # filtered to the future when it is *built*, so without this the window of
+    # already-played fixtures grows every day the artifact ages, and a consumer
+    # syncing "upcoming" keeps re-ingesting last week.
+    lower = pd.Timestamp(from_date) if from_date else pd.Timestamp(
+        datetime.now(UTC).date()
+    )
+    frame = frame[frame["date"] >= lower]
     if to_date is not None:
         frame = frame[frame["date"] <= pd.Timestamp(to_date)]
 
@@ -849,6 +864,7 @@ def fixtures_upcoming(
         "total": total,
         "offset": offset,
         "limit": limit,
+        "from": str(lower.date()),
         "generated_at_source": artifacts.fixtures_generated_at,
         **provenance(),
     }

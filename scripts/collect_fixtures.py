@@ -143,7 +143,10 @@ def correct_dates(fixtures: pd.DataFrame, horizon_days: int) -> tuple[pd.DataFra
     today = pd.Timestamp(datetime.now(UTC).date())
     horizon = today + pd.Timedelta(days=horizon_days)
 
-    in_window = fixtures[(fixtures["date"] >= today) & (fixtures["date"] <= horizon)]
+    # Look back as well as forward: a fixture whose provisional date has just
+    # passed may still be unplayed, and moving it forward is the whole job.
+    floor = today - pd.Timedelta(days=MAX_DATE_SHIFT_DAYS)
+    in_window = fixtures[(fixtures["date"] >= floor) & (fixtures["date"] <= horizon)]
     stats: dict = {"in_window": int(len(in_window)), "corrected": 0, "moved": 0,
                    "unmatched": 0, "calls_skipped": 0, "seasons": set(),
                    "from_football_data_org": 0, "from_api_football": 0}
@@ -159,7 +162,7 @@ def correct_dates(fixtures: pd.DataFrame, horizon_days: int) -> tuple[pd.DataFra
         season = int(str(group["season"].iloc[0]).split("-")[0])
         stats["seasons"].add(season)
         candidates = _candidates(
-            str(competition_id), season, today.date(), horizon.date(), stats
+            str(competition_id), season, floor.date(), horizon.date(), stats
         )
         if not candidates:
             stats["calls_skipped"] += 1

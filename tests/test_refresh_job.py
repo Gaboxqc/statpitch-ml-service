@@ -58,14 +58,16 @@ def test_it_runs_every_step_in_order(artifacts, monkeypatch):
     build_fixtures REBUILDS the list from openfootball, so correcting dates
     before it would be overwritten. precompute keys on the corrected dates, so
     correcting after it would leave predictions filed under provisional ones.
-    The correction belongs strictly between the two.
+    The corrections belong strictly between the two — including the live-odds
+    capture, whose bookmaker-confirmed kickoffs a later rebuild would revert.
     """
     artifacts(10, 10)
     calls = _stub_scripts(monkeypatch)
     result = jobs.refresh_fixtures()
     assert result.ok
     assert [c.split("/")[-1] for c in calls] == [
-        "build_fixtures.py", "collect_fixtures.py", "precompute_predictions.py",
+        "build_fixtures.py", "collect_fixtures.py", "collect_live_odds.py",
+        "precompute_predictions.py",
     ]
 
 
@@ -154,6 +156,7 @@ def test_each_script_sees_only_its_own_argv(artifacts, monkeypatch):
     assert seen == [
         ["scripts/build_fixtures.py"],
         ["scripts/collect_fixtures.py"],
+        ["scripts/collect_live_odds.py"],
         ["scripts/precompute_predictions.py"],
     ]
     # And the job's own argv is restored, so a caller after it is unaffected.

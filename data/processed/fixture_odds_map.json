@@ -1,0 +1,112 @@
+{
+  "matched": {
+    "ENG.PL": {
+      "Arsenal": "Arsenal FC",
+      "Aston Villa": "Aston Villa FC",
+      "Bournemouth": "AFC Bournemouth",
+      "Brentford": "Brentford FC",
+      "Brighton": "Brighton & Hove Albion FC",
+      "Chelsea": "Chelsea FC",
+      "Coventry": "Coventry City FC",
+      "Crystal Palace": "Crystal Palace FC",
+      "Everton": "Everton FC",
+      "Fulham": "Fulham FC",
+      "Hull": "Hull City AFC",
+      "Ipswich": "Ipswich Town FC",
+      "Leeds": "Leeds United FC",
+      "Liverpool": "Liverpool FC",
+      "Man City": "Manchester City FC",
+      "Man United": "Manchester United FC",
+      "Newcastle": "Newcastle United FC",
+      "Nott'm Forest": "Nottingham Forest FC",
+      "Sunderland": "Sunderland AFC",
+      "Tottenham": "Tottenham Hotspur FC"
+    },
+    "ESP.LALIGA": {
+      "Ath Bilbao": "Athletic Club",
+      "Ath Madrid": "Club Atlético de Madrid",
+      "Barcelona": "FC Barcelona",
+      "Betis": "Real Betis Balompié",
+      "Celta": "RC Celta de Vigo",
+      "Elche": "Elche CF",
+      "Espanol": "RCD Espanyol de Barcelona",
+      "Getafe": "Getafe CF",
+      "La Coruna": "RC Deportivo La Coruña",
+      "Levante": "Levante UD",
+      "Malaga": "Málaga CF",
+      "Osasuna": "CA Osasuna",
+      "Real Madrid": "Real Madrid CF",
+      "Santander": "Real Racing Club de Santander",
+      "Sevilla": "Sevilla FC",
+      "Sociedad": "Real Sociedad de Fútbol",
+      "Valencia": "Valencia CF",
+      "Villarreal": "Villarreal CF"
+    },
+    "FRA.LIGUE1": {
+      "Angers": "Angers SCO",
+      "Auxerre": "AJ Auxerre",
+      "Brest": "Stade Brestois 29",
+      "Le Havre": "Le Havre AC",
+      "Le Mans": "Le Mans FC",
+      "Lens": "Racing Club de Lens",
+      "Lille": "Lille OSC",
+      "Lorient": "FC Lorient",
+      "Lyon": "Olympique Lyonnais",
+      "Marseille": "Olympique de Marseille",
+      "Monaco": "AS Monaco FC",
+      "Nice": "OGC Nice",
+      "Paris FC": "Paris FC",
+      "Paris SG": "Paris Saint-Germain FC",
+      "Rennes": "Stade Rennais FC 1901",
+      "Strasbourg": "RC Strasbourg Alsace",
+      "Toulouse": "Toulouse FC",
+      "Troyes": "ES Troyes AC"
+    },
+    "ITA.SERIEA": {
+      "Atalanta": "Atalanta BC",
+      "Bologna": "Bologna FC 1909",
+      "Cagliari": "Cagliari Calcio",
+      "Como": "Como 1907",
+      "Fiorentina": "ACF Fiorentina",
+      "Frosinone": "Frosinone Calcio",
+      "Genoa": "Genoa CFC",
+      "Inter": "FC Internazionale Milano",
+      "Juventus": "Juventus FC",
+      "Lazio": "SS Lazio",
+      "Lecce": "US Lecce",
+      "Milan": "AC Milan",
+      "Monza": "AC Monza",
+      "Napoli": "SSC Napoli",
+      "Parma": "Parma Calcio 1913",
+      "Roma": "AS Roma",
+      "Sassuolo": "US Sassuolo Calcio",
+      "Torino": "Torino FC",
+      "Udinese": "Udinese Calcio",
+      "Venezia": "Venezia FC"
+    }
+  },
+  "curated": {
+    "ENG.PL": {
+      "Man City": "Manchester City FC",
+      "Man United": "Manchester United FC"
+    },
+    "ESP.LALIGA": {
+      "Ath Bilbao": "Athletic Club",
+      "Ath Madrid": "Club Atlético de Madrid",
+      "Barcelona": "FC Barcelona",
+      "Espanol": "RCD Espanyol de Barcelona"
+    },
+    "FRA.LIGUE1": {
+      "Brest": "Stade Brestois 29",
+      "Lyon": "Olympique Lyonnais",
+      "Paris FC": "Paris FC",
+      "Paris SG": "Paris Saint-Germain FC",
+      "Rennes": "Stade Rennais FC 1901"
+    },
+    "ITA.SERIEA": {
+      "Inter": "FC Internazionale Milano"
+    }
+  },
+  "unmatched": {},
+  "generated_at": "2026-08-23T19:43:18+00:00"
+}

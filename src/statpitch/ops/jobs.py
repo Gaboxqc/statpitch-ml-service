@@ -263,8 +263,8 @@ def refresh_fixtures(
     refresh them itself — NFR-2 forbids a network call on a request path — so
     something scheduled has to.
 
-    Three steps now: rebuild, correct dates against API-Football, predict. The
-    middle one is a no-op without a key.
+    Four steps now: rebuild, correct dates against API-Football, capture live
+    prices, predict. The second is a no-op without a key; the third needs none.
 
     The steps are deliberately coupled. Rebuilding fixtures without
     re-predicting leaves `predictions.parquet` keyed on fixture ids that may no
@@ -298,10 +298,22 @@ def refresh_fixtures(
     # Order is load-bearing. build_fixtures REBUILDS the list from openfootball,
     # so correcting dates before it would be overwritten; precompute keys on the
     # corrected dates, so correcting after it would leave predictions filed under
-    # the provisional ones. The correction belongs strictly between the two.
+    # the provisional ones. The corrections belong strictly between the two.
+    #
+    # collect_live_odds sits with them for exactly that reason, and it was put
+    # here after watching a refresh discard its work: it derives a
+    # bookmaker-confirmed kickoff for every priced fixture, and a rebuild started
+    # two minutes later reverted all 38 of them. Its *prices* survived, because
+    # `openfootball.fixture_id` deliberately excludes the date, so the odds
+    # remain keyed to the right fixture across a rebuild — but the date
+    # correction is derived state and has to be re-derived inside the job.
+    #
+    # It runs after collect_fixtures so its keyless, current-season kickoffs win
+    # over whatever the credentialled collector could or could not confirm.
     for script, label in (
         ("scripts/build_fixtures.py", "fixtures"),
         ("scripts/collect_fixtures.py", "date correction"),
+        ("scripts/collect_live_odds.py", "live odds"),
         ("scripts/precompute_predictions.py", "predictions"),
     ):
         try:

@@ -73,6 +73,17 @@ def fixtures_file() -> Path:
     return processed_dir() / "fixtures.parquet"
 
 
+def live_odds_file() -> Path:
+    """Append-only log of captured pre-match prices (Plan §4 Phase A).
+
+    One row per capture x fixture x market x selection. Append-only because a
+    CLV measurement is the difference between two captures of the same
+    selection: overwriting the earlier one does not refresh the data, it deletes
+    the half that cannot be re-fetched.
+    """
+    return processed_dir() / "live_odds.parquet"
+
+
 def ensure_dirs() -> None:
     for d in (raw_dir(), cache_dir(), processed_dir(), models_dir()):
         d.mkdir(parents=True, exist_ok=True)

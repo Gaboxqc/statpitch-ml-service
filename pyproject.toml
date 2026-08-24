@@ -32,3 +32,4 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 # Fixture CSVs reproduce real football-data.co.uk headers, which run to 120
 # columns. Wrapping them would stop them being faithful copies.
 "tests/test_football_data.py" = ["E501"]
+"tests/test_football_data_live.py" = ["E501"]

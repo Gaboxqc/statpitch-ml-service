@@ -27,6 +27,7 @@ src/statpitch/
   data/
     http.py            Polite, cached, rate-limited HTTP (NFR-5)
     football_data.py   football-data.co.uk results + full odds set (Design §3.1)
+    football_data_live.py  Pre-match prices for upcoming fixtures, same publisher
     club_elo.py        As-of-date strength ratings, reported name reconciliation
     openfootball.py    Domestic cups + UCL/UEL, with ET and shootout columns kept apart
     understat.py       Shot-based xG; club map derived from fixture identity
@@ -57,6 +58,8 @@ data/
   competitions.json    12 competitions, incl. the odds_coverage gate
   decision_config.json Placeholder parameters — nothing here has seen data yet
   processed/           matches_clean, closing_odds, features, elo_ratings_all, …
+  processed/live_odds.parquet  Append-only capture log of pre-match prices
+docs/05_Gaps_and_Plan.md  The three blockers on bets, and the plan to clear them
 docs/MODEL_CARD.md     What was measured, what failed, and what it means
 docs/DEPLOYMENT.md     Scheduled jobs, Render blueprint, and the free-tier limits
 render.yaml            Free-plan blueprint; read-only, serving deps only
@@ -84,7 +87,7 @@ Ingest the archive (downloads are cached; re-runs do not re-hit the origin):
 
 ## Current state
 
-Phases 0–9 complete. **793 tests**, all offline.
+Phases 0–9 complete, plus Plan Phase A (live odds). **1,052 tests**, all offline.
 
 | Layer | Item | Status |
 |---|---|---|
@@ -100,6 +103,7 @@ Phases 0–9 complete. **793 tests**, all offline.
 | 7 | Format-aware predictor + FastAPI serving layer | done |
 | 8 | Model card | done |
 | 9 | Scheduled jobs, CI, Render blueprint | done |
+| A | Live pre-match prices, keyed to the fixture list ([plan](docs/05_Gaps_and_Plan.md)) | done |
 
 Ingested: **64,795 matches** — 59,079 league (1993/94–), 5,716 cup and
 continental — **417,631 tidy odds rows**, **1,274,186 Club Elo rating intervals**

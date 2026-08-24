@@ -201,8 +201,18 @@ ODDS_MAPS: dict[OddsEra, dict[str, dict]] = {
 #: Design §6.4's `c_market` sub-score increases in the number of quoting books;
 #: the BetBrain era published that count directly (`Bb1X2`), the modern era does
 #: not, so it is reconstructed by counting non-empty book columns.
+#: The publisher's book panel turns over between seasons, and a prefix missing
+#: from this tuple is counted as "nobody quoted", not as "a book we don't track".
+#: Verified against the live headers: 2024/25 quotes B365/BW/BF/PS/WH/1XB/BFE,
+#: while 2025/26 dropped WH and 1XB and added BFD/BMGM/BV/CL, and the fixture
+#: feed adds PP/SKB. Before those six were listed here, 2025/26 counted 5 of its
+#: 9 books and the fixture feed 3 of its 7 — an undercount that feeds straight
+#: into Design §6.4's `c_market` sub-score, which rises with the number of
+#: quoting books and would therefore have penalised the most recent seasons for
+#: being recent.
 _BOOK_PREFIXES_1X2 = (
     "B365", "BW", "BF", "PS", "WH", "1XB", "BFE", "VC", "IW", "LB", "SB", "SJ", "BS", "GB",
+    "BFD", "BMGM", "BV", "CL", "PP", "SKB",
 )
 
 #: Match-level columns carried through to the canonical schema.

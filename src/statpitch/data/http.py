@@ -91,14 +91,56 @@ class PoliteSession:
         cache: bool = True,
         force: bool = False,
         suffix: str = ".bin",
+        max_age: float | None = None,
     ) -> bytes:
-        """GET `url`, returning the body. Served from disk cache unless `force`."""
+        """GET `url`, returning the body. Served from disk cache unless `force`.
+
+        `max_age` is how many seconds old a cached copy may be before it is
+        re-fetched. The default of None keeps a cached body forever, which is
+        right for the results archive — a 2015/16 season file does not change —
+        and wrong for anything describing the future.
+
+        It was wrong for fixture schedules, silently. `build_fixtures` read an
+        eleven-day-old openfootball snapshot on every local run, so the artifact
+        it produced listed matches that had already been played while stamping
+        `generated_at` with the current time. CI, which has no cache, produced a
+        different and correct answer from identical code. Staleness that only
+        appears on one machine is the expensive kind.
+
+        When a re-fetch fails and a stale copy exists, the stale copy is served
+        with a warning rather than raising. Being unable to reach the origin is
+        a reason to fall back loudly, not a reason to have no data — but a 404 is
+        excluded, because that means the file is genuinely gone upstream and
+        serving a cached copy would resurrect it indefinitely.
+        """
         path = self._cache_path(url, suffix)
-        if cache and not force and path.exists():
+        cached = cache and not force and path.exists()
+
+        if cached and max_age is not None:
+            age = time.time() - path.stat().st_mtime
+            if age > max_age:
+                log.debug(
+                    "http: cached copy of %s is %.1fh old, past the %.1fh limit",
+                    url, age / 3600, max_age / 3600,
+                )
+                cached = False
+
+        if cached:
             log.debug("http: cache hit %s", url)
             return path.read_bytes()
 
-        body = self._get_with_retries(url)
+        try:
+            body = self._get_with_retries(url)
+        except FetchError as exc:
+            if path.exists() and not force and "404" not in str(exc):
+                age = (time.time() - path.stat().st_mtime) / 3600
+                log.warning(
+                    "http: %s unreachable (%s) — serving a cached copy %.1fh old. "
+                    "Anything derived from it is that stale.",
+                    url, exc, age,
+                )
+                return path.read_bytes()
+            raise
 
         if cache:
             path.parent.mkdir(parents=True, exist_ok=True)

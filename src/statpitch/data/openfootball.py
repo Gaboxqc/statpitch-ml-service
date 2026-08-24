@@ -109,6 +109,17 @@ LEAGUE_SCHEDULE_SOURCES: dict[str, tuple[str, str]] = {
 #: one file holds played and scheduled matches together.
 SCHEDULE_SOURCES: dict[str, tuple[str, str]] = {**LEAGUE_SCHEDULE_SOURCES, **SOURCES}
 
+#: How stale a cached *schedule* file may be before it is re-fetched.
+#:
+#: Results files are immutable once a season ends, so they keep the default of
+#: no expiry. A schedule is the opposite: it is a claim about the future, and it
+#: changes as rounds are drawn, kick-offs are confirmed and matches are played.
+#:
+#: Six hours rather than zero so that iterating locally does not re-download
+#: twelve competitions on every run, and so the scheduled job — which runs far
+#: less often than that — always sees fresh data.
+SCHEDULE_MAX_AGE_SECONDS = 6 * 3600
+
 STAGE_MARKER = "▪"
 
 #: Canonical stage names, matching the keys in competitions.json `stage_formats`.
@@ -454,15 +465,20 @@ def parse_football_txt(
 # --- fetching and assembly ----------------------------------------------------
 
 def fetch_file(
-    repo: str, path: str, *, session: PoliteSession | None = None, force: bool = False
+    repo: str,
+    path: str,
+    *,
+    session: PoliteSession | None = None,
+    force: bool = False,
+    max_age: float | None = None,
 ) -> str | None:
     """Fetch one file, returning None when it does not exist upstream."""
     session = session or PoliteSession()
     url = f"{RAW_BASE}/{repo}/master/{path}"
     try:
-        return session.get_bytes(url, suffix=".txt", force=force).decode(
-            "utf-8", errors="replace"
-        )
+        return session.get_bytes(
+            url, suffix=".txt", force=force, max_age=max_age
+        ).decode("utf-8", errors="replace")
     except FetchError as exc:
         if "404" in str(exc):
             return None
@@ -635,6 +651,7 @@ def build_schedule(
     *,
     session: PoliteSession | None = None,
     include_qualifiers: bool = True,
+    max_age: float | None = SCHEDULE_MAX_AGE_SECONDS,
 ) -> pd.DataFrame:
     """Scheduled, not-yet-played fixtures for one competition.
 
@@ -660,7 +677,10 @@ def build_schedule(
         directory = season_dir(start_year)
         season = season_label(directory)
         for repo, template, is_qualifier in targets:
-            text = fetch_file(repo, template.format(season=directory), session=session)
+            text = fetch_file(
+                repo, template.format(season=directory),
+                session=session, max_age=max_age,
+            )
             if text is None:
                 continue
             for m in parse_football_txt(text, start_year, include_unplayed=True):
@@ -725,13 +745,16 @@ def build_all_schedules(
     seasons: list[int],
     *,
     session: PoliteSession | None = None,
+    max_age: float | None = SCHEDULE_MAX_AGE_SECONDS,
 ) -> pd.DataFrame:
     """Scheduled fixtures across every mapped competition."""
     session = session or PoliteSession()
     frames = []
     for competition_id in SCHEDULE_SOURCES:
         try:
-            frame = build_schedule(competition_id, seasons, session=session)
+            frame = build_schedule(
+                competition_id, seasons, session=session, max_age=max_age
+            )
         except Exception:
             log.exception("openfootball: failed to build schedule for %s", competition_id)
             continue

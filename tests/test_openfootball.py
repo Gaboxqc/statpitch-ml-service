@@ -243,3 +243,44 @@ def test_no_league_is_mapped_to_the_cup_ingestion():
     """Leagues come from football-data.co.uk, which also carries their odds."""
     for competition_id in of.SOURCES:
         assert taxonomy.get(competition_id).competition_type != "league"
+
+
+# --- schedule freshness -------------------------------------------------------
+
+def test_schedules_are_fetched_with_an_expiry(monkeypatch):
+    """A schedule is a claim about the future and must not be served stale.
+
+    `build_fixtures` read an eleven-day-old cached copy on every local run,
+    producing an artifact that listed already-played matches while reporting
+    `generated_at` as now. The results archive keeps its unbounded cache; only
+    the schedule path carries an expiry.
+    """
+    seen: list[float | None] = []
+
+    def fake_fetch(repo, path, *, session=None, force=False, max_age=None):
+        seen.append(max_age)
+        return None
+
+    monkeypatch.setattr(of, "fetch_file", fake_fetch)
+    of.build_schedule("ENG.PL", [2026])
+
+    assert seen and all(age == of.SCHEDULE_MAX_AGE_SECONDS for age in seen)
+
+
+def test_the_schedule_expiry_is_shorter_than_a_day():
+    """The scheduled refresh runs daily; a longer expiry would never fire."""
+    assert 0 < of.SCHEDULE_MAX_AGE_SECONDS < 24 * 3600
+
+
+def test_results_ingestion_keeps_its_unbounded_cache(monkeypatch):
+    """Season files are immutable once played — re-downloading them buys nothing."""
+    seen: list[float | None] = []
+
+    def fake_fetch(repo, path, *, session=None, force=False, max_age=None):
+        seen.append(max_age)
+        return None
+
+    monkeypatch.setattr(of, "fetch_file", fake_fetch)
+    of.build_competition("ENG.FA_CUP", [2023])
+
+    assert seen and all(age is None for age in seen)

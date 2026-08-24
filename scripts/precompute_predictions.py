@@ -40,6 +40,7 @@ import pandas as pd
 from statpitch import paths
 from statpitch.data import club_elo as ce
 from statpitch.features import build as fb
+from statpitch.models import entrant_prior as ep
 from statpitch.models import explain, registry, release
 from statpitch.models.goals import GoalModel
 
@@ -152,6 +153,31 @@ def main() -> int:
     log.info("resolved %d/%d club ratings for scheduled fixtures",
              len(elo_lookup), len(set(pairs)))
 
+    # FR-9. An unrated club must not reach the model as a null — see
+    # `entrant_prior.fill_missing_ratings` for what that produced when it did.
+    pooled_elo = ep.pooled_elo_from_file(paths.data_root() / "entrant_prior.json")
+    if pooled_elo is None:
+        log.error(
+            "no entrant_prior.json — unrated clubs will reach the model as nulls, "
+            "which produces confident nonsense rather than an abstention"
+        )
+    slots = [
+        (str(club), date)
+        for date, home, away in zip(
+            upcoming["date"], upcoming["home_team"], upcoming["away_team"], strict=True
+        )
+        for club in (home, away)
+    ]
+    elo_lookup, rating_source, filled = ep.fill_missing_ratings(
+        elo_lookup, slots, pooled_elo
+    )
+    if filled:
+        log.warning(
+            "%d club slot(s) had no Club Elo rating and were given the pooled "
+            "entrant level %.1f (FR-9). Those fixtures report a prior rather "
+            "than a measured rating.", filled, pooled_elo,
+        )
+
     # match_xg is the Understat frame already joined onto match_id; understat_xg
     # is keyed on Understat's own ids and cannot be looked up by match.
     xg_path = processed / "match_xg.parquet"
@@ -198,6 +224,16 @@ def main() -> int:
             "prob_away": probabilities[:, 2],
             "home_elo": rows["home_elo"],
             "away_elo": rows["away_elo"],
+            # Which tier of evidence supplied each rating, so a consumer can tell
+            # a measured club from one carrying the pooled entrant prior.
+            "home_rating_source": [
+                rating_source.get((str(c), d), "unknown")
+                for c, d in zip(rows["home_team"], rows["date"], strict=True)
+            ],
+            "away_rating_source": [
+                rating_source.get((str(c), d), "unknown")
+                for c, d in zip(rows["away_team"], rows["date"], strict=True)
+            ],
             "model_version": version,
             "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         }
@@ -205,10 +241,16 @@ def main() -> int:
 
     unrated = int(out["home_elo"].isna().sum() + out["away_elo"].isna().sum())
     if unrated:
-        log.warning(
-            "%d club slot(s) had no rating; those rows predict from form alone "
-            "and their elo features are null", unrated,
+        log.error(
+            "%d club slot(s) STILL have no rating after the entrant-prior fill; "
+            "those rows predict from form alone and will invent a number", unrated,
         )
+    priors = int(
+        (out["home_rating_source"] == "pooled_prior").sum()
+        + (out["away_rating_source"] == "pooled_prior").sum()
+    )
+    if priors:
+        log.info("%d club slot(s) rated from the pooled entrant prior", priors)
 
     destination = processed / "predictions.parquet"
     out.to_parquet(destination, index=False)

@@ -142,6 +142,64 @@ class EntrantPrior:
         return frame.sort_values(["competition_id", "elo"]).reset_index(drop=True)
 
 
+def pooled_elo_from_file(path) -> float | None:
+    """Read just the pooled entrant level from a fitted prior on disk.
+
+    A deliberately narrow reader. Callers that need the full prior load it
+    properly; this exists for the offline paths that only need the fallback and
+    should not fail because a bucket schema moved.
+    """
+    import json
+    from pathlib import Path
+
+    path = Path(path)
+    if not path.exists():
+        return None
+    try:
+        value = json.loads(path.read_text(encoding="utf-8")).get("pooled_elo")
+    except (json.JSONDecodeError, OSError):
+        return None
+    return float(value) if value is not None else None
+
+
+def fill_missing_ratings(
+    lookup: dict,
+    pairs,
+    pooled_elo: float | None,
+) -> tuple[dict, dict, int]:
+    """Give every club slot a rating, and record which tier of evidence supplied it.
+
+    FR-9, applied where it was missing. Club Elo rates only the top two tiers, so
+    a cup entrant from below them has no rating. Left absent, the fitted model
+    does not abstain — it predicts from the remaining features and invents a
+    number. The first cup fixture ever to reach the offline prediction path had a
+    fifth-tier amateur side at 52.9% to beat Borussia Dortmund: no error, no
+    missing field, just a confident wrong answer.
+
+    The POOLED level is used rather than a per-round bucket because the bucket is
+    keyed on the round a club ENTERED, which is not the round it is playing — a
+    round-1 entrant that wins three ties is still a round-1 calibre club, and
+    reading the bucket off the match stage would promote it for winning. Serving
+    makes the same choice when the entry round is unknown, so the two paths agree
+    by construction rather than by coincidence.
+
+    Returns (lookup, rating_source, filled). The lookup is mutated and returned
+    for convenience; `pooled_elo` of None leaves it untouched, because inventing
+    a fallback for the fallback would defeat the point.
+    """
+    source = {key: "club_elo" for key in lookup}
+    if pooled_elo is None:
+        return lookup, source, 0
+
+    filled = 0
+    for key in pairs:
+        if key not in lookup:
+            lookup[key] = float(pooled_elo)
+            source[key] = "pooled_prior"
+            filled += 1
+    return lookup, source, filled
+
+
 # --- entry rounds -------------------------------------------------------------
 
 def entry_stages(matches: pd.DataFrame) -> pd.DataFrame:

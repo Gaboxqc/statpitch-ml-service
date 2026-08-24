@@ -209,3 +209,86 @@ def test_malformed_format_history_is_rejected(tmp_path):
 def test_empty_taxonomy_is_rejected(tmp_path):
     with pytest.raises(TaxonomyError, match="no competitions"):
         load_registry(_write(tmp_path, []))
+
+
+# --- the coverage split (Plan §4 Phase D) -------------------------------------
+
+def test_odds_coverage_is_the_conjunction_of_the_two_flags():
+    """A bet needs a price AND something to measure that price against.
+
+    They are recorded apart because they will diverge: a keyed odds feed would
+    give the cups live prices while their closing-odds history stays empty
+    forever, and a gate reading one flag could not tell that apart from full
+    coverage.
+    """
+    for competition in taxonomy.registry():
+        assert competition.odds_coverage == (
+            competition.live_odds_coverage and competition.benchmark_coverage
+        ), competition.competition_id
+
+
+def test_a_contradictory_coverage_triple_is_rejected(tmp_path):
+    import json
+
+    from statpitch.taxonomy import TaxonomyError, load_registry
+
+    payload = {
+        "schema_version": "2.0",
+        "competitions": [
+            {
+                "competition_id": "X.Y", "name": "X", "country": "X",
+                "competition_type": "league", "format": "round_robin",
+                "tier": 1, "admits_lower_tiers": False, "extra_time": False,
+                # Claims recommendable while admitting there is nothing to
+                # validate against.
+                "odds_coverage": True,
+                "live_odds_coverage": True,
+                "benchmark_coverage": False,
+            }
+        ],
+    }
+    path = tmp_path / "competitions.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(TaxonomyError, match="contradicts"):
+        load_registry(path)
+
+
+def test_the_new_flags_inherit_odds_coverage_when_absent(tmp_path):
+    """An older taxonomy file must keep loading unchanged.
+
+    Inheriting cannot switch a gate on by omission: the inherited value is
+    whatever `odds_coverage` — which IS required to be explicit — already
+    committed to.
+    """
+    import json
+
+    from statpitch.taxonomy import load_registry
+
+    payload = {
+        "schema_version": "2.0",
+        "competitions": [
+            {
+                "competition_id": "X.Y", "name": "X", "country": "X",
+                "competition_type": "league", "format": "round_robin",
+                "tier": 1, "admits_lower_tiers": False, "extra_time": False,
+                "odds_coverage": False,
+            }
+        ],
+    }
+    path = tmp_path / "competitions.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    competition = load_registry(path)["X.Y"]
+    assert competition.live_odds_coverage is False
+    assert competition.benchmark_coverage is False
+
+
+def test_no_competition_has_a_benchmark_without_a_price():
+    """The reverse would mean history exists for something unpriceable today.
+
+    Possible in principle — a feed can be withdrawn — and worth noticing if it
+    ever happens, because the Decision Layer would keep validating against a
+    market it can no longer reach.
+    """
+    for competition in taxonomy.registry():
+        if competition.benchmark_coverage:
+            assert competition.live_odds_coverage, competition.competition_id

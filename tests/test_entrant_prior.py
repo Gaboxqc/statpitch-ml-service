@@ -290,3 +290,60 @@ def test_ratings_are_looked_up_strictly_before_the_match():
     # Two clubs in one match is far below the pooling threshold, so it lands on
     # the pooled estimate rather than getting its own bucket.
     assert prior.rating_for("CUP", "round_1") == prior.pooled_elo
+
+
+# --- filling unrated club slots (Plan §4 Phase D, FR-9) -----------------------
+
+def test_an_unrated_club_gets_the_pooled_level_not_a_null():
+    """Left absent, the fitted model does not abstain — it invents a number.
+
+    The first cup fixture ever to reach the offline prediction path had a
+    fifth-tier amateur side at 52.9% to beat Borussia Dortmund. No error, no
+    missing field, just a confident wrong answer.
+    """
+    lookup = {("Borussia Dortmund", "2026-09-01"): 1834.8}
+    slots = [("Borussia Dortmund", "2026-09-01"), ("Amateur FC", "2026-09-01")]
+    filled_lookup, source, filled = ep.fill_missing_ratings(lookup, slots, 1547.55)
+
+    assert filled == 1
+    assert filled_lookup[("Amateur FC", "2026-09-01")] == pytest.approx(1547.55)
+    assert source[("Amateur FC", "2026-09-01")] == "pooled_prior"
+    assert source[("Borussia Dortmund", "2026-09-01")] == "club_elo"
+
+
+def test_a_measured_rating_is_never_overwritten():
+    lookup = {("Bayern", "2026-09-02"): 2000.9}
+    _, source, filled = ep.fill_missing_ratings(
+        lookup, [("Bayern", "2026-09-02")], 1547.55
+    )
+    assert filled == 0
+    assert lookup[("Bayern", "2026-09-02")] == pytest.approx(2000.9)
+    assert source[("Bayern", "2026-09-02")] == "club_elo"
+
+
+def test_without_a_pooled_level_nothing_is_invented():
+    """Inventing a fallback for the fallback would defeat the point."""
+    lookup = {}
+    filled_lookup, source, filled = ep.fill_missing_ratings(
+        lookup, [("Amateur FC", "2026-09-01")], None
+    )
+    assert filled == 0
+    assert filled_lookup == {}
+    assert source == {}
+
+
+def test_the_pooled_reader_tolerates_a_missing_file(tmp_path):
+    assert ep.pooled_elo_from_file(tmp_path / "nope.json") is None
+
+
+def test_the_pooled_reader_tolerates_malformed_json(tmp_path):
+    path = tmp_path / "prior.json"
+    path.write_text("{not json", encoding="utf-8")
+    assert ep.pooled_elo_from_file(path) is None
+
+
+def test_the_pooled_reader_reads_the_committed_prior():
+    from statpitch import paths
+
+    value = ep.pooled_elo_from_file(paths.data_root() / "entrant_prior.json")
+    assert value is not None and 1000 < value < 2000

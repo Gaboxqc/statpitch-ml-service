@@ -69,6 +69,17 @@ class Competition:
     format_history: tuple[dict[str, Any], ...] = ()
     teams: int | None = None
     cross_league_bridge: bool = False
+    #: A price can be obtained for an upcoming fixture in this competition.
+    #:
+    #: Defaults exist only so a hand-built Competition in a test need not restate
+    #: them; `_parse_competition` requires both explicitly, because a missing
+    #: value in the real taxonomy would silently switch a gate on.
+    live_odds_coverage: bool = True
+    #: Historical closing odds exist to validate a rule against (Requirements
+    #: line 250's >=2 seasons). A price with nothing to measure it against is not
+    #: a recommendation, which is why `odds_coverage` is the conjunction of the
+    #: two rather than a third independent switch.
+    benchmark_coverage: bool = True
 
     # --- derived helpers -------------------------------------------------
 
@@ -250,6 +261,31 @@ def _parse_competition(row: dict[str, Any]) -> Competition:
         raise TaxonomyError(f"{cid}: tier must be a positive integer or null, got {tier!r}")
 
     odds_coverage = row.get("odds_coverage")
+    # Absent, the two halves inherit `odds_coverage`, which is already required
+    # to be explicit. That keeps an older taxonomy file loading unchanged and
+    # cannot switch a gate on by omission — the inherited value is whatever the
+    # file already committed to. Given explicitly, they must agree with it.
+    live_odds_coverage = row.get("live_odds_coverage", odds_coverage)
+    benchmark_coverage = row.get("benchmark_coverage", odds_coverage)
+    for name, value in (
+        ("live_odds_coverage", live_odds_coverage),
+        ("benchmark_coverage", benchmark_coverage),
+    ):
+        if not isinstance(value, bool):
+            raise TaxonomyError(
+                f"{cid}: {name} must be a boolean when given — it gates whether a "
+                "bet can be priced and whether it can be validated"
+            )
+    if isinstance(odds_coverage, bool) and odds_coverage != (
+        live_odds_coverage and benchmark_coverage
+    ):
+        raise TaxonomyError(
+            f"{cid}: odds_coverage={odds_coverage} contradicts "
+            f"live_odds_coverage={live_odds_coverage} and "
+            f"benchmark_coverage={benchmark_coverage}. It is the conjunction of "
+            "the two, not a third independent switch — a bet needs both a price "
+            "and something to measure that price against."
+        )
     if not isinstance(odds_coverage, bool):
         raise TaxonomyError(
             f"{cid}: odds_coverage must be an explicit boolean — it gates the whole "
@@ -270,6 +306,8 @@ def _parse_competition(row: dict[str, Any]) -> Competition:
         format=fmt,
         tier=tier,
         odds_coverage=odds_coverage,
+        live_odds_coverage=live_odds_coverage,
+        benchmark_coverage=benchmark_coverage,
         admits_lower_tiers=bool(row.get("admits_lower_tiers", False)),
         extra_time=bool(row.get("extra_time", False)),
         stage_formats=stage_formats,  # type: ignore[arg-type]

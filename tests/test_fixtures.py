@@ -25,6 +25,7 @@ import pandas as pd
 import pytest
 from fastapi.testclient import TestClient
 
+from statpitch import taxonomy
 from statpitch.data import openfootball as of
 from statpitch.serving import contract
 from statpitch.serving.app import app
@@ -138,20 +139,42 @@ def test_artifact_fixture_ids_are_unique(fixtures):
     assert fixtures["fixture_id"].is_unique
 
 
-def test_every_fixture_club_resolves_to_a_measured_rating(client, fixtures):
+def test_every_LEAGUE_club_resolves_to_a_measured_rating(client, fixtures):
     """The whole point of the alias map.
 
     Before it, 55% of an upcoming five-league list rated at the pooled prior —
     Manchester City, Bayern and Paris Saint-Germain among them — and every
     response said so via `fully_rated` while still returning a confident number.
+
+    Scoped to leagues, and the scoping is not a weakening. Club Elo rates only
+    the top two tiers of each country, so a cup entrant from below them has no
+    measured rating that any alias could find; that is the gap FR-9's entrant
+    prior exists to fill. Asserting it here would make the suite fail for a
+    correctly handled fifth-tier club in the DFB-Pokal, which is how a real
+    alias regression ends up buried under an expected failure.
     """
     body = client.get("/fixtures/upcoming?limit=1000&include_predictions=true").json()
     unrated = [
-        f"{f['home_team']} v {f['away_team']}"
+        f"{f['competition_id']}: {f['home_team']} v {f['away_team']}"
         for f in body["fixtures"]
-        if not (f.get("prediction") or {}).get("fully_rated")
+        if taxonomy.get(f["competition_id"]).competition_type == "league"
+        and not (f.get("prediction") or {}).get("fully_rated")
     ]
-    assert not unrated, f"{len(unrated)} fixture(s) not fully rated: {unrated[:5]}"
+    assert not unrated, f"{len(unrated)} league fixture(s) not fully rated: {unrated[:5]}"
+
+
+def test_an_unrated_cup_entrant_is_declared_rather_than_hidden(client, fixtures):
+    """A prior is an acceptable answer; a prior presented as a measurement is not.
+
+    `fully_rated` is the field that separates them, and it is part of the
+    contract because it once was not.
+    """
+    body = client.get("/fixtures/upcoming?limit=1000&include_predictions=true").json()
+    for fixture in body["fixtures"]:
+        prediction = fixture.get("prediction") or {}
+        if not prediction:
+            continue
+        assert isinstance(prediction.get("fully_rated"), bool), fixture["fixture_id"]
 
 
 # --- API ----------------------------------------------------------------------

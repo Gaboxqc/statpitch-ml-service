@@ -178,14 +178,26 @@ def _bet_recommendation(competition) -> dict[str, Any]:
     alert on the cause instead of only rendering the sentence.
     """
     if not competition.odds_coverage:
+        # Which half is missing changes what would fix it, so the refusal says.
+        # A competition that gains a price but no closing-odds history is still
+        # unrecommendable, and a gate reading one flag could not tell that apart
+        # from full coverage.
+        missing = []
+        if not competition.live_odds_coverage:
+            missing.append("no price can be obtained for an upcoming fixture")
+        if not competition.benchmark_coverage:
+            missing.append("no historical closing odds exist to validate against")
+        reason = f"{NO_ODDS_REASON} Specifically: {'; and '.join(missing)}."
         return {
             "bet_recommendation": None,
-            "bet_recommendation_reason": NO_ODDS_REASON,
+            "bet_recommendation_reason": reason,
             "bet_recommendation_refusal": contract.refusal_object(
                 ReasonCode.NO_ODDS_COVERAGE,
-                NO_ODDS_REASON,
+                reason,
                 competition_id=competition.competition_id,
                 odds_coverage=False,
+                live_odds_coverage=competition.live_odds_coverage,
+                benchmark_coverage=competition.benchmark_coverage,
             ),
         }
 
@@ -284,6 +296,8 @@ def competitions() -> dict:
                 "format": c.format,
                 "tier": c.tier,
                 "odds_coverage": c.odds_coverage,
+                "live_odds_coverage": c.live_odds_coverage,
+                "benchmark_coverage": c.benchmark_coverage,
             }
             for c in taxonomy.registry()
         ],

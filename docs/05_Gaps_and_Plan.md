@@ -339,7 +339,53 @@ The original plan for this phase follows, superseded above.
 - Re-run `scripts/select_devig_method.py` to populate
   `devig.method_per_competition` for the seven currently-missing competitions.
 
-### Phase D — cups
+### Phase D — cups — **partly done; 1 of 7, and the rest need a credential**
+
+Delivered: `src/statpitch/data/openligadb.py` (keyless), merged into
+`build_fixtures.py`, the `odds_coverage` split, and the FR-9 fill in
+`precompute_predictions.py`. **Cup fixtures are in the artifact for the first
+time** — 2 DFB-Pokal round-1 ties, with confirmed UTC kickoffs and a parsed
+round.
+
+**Root cause reconfirmed.** openfootball has not come back: every 2026-27 cup
+path still 404s and `champions-league` still has no 2026-27 directory.
+
+**What is now covered.** OpenLigaDB is keyless and gives the DFB-Pokal with
+`matchDateTimeUTC` *and* `group.groupName` ("1. Runde"), which
+`openfootball.normalise_stage` already parses because the same German labels
+appear in the files it was written for. Stage is not cosmetic: it drives
+`resolve_format` and `is_neutral_venue`, so an unknown stage would price a
+two-legged tie as a single leg.
+
+**What is not.** The FA Cup, Copa del Rey, Coppa Italia, Coupe de France and both
+UEFA competitions have no keyless source. The Odds API covers all of them but
+needs a key, and none is configured — no `.env` exists. `build_fixtures` now
+distinguishes *undrawn* from *unsourced* in its logging, because conflating them
+is how a dead upstream hides for a fortnight.
+
+**The bug this phase exposed.** The first cup fixture ever to reach the offline
+prediction path produced **Hamburg Eimsbütteler BC at 52.9% to beat Borussia
+Dortmund** — a fifth-tier amateur side as favourite. Club Elo rates only the top
+two tiers, so the club had no rating; left as a null, the fitted model did not
+abstain, it predicted from the remaining features and invented a number.
+
+Worse, the two routes disagreed: `/predict` applied the FR-9 entrant prior and
+said 19.6%, while `/fixtures/upcoming` served the precomputed 52.9% for the same
+fixture — and the bulk route is the one a consumer syncs from. `precompute` now
+applies the pooled entrant level through
+`entrant_prior.fill_missing_ratings`, and the fixture reads **9.1%**, in line
+with the Osnabrück–Bayern tie at 11.3%. The rating tier travels with the row as
+`home_rating_source` / `away_rating_source`.
+
+**The coverage split shipped.** `live_odds_coverage` (a price can be had) and
+`benchmark_coverage` (history exists to validate against) are recorded
+separately, with `odds_coverage` kept as their conjunction and its exact meaning
+(NFR-13). Today all three move together; they will diverge the moment a keyed
+odds feed gives the cups prices their closing-odds history will never have. The
+cup refusal now names which half is missing.
+
+The original plan for this phase follows.
+
 
 - `src/statpitch/data/odds_api.py` — `/events` (0 credits) and `/odds`
   (1 credit), with a monthly budget guard modelled on `statpitch/quota.py`,

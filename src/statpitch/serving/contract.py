@@ -213,6 +213,24 @@ W_MEASUREMENT: dict[str, Any] = {
     "market_log_loss": 0.9698,
 }
 
+#: Plan §4 Phase C — why staking stays disabled even though the card now computes.
+#:
+#: Two independent gates, and a consumer charting "why is the slate empty" needs
+#: both. `w`=0 removes the model's contribution; this removes the price rule's.
+SELECTION_RULE_MEASUREMENT: dict[str, Any] = {
+    "selection_rule_status": "candidate",
+    "candidate_reference": "betfair_exchange",
+    "pinnacle_clv_pre_break": 0.0051,
+    "pinnacle_clv_pre_break_t": 7.53,
+    "pinnacle_in_live_feed": False,
+    "betfair_clv_post_break": 0.0251,
+    "betfair_clv_post_break_t": 7.86,
+    "unselected_baseline_post_break": -0.0003,
+    "seasons_available_post_break": 1,
+    "seasons_required": 2,
+    "evidence": "data/selection_rule_study.json",
+}
+
 #: MODEL_CARD §4 — why ranking a fixture's markets is worse than not.
 MAX_EDGE_MEASUREMENT: dict[str, Any] = {
     "best_bet_per_match_roi": -0.0212,

@@ -1,0 +1,394 @@
+{
+  "generated_at": "2026-08-24T22:48:16+00:00",
+  "question": "MODEL_CARD \u00a75's +0.51% CLV was measured on Pinnacle-referenced selections. Pinnacle is not published in the live fixture feed. Does any reference the feed does carry reproduce it?",
+  "scored_on": "avg -> avg. Every rule selects using odds_max, so scoring it on how odds_max then moves would score a variable on itself; the consensus moving toward the bet is the only test the selection cannot game.",
+  "holdout_excluded": [
+    "2024-2025"
+  ],
+  "regimes": {
+    "pre_2025_07_23": {
+      "regime": "pre_2025_07_23",
+      "seasons": [
+        "2019-2020",
+        "2020-2021",
+        "2021-2022",
+        "2022-2023",
+        "2023-2024"
+      ],
+      "excluded_seasons": [
+        "2024-2025"
+      ],
+      "matches": 8954,
+      "selections": 26862,
+      "devig_method": "shin",
+      "note": "the window MODEL_CARD \u00a75 measured; holdout excluded",
+      "results": [
+        {
+          "reference": "none (whole book)",
+          "in_live_feed": true,
+          "threshold": NaN,
+          "n_selections": 26862,
+          "n_matches": 8954,
+          "mean_clv": -0.0009440386648795467,
+          "clustered_t": -2.5776007422104863,
+          "naive_t": -1.9937952575558133,
+          "positive_rate": 0.49467649467649466,
+          "is_significant": true
+        },
+        {
+          "reference": "odds_pinnacle",
+          "in_live_feed": false,
+          "threshold": 0.0,
+          "n_selections": 10857,
+          "n_matches": 7790,
+          "mean_clv": 0.0050632592776289126,
+          "clustered_t": 7.525439350585949,
+          "naive_t": 6.874891808509778,
+          "positive_rate": 0.5325596389426177,
+          "is_significant": true
+        },
+        {
+          "reference": "odds_pinnacle",
+          "in_live_feed": false,
+          "threshold": 0.01,
+          "n_selections": 6158,
+          "n_matches": 5300,
+          "mean_clv": 0.0066250191891374065,
+          "clustered_t": 6.260563850910473,
+          "naive_t": 6.247454936593586,
+          "positive_rate": 0.541896719714193,
+          "is_significant": true
+        },
+        {
+          "reference": "odds_pinnacle",
+          "in_live_feed": false,
+          "threshold": 0.02,
+          "n_selections": 3382,
+          "n_matches": 3130,
+          "mean_clv": 0.007053302521055614,
+          "clustered_t": 4.26008939716809,
+          "naive_t": 4.357998330631404,
+          "positive_rate": 0.543465405085748,
+          "is_significant": true
+        },
+        {
+          "reference": "odds_pinnacle",
+          "in_live_feed": false,
+          "threshold": 0.03,
+          "n_selections": 1928,
+          "n_matches": 1842,
+          "mean_clv": 0.0067466636720616745,
+          "clustered_t": 2.7783360546977796,
+          "naive_t": 2.8632895050142726,
+          "positive_rate": 0.5342323651452282,
+          "is_significant": true
+        },
+        {
+          "reference": "odds_b365",
+          "in_live_feed": true,
+          "threshold": 0.0,
+          "n_selections": 12188,
+          "n_matches": 8487,
+          "mean_clv": -0.0006515408063580192,
+          "clustered_t": -1.0895550167225674,
+          "naive_t": -0.9393402581384447,
+          "positive_rate": 0.4949130292090581,
+          "is_significant": false
+        },
+        {
+          "reference": "odds_b365",
+          "in_live_feed": true,
+          "threshold": 0.01,
+          "n_selections": 8249,
+          "n_matches": 6919,
+          "mean_clv": -0.0008067593650004453,
+          "clustered_t": -0.9694652876228761,
+          "naive_t": -0.9081313761497213,
+          "positive_rate": 0.4960601285004243,
+          "is_significant": false
+        },
+        {
+          "reference": "odds_b365",
+          "in_live_feed": true,
+          "threshold": 0.02,
+          "n_selections": 5169,
+          "n_matches": 4743,
+          "mean_clv": -0.0009275380311157302,
+          "clustered_t": -0.7708001094929107,
+          "naive_t": -0.7639193424499171,
+          "positive_rate": 0.4952602050686787,
+          "is_significant": false
+        },
+        {
+          "reference": "odds_b365",
+          "in_live_feed": true,
+          "threshold": 0.03,
+          "n_selections": 3045,
+          "n_matches": 2922,
+          "mean_clv": 0.001447323145175009,
+          "clustered_t": 0.8457105171841272,
+          "naive_t": 0.8567269621773649,
+          "positive_rate": 0.510016420361248,
+          "is_significant": false
+        },
+        {
+          "reference": "odds_avg",
+          "in_live_feed": true,
+          "threshold": 0.0,
+          "n_selections": 10891,
+          "n_matches": 6988,
+          "mean_clv": -0.002264130841862897,
+          "clustered_t": -3.351084646603255,
+          "naive_t": -2.8881896435512373,
+          "positive_rate": 0.48563033697548436,
+          "is_significant": true
+        },
+        {
+          "reference": "odds_avg",
+          "in_live_feed": true,
+          "threshold": 0.01,
+          "n_selections": 4502,
+          "n_matches": 3743,
+          "mean_clv": -0.0031591820116051946,
+          "clustered_t": -2.267773190369091,
+          "naive_t": -2.240909625854644,
+          "positive_rate": 0.4824522434473567,
+          "is_significant": true
+        },
+        {
+          "reference": "odds_avg",
+          "in_live_feed": true,
+          "threshold": 0.02,
+          "n_selections": 2083,
+          "n_matches": 1916,
+          "mean_clv": -0.0029737939392401195,
+          "clustered_t": -1.212090438259206,
+          "naive_t": -1.2371816185942632,
+          "positive_rate": 0.4829572731637062,
+          "is_significant": false
+        },
+        {
+          "reference": "odds_avg",
+          "in_live_feed": true,
+          "threshold": 0.03,
+          "n_selections": 1078,
+          "n_matches": 1032,
+          "mean_clv": -0.0025258477105089467,
+          "clustered_t": -0.6861271560190605,
+          "naive_t": -0.6974276837993094,
+          "positive_rate": 0.48330241187384043,
+          "is_significant": false
+        }
+      ]
+    },
+    "post_2025_07_23": {
+      "regime": "post_2025_07_23",
+      "seasons": [
+        "2025-2026",
+        "2026-2027"
+      ],
+      "excluded_seasons": [
+        "2024-2025"
+      ],
+      "matches": 1781,
+      "selections": 5343,
+      "devig_method": "shin",
+      "note": "the regime the live feed operates in today",
+      "results": [
+        {
+          "reference": "none (whole book)",
+          "in_live_feed": true,
+          "threshold": NaN,
+          "n_selections": 5343,
+          "n_matches": 1781,
+          "mean_clv": -0.00028410938413607516,
+          "clustered_t": -0.3896166955511497,
+          "naive_t": -0.2886873380845468,
+          "positive_rate": 0.4918585064570466,
+          "is_significant": false
+        },
+        {
+          "reference": "odds_pinnacle",
+          "in_live_feed": false,
+          "threshold": 0.0,
+          "n_selections": 336,
+          "n_matches": 317,
+          "mean_clv": 0.017860065992988713,
+          "clustered_t": 3.823501438661528,
+          "naive_t": 3.8489847957503147,
+          "positive_rate": 0.5982142857142857,
+          "is_significant": true
+        },
+        {
+          "reference": "odds_pinnacle",
+          "in_live_feed": false,
+          "threshold": 0.01,
+          "n_selections": 196,
+          "n_matches": 191,
+          "mean_clv": 0.02527243550389478,
+          "clustered_t": 3.78341941589548,
+          "naive_t": 3.8450460776550734,
+          "positive_rate": 0.6224489795918368,
+          "is_significant": true
+        },
+        {
+          "reference": "odds_pinnacle",
+          "in_live_feed": false,
+          "threshold": 0.02,
+          "n_selections": 127,
+          "n_matches": 123,
+          "mean_clv": 0.02973518597280431,
+          "clustered_t": 3.1299437050357226,
+          "naive_t": 3.1795783798130737,
+          "positive_rate": 0.6220472440944882,
+          "is_significant": true
+        },
+        {
+          "reference": "odds_pinnacle",
+          "in_live_feed": false,
+          "threshold": 0.03,
+          "n_selections": 87,
+          "n_matches": 85,
+          "mean_clv": 0.024080772571023378,
+          "clustered_t": 1.8646023276500654,
+          "naive_t": 1.9050786241332747,
+          "positive_rate": 0.5747126436781609,
+          "is_significant": false
+        },
+        {
+          "reference": "odds_b365",
+          "in_live_feed": true,
+          "threshold": 0.0,
+          "n_selections": 685,
+          "n_matches": 653,
+          "mean_clv": 0.01634222539814734,
+          "clustered_t": 4.692528761653129,
+          "naive_t": 4.697413363765386,
+          "positive_rate": 0.5664233576642336,
+          "is_significant": true
+        },
+        {
+          "reference": "odds_b365",
+          "in_live_feed": true,
+          "threshold": 0.01,
+          "n_selections": 416,
+          "n_matches": 405,
+          "mean_clv": 0.02086815242240797,
+          "clustered_t": 4.077945991967806,
+          "naive_t": 4.11985477170827,
+          "positive_rate": 0.5793269230769231,
+          "is_significant": true
+        },
+        {
+          "reference": "odds_b365",
+          "in_live_feed": true,
+          "threshold": 0.02,
+          "n_selections": 280,
+          "n_matches": 276,
+          "mean_clv": 0.02579627304334049,
+          "clustered_t": 3.8536738703531124,
+          "naive_t": 3.8906947501985636,
+          "positive_rate": 0.5785714285714286,
+          "is_significant": true
+        },
+        {
+          "reference": "odds_b365",
+          "in_live_feed": true,
+          "threshold": 0.03,
+          "n_selections": 176,
+          "n_matches": 174,
+          "mean_clv": 0.03271956260933426,
+          "clustered_t": 3.362472772069941,
+          "naive_t": 3.388229270867618,
+          "positive_rate": 0.6079545454545454,
+          "is_significant": true
+        },
+        {
+          "reference": "odds_bfe",
+          "in_live_feed": true,
+          "threshold": 0.0,
+          "n_selections": 500,
+          "n_matches": 468,
+          "mean_clv": 0.0251015974706797,
+          "clustered_t": 7.85571361302878,
+          "naive_t": 8.020768181627695,
+          "positive_rate": 0.672,
+          "is_significant": true
+        },
+        {
+          "reference": "odds_bfe",
+          "in_live_feed": true,
+          "threshold": 0.01,
+          "n_selections": 214,
+          "n_matches": 202,
+          "mean_clv": 0.03705005316082813,
+          "clustered_t": 6.324869625262213,
+          "naive_t": 6.417294720324028,
+          "positive_rate": 0.7336448598130841,
+          "is_significant": true
+        },
+        {
+          "reference": "odds_bfe",
+          "in_live_feed": true,
+          "threshold": 0.02,
+          "n_selections": 107,
+          "n_matches": 101,
+          "mean_clv": 0.04655065592698761,
+          "clustered_t": 4.413399126463431,
+          "naive_t": 4.472986727114341,
+          "positive_rate": 0.7570093457943925,
+          "is_significant": true
+        },
+        {
+          "reference": "odds_bfe",
+          "in_live_feed": true,
+          "threshold": 0.03,
+          "n_selections": 57,
+          "n_matches": 55,
+          "mean_clv": 0.06327652890318886,
+          "clustered_t": 3.789298220382758,
+          "naive_t": 3.7645949434812063,
+          "positive_rate": 0.7719298245614035,
+          "is_significant": true
+        },
+        {
+          "reference": "odds_avg",
+          "in_live_feed": true,
+          "threshold": 0.0,
+          "n_selections": 218,
+          "n_matches": 203,
+          "mean_clv": 0.011659695098681729,
+          "clustered_t": 1.80294254734873,
+          "naive_t": 1.7893524551026874,
+          "positive_rate": 0.5412844036697247,
+          "is_significant": false
+        },
+        {
+          "reference": "odds_avg",
+          "in_live_feed": true,
+          "threshold": 0.01,
+          "n_selections": 108,
+          "n_matches": 101,
+          "mean_clv": 0.020552489227822764,
+          "clustered_t": 2.3392832753620003,
+          "naive_t": 2.307589224146459,
+          "positive_rate": 0.5648148148148148,
+          "is_significant": true
+        },
+        {
+          "reference": "odds_avg",
+          "in_live_feed": true,
+          "threshold": 0.02,
+          "n_selections": 62,
+          "n_matches": 58,
+          "mean_clv": 0.024576125085856354,
+          "clustered_t": 2.2920434290988765,
+          "naive_t": 2.2315789117666647,
+          "positive_rate": 0.5806451612903226,
+          "is_significant": true
+        }
+      ]
+    }
+  },
+  "tradeable_significant_positive": 10
+}

@@ -11,7 +11,14 @@
     "  devig.method_per_competition <- Notebook 12, Phase 5",
     "  grading.*               <- Notebook 14, Phase 5.5c",
     "  staking.lambda frontier <- Notebook 14, Phase 5.5d",
-    "Code must refuse to emit live recommendations while status == 'placeholder'."
+    "Code must refuse to emit live recommendations while status == 'placeholder'.",
+    "",
+    "PHASE C, 2026-08-24: the w checkpoint and the selection rule are separate",
+    "gates and BOTH are still shut. w fits at 0.000 (data/w_checkpoint.json), and",
+    "no sharp reference available in the live feed clears the >=2-season bar",
+    "(selection_rule.blocked_by). status stays 'placeholder' deliberately: the",
+    "only rule with a multi-season result is defined on a book the live feed",
+    "does not publish, so enabling staking would size bets on an unvalidated one."
   ],
   "market_shrinkage": {
     "w": null,
@@ -158,5 +165,42 @@
     "pinnacle_break_date": "2025-07-23",
     "allow_pooling_across_regimes": false,
     "comment": "Requirements \u00a77.3. Pinnacle was dropped from Max/Avg on this date. Pooling the two regimes without adjustment is a correctness bug, so the default forbids it."
+  },
+  "selection_rule": {
+    "status": "candidate",
+    "candidate_reference": "odds_bfe",
+    "reference_book": "Betfair Exchange",
+    "fair_price_column": "odds_avg",
+    "available_price_column": "odds_max",
+    "scored_on": "avg_to_avg_clv",
+    "threshold": null,
+    "evidence": "data/selection_rule_study.json",
+    "comment": [
+      "FR-16a / Requirements line 250. The rule MODEL_CARD \u00a75 measured (+0.51% CLV,",
+      "Pinnacle-referenced) CANNOT be traded: Pinnacle is not published in the live",
+      "fixture feed. scripts/study_selection_rules.py asks which references the feed",
+      "does carry behave the same way.",
+      "",
+      "Pre-break (2019/20-2023/24, holdout excluded, 7,790 matches) only Pinnacle",
+      "works: +0.51% CLV at t=+7.53. B365 shows nothing (-0.07%, t=-1.09) and the",
+      "consensus is actively negative (-0.23%, t=-3.35). Betfair Exchange does not",
+      "exist before 2024/25, and 2024/25 is the NFR-10 holdout.",
+      "",
+      "Post-break (2025/26 onward, 1,781 matches) Betfair Exchange leads at +2.51%,",
+      "t=+7.86, against an unselected baseline of -0.03%. B365 and Pinnacle are also",
+      "positive there. That is promising and it is NOT sufficient."
+    ],
+    "blocked_by": {
+      "requirement": "Requirements line 250 \u2014 CLV over >=2 full historical seasons",
+      "seasons_available_post_break": [
+        "2025-2026"
+      ],
+      "reason": "One season. The same consensus-referenced rule has OPPOSITE signs in the two regimes (-0.23% pre-break, +1.17% post-break), which is what a regime-specific artifact looks like, so a single post-break season cannot distinguish a real effect from a transient one.",
+      "unblocks_when": "2026-2027 completes, giving a second post-break season"
+    },
+    "not_used_and_why": {
+      "odds_max_as_reference": "Selecting on the max-vs-consensus spread and then scoring the max price's movement scores a variable on itself. Measured: the spread narrows from +11.64% to +10.23% on selected rows while the consensus moves 0.28% AGAINST the bet. Regression to the mean, not edge.",
+      "odds_b365": "No pre-break signal (-0.07%, t=-1.09) despite being in the feed."
+    }
   }
 }

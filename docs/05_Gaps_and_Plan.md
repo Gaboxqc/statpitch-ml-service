@@ -241,7 +241,70 @@ The original plan for this phase follows.
 - Guard: `test_deployment.py` must still pass — the card is built offline, the
   API only reads the parquet.
 
-### Phase C — re-fit the decision config for a price-driven regime
+### Phase C — re-fit the decision config for a price-driven regime — **done, and the answer is no**
+
+Delivered: `src/statpitch/decision/selection_study.py`,
+`scripts/study_selection_rules.py`, `data/selection_rule_study.json`,
+`odds_bfe` promoted into the archive, and a `selection_rule` block in
+`decision_config.json`. **Staking is not enabled**, and that is the result
+rather than unfinished work.
+
+**The question.** MODEL_CARD §5's +0.51% CLV was measured on *Pinnacle*-referenced
+selections. Phase A found Pinnacle is not published in the live fixture feed. So:
+does any reference the feed *does* carry behave the same way?
+
+**Scored `avg → avg`, never `best → best`.** Every rule selects using `odds_max`,
+so scoring it on how `odds_max` then moves scores a variable on itself. Measured:
+on selected rows the max-vs-consensus spread narrows from +11.64% to +10.23%
+while the consensus moves **0.28% against** the bet. That is regression to the
+mean wearing the costume of edge, and it is exactly what the tradeable
+consensus-referenced rule turned out to be.
+
+**Pre-break — 2019/20–2023/24, holdout excluded, 7,790 matches:**
+
+| reference | in live feed | CLV | clustered t |
+|---|---|---|---|
+| none (whole book) | — | −0.09% | −2.58 |
+| **Pinnacle** | **no** | **+0.51%** | **+7.53** |
+| B365 | yes | −0.07% | −1.09 |
+| consensus | yes | −0.23% | −3.35 |
+
+Only Pinnacle works, and it is the one book that cannot be traded. Betfair
+Exchange does not exist before 2024/25, and 2024/25 is the NFR-10 holdout.
+
+**Post-break — 2025/26 onward, 1,781 matches, the regime the live feed is in:**
+
+| reference | in live feed | CLV | clustered t |
+|---|---|---|---|
+| none (whole book) | — | −0.03% | −0.39 |
+| **Betfair Exchange** | **yes** | **+2.51%** | **+7.86** |
+| Pinnacle | no | +1.79% | +3.82 |
+| B365 | yes | +1.63% | +4.69 |
+| consensus | yes | +1.17% | +1.80 |
+
+Promising, and **not sufficient**. Requirements line 250 sets the primary edge
+criterion at CLV "over ≥2 full historical seasons"; this is one. And the same
+consensus-referenced rule has *opposite signs* in the two regimes (−0.23% then
++1.17%), which is what a regime-specific artifact looks like — a single
+post-break season cannot tell that apart from a real effect.
+
+**So `status` stays `placeholder`.** The plan below proposed flipping it to
+`fitted` so `require_fitted()` would pass. That was written before this
+measurement. Flipping it now would size real stakes using a rule whose only
+multi-season evidence belongs to a book the live feed does not publish.
+
+**The grading changes in the plan are also withdrawn.** Repointing `c_edge` at
+`price_advantage` would encode the consensus-referenced rule — the one just shown
+to be mean reversion. `c_edge = 0` on every selection is the *correct* output
+given `w`=0, not a bug to be tuned away.
+
+**Unblock condition:** 2026/27 completes, giving a second post-break season for
+Betfair Exchange. Re-run `scripts/study_selection_rules.py`; if the result holds,
+the rule qualifies under Requirements line 250 and `selection_rule.status` can
+move from `candidate` to `fitted`.
+
+The original plan for this phase follows, superseded above.
+
 
 > **Measured on the first live capture (2026-08-23, 38 fixtures), and it
 > constrains this phase.** De-vigging the consensus `Avg*` triplet gives a mean

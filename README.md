@@ -88,7 +88,7 @@ Ingest the archive (downloads are cached; re-runs do not re-hit the origin):
 
 ## Current state
 
-Phases 0–9 complete, plus Plan Phases A–B (live odds, computed card). **1,078 tests**, all offline.
+Phases 0–9 complete, plus Plan Phases A–C. **1,109 tests**, all offline.
 
 | Layer | Item | Status |
 |---|---|---|
@@ -106,6 +106,7 @@ Phases 0–9 complete, plus Plan Phases A–B (live odds, computed card). **1,07
 | 9 | Scheduled jobs, CI, Render blueprint | done |
 | A | Live pre-match prices, keyed to the fixture list ([plan](docs/05_Gaps_and_Plan.md)) | done |
 | B | Card built from prices + predictions; slate routes read it | done |
+| C | Sharp-reference study — **no tradeable rule clears the 2-season bar** | done |
 
 Ingested: **64,795 matches** — 59,079 league (1993/94–), 5,716 cup and
 continental — **417,631 tidy odds rows**, **1,274,186 Club Elo rating intervals**

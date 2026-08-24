@@ -625,7 +625,12 @@ def _card_response(*, key: str, placeholder_code: ReasonCode) -> dict:
             status=config.status,
             w_fitted=config.w_fitted,
             selections_assessed=len(records),
+            # Two independent gates, both shut. `w`=0 removes the model's
+            # contribution; the selection study removes the price rule's, because
+            # the only reference with a multi-season result is one the live feed
+            # does not publish. A consumer needs both to chart the cause.
             **contract.W_MEASUREMENT,
+            **contract.SELECTION_RULE_MEASUREMENT,
         )
     elif records and not staked:
         reason = (

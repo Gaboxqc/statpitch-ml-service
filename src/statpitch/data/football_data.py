@@ -98,24 +98,51 @@ def csv_url(start_year: int, div_code: str) -> str:
 # `price_kind` separates the two market numbers FR-16a insists must never be
 # conflated: `avg` is the consensus used for fair probability, `max` is the price
 # actually obtainable. They are carried in different columns all the way through.
+#
+# `bfe` (Betfair Exchange) is carried for one specific reason: it is the only
+# sharp-reference candidate present in BOTH this archive and the live fixture
+# feed. Pinnacle, which produced the only positive CLV result the project has
+# (MODEL_CARD §5), was dropped from the fixture feed entirely, so a rule defined
+# on it can be measured backwards and never traded forwards. The exchange columns
+# start in 2024/25 and exist only in the modern era.
 
 _MODERN_1X2 = {
     "preclose": {
-        "home": {"avg": "AvgH", "max": "MaxH", "pinnacle": "PSH", "b365": "B365H"},
-        "draw": {"avg": "AvgD", "max": "MaxD", "pinnacle": "PSD", "b365": "B365D"},
-        "away": {"avg": "AvgA", "max": "MaxA", "pinnacle": "PSA", "b365": "B365A"},
+        "home": {"avg": "AvgH", "max": "MaxH", "pinnacle": "PSH", "b365": "B365H", "bfe": "BFEH"},
+        "draw": {"avg": "AvgD", "max": "MaxD", "pinnacle": "PSD", "b365": "B365D", "bfe": "BFED"},
+        "away": {"avg": "AvgA", "max": "MaxA", "pinnacle": "PSA", "b365": "B365A", "bfe": "BFEA"},
     },
     "close": {
-        "home": {"avg": "AvgCH", "max": "MaxCH", "pinnacle": "PSCH", "b365": "B365CH"},
-        "draw": {"avg": "AvgCD", "max": "MaxCD", "pinnacle": "PSCD", "b365": "B365CD"},
-        "away": {"avg": "AvgCA", "max": "MaxCA", "pinnacle": "PSCA", "b365": "B365CA"},
+        "home": {
+            "avg": "AvgCH", "max": "MaxCH",
+            "pinnacle": "PSCH", "b365": "B365CH",
+            "bfe": "BFECH",
+        },
+        "draw": {
+            "avg": "AvgCD", "max": "MaxCD",
+            "pinnacle": "PSCD", "b365": "B365CD",
+            "bfe": "BFECD",
+        },
+        "away": {
+            "avg": "AvgCA", "max": "MaxCA",
+            "pinnacle": "PSCA", "b365": "B365CA",
+            "bfe": "BFECA",
+        },
     },
 }
 
 _MODERN_OU = {
     "preclose": {
-        "over": {"avg": "Avg>2.5", "max": "Max>2.5", "pinnacle": "P>2.5", "b365": "B365>2.5"},
-        "under": {"avg": "Avg<2.5", "max": "Max<2.5", "pinnacle": "P<2.5", "b365": "B365<2.5"},
+        "over": {
+            "avg": "Avg>2.5", "max": "Max>2.5",
+            "pinnacle": "P>2.5", "b365": "B365>2.5",
+            "bfe": "BFE>2.5",
+        },
+        "under": {
+            "avg": "Avg<2.5", "max": "Max<2.5",
+            "pinnacle": "P<2.5", "b365": "B365<2.5",
+            "bfe": "BFE<2.5",
+        },
     },
     "close": {
         "over": {
@@ -130,13 +157,29 @@ _MODERN_OU = {
 _MODERN_AH = {
     "preclose": {
         "_line": "AHh",
-        "ah_home": {"avg": "AvgAHH", "max": "MaxAHH", "pinnacle": "PAHH", "b365": "B365AHH"},
-        "ah_away": {"avg": "AvgAHA", "max": "MaxAHA", "pinnacle": "PAHA", "b365": "B365AHA"},
+        "ah_home": {
+            "avg": "AvgAHH", "max": "MaxAHH",
+            "pinnacle": "PAHH", "b365": "B365AHH",
+            "bfe": "BFEAHH",
+        },
+        "ah_away": {
+            "avg": "AvgAHA", "max": "MaxAHA",
+            "pinnacle": "PAHA", "b365": "B365AHA",
+            "bfe": "BFEAHA",
+        },
     },
     "close": {
         "_line": "AHCh",
-        "ah_home": {"avg": "AvgCAHH", "max": "MaxCAHH", "pinnacle": "PCAHH", "b365": "B365CAHH"},
-        "ah_away": {"avg": "AvgCAHA", "max": "MaxCAHA", "pinnacle": "PCAHA", "b365": "B365CAHA"},
+        "ah_home": {
+            "avg": "AvgCAHH", "max": "MaxCAHH",
+            "pinnacle": "PCAHH", "b365": "B365CAHH",
+            "bfe": "BFECAHH",
+        },
+        "ah_away": {
+            "avg": "AvgCAHA", "max": "MaxCAHA",
+            "pinnacle": "PCAHA", "b365": "B365CAHA",
+            "bfe": "BFECAHA",
+        },
     },
 }
 
@@ -672,7 +715,7 @@ def parse_odds(sf: SeasonFile, matches: pd.DataFrame | None = None) -> pd.DataFr
                     line if line is not None
                     else (2.5 if market == "ou" else pd.NA)
                 )
-                for kind in ("avg", "max", "pinnacle", "b365"):
+                for kind in ("avg", "max", "pinnacle", "b365", "bfe"):
                     block[f"odds_{kind}"] = _num(raw, price_cols.get(kind))
 
                 if market == "1x2":
@@ -698,7 +741,7 @@ def parse_odds(sf: SeasonFile, matches: pd.DataFrame | None = None) -> pd.DataFr
     # A selection with no price at all is not information; drop it rather than
     # carrying empty rows into the de-vig groupby.
     price_cols = [
-        "odds_avg", "odds_max", "odds_pinnacle", "odds_b365",
+        "odds_avg", "odds_max", "odds_pinnacle", "odds_b365", "odds_bfe",
         "odds_panel_avg", "odds_panel_max",
     ]
     odds = odds[odds[price_cols].notna().any(axis=1)]

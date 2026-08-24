@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime, timedelta
 
+import pandas as pd
 import pytest
 
 from statpitch.decision import clv_tracker as clv
@@ -203,14 +204,40 @@ def test_a_result_serialises_for_a_workflow_summary():
 
 # --- the API budget -----------------------------------------------------------
 
-def test_no_job_spends_the_api_football_allowance(monkeypatch):
-    """NFR-9. There is no live odds feed, so a polling job would burn 100/day
-    requests to learn nothing."""
+def test_no_job_spends_the_api_football_allowance(monkeypatch, tmp_path):
+    """NFR-9. A polling job would burn the 100/day allowance to learn nothing.
+
+    `refresh_fixtures` is isolated rather than run against the real tree. It
+    shells out to the collector scripts, and running them here downloaded
+    schedules, fetched live odds over the network, and rewrote five committed
+    artifacts — including appending a capture to the append-only odds log — on
+    every single run of the suite. `test_every_job_is_reachable_by_name` above
+    already excludes it for exactly that reason; this loop was reintroducing it.
+    """
+    import runpy
+
     import statpitch.quota as quota
 
     def explode(*args, **kwargs):
         raise AssertionError("a scheduled job must not spend the API budget")
 
     monkeypatch.setattr(quota.QuotaBudget, "spend", explode)
-    for name in jobs.JOBS:
-        jobs.run(name)
+
+    # The pure jobs read the committed decision config, so they run as they are.
+    for name in ("flag_card", "settle_ledger"):
+        assert jobs.run(name).job == name
+
+    # refresh_fixtures gets a scratch tree and stubbed scripts. The wiring it
+    # would otherwise exercise is covered in tests/test_refresh_job.py, which
+    # stubs the same way; what matters here is only that reaching it spends
+    # nothing.
+    processed = tmp_path / "processed"
+    processed.mkdir(parents=True)
+    for name in ("fixtures", "predictions"):
+        pd.DataFrame({"fixture_id": ["f0"]}).to_parquet(
+            processed / f"{name}.parquet", index=False
+        )
+    monkeypatch.setenv("STATPITCH_DATA", str(tmp_path))
+    monkeypatch.setattr(runpy, "run_path", lambda script, run_name=None: None)
+
+    assert jobs.run("refresh_fixtures").job == "refresh_fixtures"

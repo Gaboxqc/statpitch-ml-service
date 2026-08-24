@@ -4,7 +4,8 @@
     "Design §2 competition taxonomy. This file is the foundation every later stage depends on.",
     "`format` is the competition's DEFAULT format. Real competitions vary format by stage (Copa del Rey semis are two-legged; a UCL final is a single leg at a neutral venue), so `stage_formats` overrides it per stage and `format_history` records format changes across seasons. Resolve with statpitch.taxonomy.resolve_format() rather than reading `format` directly.",
     "`odds_coverage` gates the entire Decision Layer (Requirements §9). football-data.co.uk covers league divisions only; no free odds source with cup coverage exists, so every cup and continental row is false.",
-    "`tier` is the league's position in its national pyramid. It is null for cups, because tier is a property of the ENTRANT club there, not of the competition — that is what `admits_lower_tiers` flags and what the FR-9 lower-division prior consumes."
+    "`tier` is the league's position in its national pyramid. It is null for cups, because tier is a property of the ENTRANT club there, not of the competition — that is what `admits_lower_tiers` flags and what the FR-9 lower-division prior consumes.",
+    "`odds_coverage` is now the CONJUNCTION of two things that were always distinct: `live_odds_coverage` (a price can be obtained for an upcoming fixture) and `benchmark_coverage` (historical closing odds exist to validate against). A bet needs both — a price with nothing to measure it against is not a recommendation — so `odds_coverage` keeps its exact meaning and its name (NFR-13). The split matters because the two WILL diverge: a paid or keyed odds feed would give the cups live prices while their closing-odds history stays empty forever, and a gate on one flag could not tell that apart from a fully covered competition."
   ],
   "away_goals_rule_abolished_from_season": "2021-2022",
   "competitions": [
@@ -17,6 +18,8 @@
       "stage_formats": {},
       "tier": 1,
       "odds_coverage": true,
+      "live_odds_coverage": true,
+      "benchmark_coverage": true,
       "admits_lower_tiers": false,
       "extra_time": false,
       "neutral_venue_stages": [],
@@ -36,6 +39,8 @@
       "stage_formats": {},
       "tier": 1,
       "odds_coverage": true,
+      "live_odds_coverage": true,
+      "benchmark_coverage": true,
       "admits_lower_tiers": false,
       "extra_time": false,
       "neutral_venue_stages": [],
@@ -55,6 +60,8 @@
       "stage_formats": {},
       "tier": 1,
       "odds_coverage": true,
+      "live_odds_coverage": true,
+      "benchmark_coverage": true,
       "admits_lower_tiers": false,
       "extra_time": false,
       "neutral_venue_stages": [],
@@ -74,6 +81,8 @@
       "stage_formats": {},
       "tier": 1,
       "odds_coverage": true,
+      "live_odds_coverage": true,
+      "benchmark_coverage": true,
       "admits_lower_tiers": false,
       "extra_time": false,
       "neutral_venue_stages": [],
@@ -93,6 +102,8 @@
       "stage_formats": {},
       "tier": 1,
       "odds_coverage": true,
+      "live_odds_coverage": true,
+      "benchmark_coverage": true,
       "admits_lower_tiers": false,
       "extra_time": false,
       "neutral_venue_stages": [],
@@ -103,7 +114,6 @@
         "understat_code": "Ligue_1"
       }
     },
-
     {
       "competition_id": "ENG.FA_CUP",
       "name": "FA Cup",
@@ -113,9 +123,14 @@
       "stage_formats": {},
       "tier": null,
       "odds_coverage": false,
+      "live_odds_coverage": false,
+      "benchmark_coverage": false,
       "admits_lower_tiers": true,
       "extra_time": true,
-      "neutral_venue_stages": ["semi_final", "final"],
+      "neutral_venue_stages": [
+        "semi_final",
+        "final"
+      ],
       "teams": null,
       "sources": {
         "football_data_code": null,
@@ -135,9 +150,13 @@
       },
       "tier": null,
       "odds_coverage": false,
+      "live_odds_coverage": false,
+      "benchmark_coverage": false,
       "admits_lower_tiers": true,
       "extra_time": true,
-      "neutral_venue_stages": ["final"],
+      "neutral_venue_stages": [
+        "final"
+      ],
       "teams": null,
       "sources": {
         "football_data_code": null,
@@ -161,9 +180,13 @@
       "stage_formats": {},
       "tier": null,
       "odds_coverage": false,
+      "live_odds_coverage": false,
+      "benchmark_coverage": false,
       "admits_lower_tiers": true,
       "extra_time": true,
-      "neutral_venue_stages": ["final"],
+      "neutral_venue_stages": [
+        "final"
+      ],
       "teams": 64,
       "sources": {
         "football_data_code": null,
@@ -183,9 +206,13 @@
       },
       "tier": null,
       "odds_coverage": false,
+      "live_odds_coverage": false,
+      "benchmark_coverage": false,
       "admits_lower_tiers": true,
       "extra_time": true,
-      "neutral_venue_stages": ["final"],
+      "neutral_venue_stages": [
+        "final"
+      ],
       "teams": null,
       "sources": {
         "football_data_code": null,
@@ -203,9 +230,13 @@
       "stage_formats": {},
       "tier": null,
       "odds_coverage": false,
+      "live_odds_coverage": false,
+      "benchmark_coverage": false,
       "admits_lower_tiers": true,
       "extra_time": true,
-      "neutral_venue_stages": ["final"],
+      "neutral_venue_stages": [
+        "final"
+      ],
       "teams": null,
       "sources": {
         "football_data_code": null,
@@ -214,7 +245,6 @@
       },
       "format_notes": "Single leg throughout. The lower-tier club hosts, which makes the FR-9 lower-division prior and home advantage interact strongly here."
     },
-
     {
       "competition_id": "UEFA.UCL",
       "name": "UEFA Champions League",
@@ -235,9 +265,13 @@
       },
       "tier": null,
       "odds_coverage": false,
+      "live_odds_coverage": false,
+      "benchmark_coverage": false,
       "admits_lower_tiers": false,
       "extra_time": true,
-      "neutral_venue_stages": ["final"],
+      "neutral_venue_stages": [
+        "final"
+      ],
       "teams": 36,
       "sources": {
         "football_data_code": null,
@@ -274,9 +308,13 @@
       },
       "tier": null,
       "odds_coverage": false,
+      "live_odds_coverage": false,
+      "benchmark_coverage": false,
       "admits_lower_tiers": false,
       "extra_time": true,
-      "neutral_venue_stages": ["final"],
+      "neutral_venue_stages": [
+        "final"
+      ],
       "teams": 36,
       "sources": {
         "football_data_code": null,

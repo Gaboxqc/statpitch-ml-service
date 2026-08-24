@@ -33,6 +33,7 @@ import pandas as pd
 
 from statpitch import paths
 from statpitch.data import openfootball as of
+from statpitch.data import openligadb as old
 from statpitch.data.http import PoliteSession
 
 log = logging.getLogger("build_fixtures")
@@ -63,9 +64,26 @@ def build(
     seasons: list[int], horizon_days: int, lookback_days: int = LOOKBACK_DAYS
 ) -> pd.DataFrame:
     session = PoliteSession()
-    frame = of.build_all_schedules(seasons, session=session)
-    if frame.empty:
-        return frame
+    sources = [of.build_all_schedules(seasons, session=session)]
+
+    # openfootball stopped publishing cup files entirely, so the cup competitions
+    # come from wherever else they can be had. OpenLigaDB is keyless and covers
+    # the DFB-Pokal with confirmed UTC kickoffs and a round label; the other six
+    # cups have no free source and are reported as absent per competition.
+    sources.append(old.build_all_schedules(seasons, session=session))
+
+    populated = [f for f in sources if not f.empty]
+    if not populated:
+        return pd.DataFrame()
+    frame = pd.concat(populated, ignore_index=True)
+
+    # A fixture published by two sources keeps the row with a confirmed kickoff.
+    # Only one source covers any given competition today, so this is a guard
+    # against a future overlap rather than something that currently fires.
+    frame = (
+        frame.sort_values(["fixture_id", "date_confirmed"])
+        .drop_duplicates(subset="fixture_id", keep="last")
+    )
 
     today = pd.Timestamp(datetime.now(UTC).date())
     floor = today - pd.Timedelta(days=lookback_days)
@@ -113,10 +131,25 @@ def main() -> int:
     )
     log.info("by competition: %s", json.dumps(by_competition.to_dict()))
 
+    log.info("by source: %s", json.dumps(frame.groupby("source").size().to_dict()))
+
     missing = sorted(set(of.SCHEDULE_SOURCES) - set(by_competition.index))
     if missing:
-        # Not an error: a cup with no published draw has no fixtures to publish.
-        log.info("no fixtures published yet for: %s", ", ".join(missing))
+        # Two different absences, and conflating them is how a dead upstream
+        # source hides for a fortnight. A cup with no published draw genuinely
+        # has nothing to publish; a cup with no source at all will never publish
+        # anything, however long you wait.
+        sourced = set(of.SCHEDULE_SOURCES) | set(old.COMPETITIONS)
+        undrawn = [c for c in missing if c in sourced]
+        unsourced = [c for c in missing if c not in sourced]
+        if undrawn:
+            log.info("no fixtures published yet for: %s", ", ".join(undrawn))
+        if unsourced:
+            log.warning(
+                "no fixture source at all for: %s — these will stay empty until "
+                "one is added, which is not the same as an undrawn round",
+                ", ".join(unsourced),
+            )
     return 0
 
 

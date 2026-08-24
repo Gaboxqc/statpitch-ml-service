@@ -95,6 +95,7 @@
     "Valencia CF": "Valencia",
     "Venezia FC": "Venezia",
     "VfB Stuttgart": "Stuttgart",
+    "VfL Osnabrück": "Osnabrueck",
     "Villarreal CF": "Villarreal"
   },
   "ambiguous": {
@@ -107,13 +108,15 @@
       "Espanyol"
     ]
   },
-  "unmatched": [],
+  "unmatched": [
+    "Hamburg Eimsbütteler BC"
+  ],
   "stats": {
-    "clubs": 96,
-    "matched": 96,
-    "coverage": 1.0,
-    "automatic": 80,
+    "clubs": 98,
+    "matched": 97,
+    "coverage": 0.9898,
+    "automatic": 81,
     "curated": 16
   },
-  "generated_at": "2026-08-13T10:31:16+00:00"
+  "generated_at": "2026-08-24T23:21:16+00:00"
 }

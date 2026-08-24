@@ -357,11 +357,24 @@ appear in the files it was written for. Stage is not cosmetic: it drives
 `resolve_format` and `is_neutral_venue`, so an unknown stage would price a
 two-legged tie as a single leg.
 
-**What is not.** The FA Cup, Copa del Rey, Coppa Italia, Coupe de France and both
-UEFA competitions have no keyless source. The Odds API covers all of them but
-needs a key, and none is configured — no `.env` exists. `build_fixtures` now
-distinguishes *undrawn* from *unsourced* in its logging, because conflating them
-is how a dead upstream hides for a fortnight.
+**The other six** — FA Cup, Copa del Rey, Coppa Italia, Coupe de France, UCL,
+UEL — have no keyless source. `src/statpitch/data/odds_api.py` covers all six and
+is wired into `build_fixtures`; it needs `STATPITCH_ODDS_API_KEY` and is a no-op
+without one, naming the competitions it would cover.
+
+**Fixtures from it cost nothing.** `/events` is free and returns clubs and
+kick-off, which is all a fixture list needs; only `/odds` is metered. So a key
+buys cup fixtures and predictions at zero credit spend. Nothing calls `/odds`
+automatically — Phase C measured that no live-feed reference clears the
+validation bar, so there is no reason to spend credits yet.
+
+The budget is read from `x-requests-remaining` on each response rather than
+counted locally, because a local counter is wrong the moment the key is used from
+anywhere else, and wrong optimistically is what empties a monthly allowance. A
+cache hit returns no headers and must read as *unknown*, never as zero.
+
+`build_fixtures` now distinguishes *undrawn* from *unsourced* in its logging,
+because conflating them is how a dead upstream hides for a fortnight.
 
 **The bug this phase exposed.** The first cup fixture ever to reach the offline
 prediction path produced **Hamburg Eimsbütteler BC at 52.9% to beat Borussia

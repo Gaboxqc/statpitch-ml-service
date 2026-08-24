@@ -84,7 +84,7 @@ class PoliteSession:
 
     # --- the public API -------------------------------------------------
 
-    def get_bytes(
+    def get_with_headers(
         self,
         url: str,
         *,
@@ -92,8 +92,13 @@ class PoliteSession:
         force: bool = False,
         suffix: str = ".bin",
         max_age: float | None = None,
-    ) -> bytes:
-        """GET `url`, returning the body. Served from disk cache unless `force`.
+    ) -> tuple[bytes, dict[str, str]]:
+        """GET `url`, returning (body, response headers).
+
+        Headers are empty on a cache hit, because there was no response to read
+        them from. A caller that needs them — a metered API reporting its own
+        remaining budget, say — must treat an empty mapping as "unknown" rather
+        than as zero.
 
         `max_age` is how many seconds old a cached copy may be before it is
         re-fetched. The default of None keeps a cached body forever, which is
@@ -127,10 +132,10 @@ class PoliteSession:
 
         if cached:
             log.debug("http: cache hit %s", url)
-            return path.read_bytes()
+            return path.read_bytes(), {}
 
         try:
-            body = self._get_with_retries(url)
+            body, headers = self._get_with_retries(url, with_headers=True)
         except FetchError as exc:
             if path.exists() and not force and "404" not in str(exc):
                 age = (time.time() - path.stat().st_mtime) / 3600
@@ -139,7 +144,7 @@ class PoliteSession:
                     "Anything derived from it is that stale.",
                     url, exc, age,
                 )
-                return path.read_bytes()
+                return path.read_bytes(), {}
             raise
 
         if cache:
@@ -147,6 +152,11 @@ class PoliteSession:
             tmp = path.with_suffix(path.suffix + ".tmp")
             tmp.write_bytes(body)
             tmp.replace(path)
+        return body, headers
+
+    def get_bytes(self, url: str, **kwargs) -> bytes:
+        """GET `url`, returning the body. Served from disk cache unless `force`."""
+        body, _ = self.get_with_headers(url, **kwargs)
         return body
 
     def download_to(self, url: str, dest: Path, *, force: bool = False) -> Path:
@@ -165,7 +175,7 @@ class PoliteSession:
         tmp.replace(dest)
         return dest
 
-    def _get_with_retries(self, url: str) -> bytes:
+    def _get_with_retries(self, url: str, *, with_headers: bool = False):
         assert self._session is not None
         last_exc: Exception | None = None
         for attempt in range(1, self.max_retries + 1):
@@ -180,6 +190,10 @@ class PoliteSession:
                     # have existed, or the season has not started). Do not retry.
                     raise FetchError(f"404 Not Found: {url}")
                 if resp.ok:
+                    if with_headers:
+                        return resp.content, {
+                            str(k).lower(): str(v) for k, v in resp.headers.items()
+                        }
                     return resp.content
                 last_exc = FetchError(f"HTTP {resp.status_code} for {url}")
 

@@ -27,24 +27,27 @@ URL = "https://example.invalid/schedule.txt"
 class FakeTransport:
     """Stands in for `requests.Session`, counting calls."""
 
-    def __init__(self, *, body=b"fresh", status=200, raises=False):
+    def __init__(self, *, body=b"fresh", status=200, raises=False,
+                 response_headers=None):
         self.headers: dict[str, str] = {}
         self.body = body
         self.status = status
         self.raises = raises
+        self.response_headers = response_headers or {}
         self.calls = 0
 
     def get(self, url, timeout=None):
         self.calls += 1
         if self.raises:
             raise requests.RequestException("network down")
-        return FakeResponse(self.body, self.status)
+        return FakeResponse(self.body, self.status, self.response_headers)
 
 
 class FakeResponse:
-    def __init__(self, content, status):
+    def __init__(self, content, status, headers=None):
         self.content = content
         self.status_code = status
+        self.headers = headers or {}
 
     @property
     def ok(self):
@@ -187,3 +190,45 @@ def test_force_does_not_fall_back_to_the_copy_it_was_told_to_bypass(tmp_path):
     transport.raises = True
     with pytest.raises(FetchError):
         session.get_bytes(URL, suffix=".txt", force=True)
+
+
+# --- response headers, for metered APIs that report their own budget ----------
+
+def test_headers_are_returned_alongside_the_body(tmp_path):
+    """A metered API reports its remaining budget in a header, and that number is
+    more trustworthy than anything counted locally."""
+    transport = FakeTransport(response_headers={"X-Requests-Remaining": "487"})
+    session = _session(tmp_path, transport)
+
+    body, headers = session.get_with_headers(URL, suffix=".txt")
+    assert body == b"fresh"
+    assert headers["x-requests-remaining"] == "487"
+
+
+def test_header_names_are_lowercased(tmp_path):
+    """HTTP header names are case-insensitive; callers should not have to guess."""
+    transport = FakeTransport(response_headers={"X-Requests-Used": "13"})
+    session = _session(tmp_path, transport)
+    _, headers = session.get_with_headers(URL, suffix=".txt")
+    assert "x-requests-used" in headers
+
+
+def test_a_cache_hit_reports_no_headers_rather_than_stale_ones(tmp_path):
+    """There was no response to read them from.
+
+    Empty must mean "unknown" to the caller, never "zero remaining" — a budget
+    guard that read a cache hit as an exhausted quota would refuse to work.
+    """
+    transport = FakeTransport(response_headers={"X-Requests-Remaining": "487"})
+    session = _session(tmp_path, transport)
+    session.get_with_headers(URL, suffix=".txt")
+
+    _, headers = session.get_with_headers(URL, suffix=".txt")
+    assert headers == {}
+    assert transport.calls == 1
+
+
+def test_get_bytes_still_returns_only_the_body(tmp_path):
+    """The older signature is unchanged; every existing caller reads bytes."""
+    session = _session(tmp_path, FakeTransport())
+    assert session.get_bytes(URL, suffix=".txt") == b"fresh"

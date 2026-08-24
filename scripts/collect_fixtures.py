@@ -55,6 +55,7 @@ import pandas as pd
 from statpitch import paths
 from statpitch.data import api_football as af
 from statpitch.data import football_data_org as fdo
+from statpitch.env import load_dotenv
 
 log = logging.getLogger("collect")
 
@@ -191,6 +192,9 @@ def main() -> int:
     parser.add_argument("--horizon-days", type=int, default=DEFAULT_HORIZON_DAYS)
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    # Before anything asks whether a credential is configured. `.env.example`
+    # has always told people to put one here; nothing read it until now.
+    load_dotenv()
 
     if not (fdo.configured() or af.configured()):
         log.warning(

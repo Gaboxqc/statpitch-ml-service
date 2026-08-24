@@ -31,6 +31,34 @@ USER_AGENT = (
 )
 
 
+#: Query parameters whose VALUE is a credential. The Odds API authenticates with
+#: `?apiKey=`, so its key would otherwise be written verbatim into every retry
+#: warning, every FetchError message, and from there into GitHub Actions logs and
+#: any log a user pastes into an issue. Header-authenticated sources
+#: (API-Football, football-data.org) never had this exposure; this one does, and
+#: redaction belongs here rather than at each call site that logs a URL.
+SECRET_QUERY_PARAMS = frozenset({"apikey", "api_key", "key", "token", "secret"})
+
+
+def redact_url(url: str) -> str:
+    """A URL safe to log: credential-bearing query values replaced.
+
+    Only the value is masked. The parameter name stays, because "which
+    credential was missing" is exactly what someone reading the log needs.
+    """
+    base, sep, query = str(url).partition("?")
+    if not sep:
+        return base
+    parts = []
+    for item in query.split("&"):
+        name, eq, _ = item.partition("=")
+        if eq and name.strip().lower() in SECRET_QUERY_PARAMS:
+            parts.append(f"{name}=***")
+        else:
+            parts.append(item)
+    return f"{base}?{'&'.join(parts)}"
+
+
 class FetchError(RuntimeError):
     """A download failed after exhausting retries."""
 
@@ -126,12 +154,12 @@ class PoliteSession:
             if age > max_age:
                 log.debug(
                     "http: cached copy of %s is %.1fh old, past the %.1fh limit",
-                    url, age / 3600, max_age / 3600,
+                    redact_url(url), age / 3600, max_age / 3600,
                 )
                 cached = False
 
         if cached:
-            log.debug("http: cache hit %s", url)
+            log.debug("http: cache hit %s", redact_url(url))
             return path.read_bytes(), {}
 
         try:
@@ -142,7 +170,7 @@ class PoliteSession:
                 log.warning(
                     "http: %s unreachable (%s) — serving a cached copy %.1fh old. "
                     "Anything derived from it is that stale.",
-                    url, exc, age,
+                    redact_url(url), exc, age,
                 )
                 return path.read_bytes(), {}
             raise
@@ -188,18 +216,25 @@ class PoliteSession:
                 if resp.status_code == 404:
                     # A missing season/division file is normal (a league may not
                     # have existed, or the season has not started). Do not retry.
-                    raise FetchError(f"404 Not Found: {url}")
+                    raise FetchError(f"404 Not Found: {redact_url(url)}")
                 if resp.ok:
                     if with_headers:
                         return resp.content, {
                             str(k).lower(): str(v) for k, v in resp.headers.items()
                         }
                     return resp.content
-                last_exc = FetchError(f"HTTP {resp.status_code} for {url}")
+                last_exc = FetchError(
+                    f"HTTP {resp.status_code} for {redact_url(url)}"
+                )
 
             if attempt < self.max_retries:
                 delay = self.backoff ** attempt
-                log.warning("http: %s failed (attempt %d), retrying in %.1fs", url, attempt, delay)
+                log.warning(
+                    "http: %s failed (attempt %d), retrying in %.1fs",
+                    redact_url(url), attempt, delay,
+                )
                 time.sleep(delay)
 
-        raise FetchError(f"failed after {self.max_retries} attempts: {url}") from last_exc
+        raise FetchError(
+            f"failed after {self.max_retries} attempts: {redact_url(url)}"
+        ) from last_exc

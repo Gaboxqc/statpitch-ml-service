@@ -48,6 +48,7 @@ import pandas as pd
 
 from statpitch import paths
 from statpitch.data import football_data_live as live
+from statpitch.env import load_dotenv
 
 log = logging.getLogger("collect_live_odds")
 
@@ -142,6 +143,9 @@ def main() -> int:
     )
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    # Before anything asks whether a credential is configured. `.env.example`
+    # has always told people to put one here; nothing read it until now.
+    load_dotenv()
 
     fixtures_path = paths.fixtures_file()
     if not fixtures_path.exists():

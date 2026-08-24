@@ -232,3 +232,57 @@ def test_get_bytes_still_returns_only_the_body(tmp_path):
     """The older signature is unchanged; every existing caller reads bytes."""
     session = _session(tmp_path, FakeTransport())
     assert session.get_bytes(URL, suffix=".txt") == b"fresh"
+
+
+# --- credentials must not reach a log ----------------------------------------
+
+def test_a_credential_query_value_is_redacted():
+    """The Odds API authenticates with `?apiKey=`, so its key would otherwise be
+    written verbatim into every retry warning and from there into CI logs."""
+    from statpitch.data.http import redact_url
+
+    masked = redact_url("https://x.test/v4/e?apiKey=super-secret&regions=eu")
+    assert "super-secret" not in masked
+    assert "apiKey=***" in masked
+    # The parameter NAME survives: which credential was missing is the thing a
+    # reader needs.
+    assert "regions=eu" in masked
+
+
+def test_a_url_without_a_query_is_unchanged():
+    from statpitch.data.http import redact_url
+
+    assert redact_url("https://x.test/a/b") == "https://x.test/a/b"
+
+
+def test_redaction_is_case_insensitive_on_the_parameter_name():
+    from statpitch.data.http import redact_url
+
+    for name in ("apiKey", "APIKEY", "api_key", "token", "secret"):
+        assert "s3cr3t" not in redact_url(f"https://x.test/e?{name}=s3cr3t")
+
+
+def test_a_retry_warning_does_not_leak_the_key(tmp_path, caplog):
+    transport = FakeTransport(raises=True)
+    session = PoliteSession(
+        min_interval=0.0, max_retries=1,
+        cache_root=tmp_path / "cache", _session=transport,
+    )
+    url = "https://x.test/v4/events?apiKey=super-secret"
+    with caplog.at_level("WARNING"), pytest.raises(FetchError) as excinfo:
+        session.get_bytes(url, suffix=".json")
+
+    assert "super-secret" not in caplog.text
+    # And not through the exception message either, which callers log.
+    assert "super-secret" not in str(excinfo.value)
+
+
+def test_a_404_message_does_not_leak_the_key(tmp_path):
+    transport = FakeTransport(status=404)
+    session = PoliteSession(
+        min_interval=0.0, max_retries=1,
+        cache_root=tmp_path / "cache", _session=transport,
+    )
+    with pytest.raises(FetchError) as excinfo:
+        session.get_bytes("https://x.test/e?apiKey=super-secret", suffix=".json")
+    assert "super-secret" not in str(excinfo.value)

@@ -60,6 +60,7 @@ def test_it_runs_every_step_in_order(artifacts, monkeypatch):
     correcting after it would leave predictions filed under provisional ones.
     The corrections belong strictly between the two — including the live-odds
     capture, whose bookmaker-confirmed kickoffs a later rebuild would revert.
+    The card comes last: it needs both the prices and the goal rates.
     """
     artifacts(10, 10)
     calls = _stub_scripts(monkeypatch)
@@ -67,7 +68,7 @@ def test_it_runs_every_step_in_order(artifacts, monkeypatch):
     assert result.ok
     assert [c.split("/")[-1] for c in calls] == [
         "build_fixtures.py", "collect_fixtures.py", "collect_live_odds.py",
-        "precompute_predictions.py",
+        "precompute_predictions.py", "build_card.py",
     ]
 
 
@@ -158,6 +159,7 @@ def test_each_script_sees_only_its_own_argv(artifacts, monkeypatch):
         ["scripts/collect_fixtures.py"],
         ["scripts/collect_live_odds.py"],
         ["scripts/precompute_predictions.py"],
+        ["scripts/build_card.py"],
     ]
     # And the job's own argv is restored, so a caller after it is unaffected.
     assert sys.argv == ["-m statpitch.ops.jobs", "refresh_fixtures"]

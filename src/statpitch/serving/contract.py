@@ -111,6 +111,15 @@ class ReasonCode(StrEnum):
     #: fixtures today", which is an empty list rather than a refusal.
     NO_FIXTURE_SOURCE = "NO_FIXTURE_SOURCE"
 
+    #: The card was computed and every selection graded below the staking cutoff.
+    #: Distinct from DECISION_CONFIG_UNFITTED, which stops the card being sized at
+    #: all, and from NO_CARD_SOURCE, which means it was never built. A consumer
+    #: charting "why is the slate empty" needs the three separated.
+    NO_QUALIFYING_SELECTION = "NO_QUALIFYING_SELECTION"
+
+    #: No card artifact is present. `scripts/build_card.py` has not run.
+    NO_CARD_SOURCE = "NO_CARD_SOURCE"
+
 
 class OpenModel(BaseModel):
     """Base for every response model.

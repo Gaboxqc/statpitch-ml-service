@@ -59,6 +59,7 @@ data/
   decision_config.json Placeholder parameters — nothing here has seen data yet
   processed/           matches_clean, closing_odds, features, elo_ratings_all, …
   processed/live_odds.parquet  Append-only capture log of pre-match prices
+  processed/card.parquet       Graded selections; empty slate, computed reason
 docs/05_Gaps_and_Plan.md  The three blockers on bets, and the plan to clear them
 docs/MODEL_CARD.md     What was measured, what failed, and what it means
 docs/DEPLOYMENT.md     Scheduled jobs, Render blueprint, and the free-tier limits
@@ -87,7 +88,7 @@ Ingest the archive (downloads are cached; re-runs do not re-hit the origin):
 
 ## Current state
 
-Phases 0–9 complete, plus Plan Phase A (live odds). **1,052 tests**, all offline.
+Phases 0–9 complete, plus Plan Phases A–B (live odds, computed card). **1,078 tests**, all offline.
 
 | Layer | Item | Status |
 |---|---|---|
@@ -104,6 +105,7 @@ Phases 0–9 complete, plus Plan Phase A (live odds). **1,052 tests**, all offli
 | 8 | Model card | done |
 | 9 | Scheduled jobs, CI, Render blueprint | done |
 | A | Live pre-match prices, keyed to the fixture list ([plan](docs/05_Gaps_and_Plan.md)) | done |
+| B | Card built from prices + predictions; slate routes read it | done |
 
 Ingested: **64,795 matches** — 59,079 league (1993/94–), 5,716 cup and
 continental — **417,631 tidy odds rows**, **1,274,186 Club Elo rating intervals**

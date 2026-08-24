@@ -123,6 +123,16 @@ class Artifacts:
     #: same run that produced the rates. Serving never computes these: `shap` is
     #: part of the training stack that `requirements-serving.txt` excludes.
     explanations: dict[str, dict[str, list[dict]]] = field(default_factory=dict)
+    #: Graded selections, built offline by `scripts/build_card.py` (Plan §4
+    #: Phase B). None when the artifact is absent, which the API reports as a
+    #: refusal rather than as an empty slate — "never built" and "computed and
+    #: nothing qualified" are different answers, and only one of them is a
+    #: finding. Serving reads this and never derives it: 86 selections per
+    #: fixture plus a joint Kelly solve is far outside NFR-2's budget.
+    card: pd.DataFrame | None = None
+    #: When that card was built, and under which decision config.
+    card_generated_at: str | None = None
+    card_config_version: str | None = None
 
     @classmethod
     def load(cls, data_dir=None) -> Artifacts:
@@ -158,6 +168,14 @@ class Artifacts:
             artifacts.fixtures = frame
             if "generated_at" in frame.columns and not frame.empty:
                 artifacts.fixtures_generated_at = str(frame["generated_at"].iloc[0])
+
+        card_path = root / "card.parquet"
+        if card_path.exists():
+            card = pd.read_parquet(card_path)
+            artifacts.card = card
+            if not card.empty:
+                artifacts.card_generated_at = str(card["generated_at"].iloc[0])
+                artifacts.card_config_version = str(card["config_version"].iloc[0])
 
         predictions_path = root / "predictions.parquet"
         if predictions_path.exists():

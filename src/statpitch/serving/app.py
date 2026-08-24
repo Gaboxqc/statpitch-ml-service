@@ -373,36 +373,23 @@ def predict_tie(
 
 @app.get("/value-bets/today")
 def value_bets_today() -> dict:
-    """v1 shape preserved exactly (Design §7.1).
+    """v1 shape preserved (Design §7.1), now reading the computed card.
 
-    Richer graded output lives at /card/today so this route's contract is
-    untouched and the existing frontend keeps working.
+    `value_bets` lists what is actually recommended — selections that survived
+    grading and were sized — not everything with positive expected value. Under
+    `w`=0 those are not the same set and the difference matters: EV is
+    `price_edge` alone, and Phase A measured that the best-of-N price it comes
+    from is a high-water mark rather than a simultaneously available quote.
+    `positive_expected_value` carries the wider count for anyone who wants it.
+
+    `note` keeps its name; the route predates `/card/today` and a consumer reads
+    it (NFR-13).
     """
-    config = decision_config.config()
-    if config.is_placeholder:
-        note = (
-            "No value bets are flagged. The fitted market-shrinkage weight w is "
-            "0.000, meaning the model adds nothing over the closing line, and the "
-            "decision config is unfitted."
-        )
-        structured = refusal(
-            ReasonCode.SHRINKAGE_WEIGHT_ZERO,
-            note,
-            config_version=config.config_version,
-            **contract.W_MEASUREMENT,
-        )
-    else:
-        note = "No value bets flagged for today."
-        structured = {}
-
-    return {
-        "date": None,
-        "value_bets": [],
-        "note": note,
-        **structured,
-        "disclaimer": DISCLAIMER,
-        **provenance(),
-    }
+    body = _card_response(
+        key="value_bets", placeholder_code=ReasonCode.SHRINKAGE_WEIGHT_ZERO
+    )
+    body["note"] = body.pop("reason")
+    return body
 
 
 @app.get("/simulate/{competition_id}")
@@ -529,35 +516,170 @@ def best_bet(competition_id: str, home: str, away: str) -> dict:
     }
 
 
-@app.get("/card/today")
-def card_today() -> dict:
-    """Graded matchday slate with correlation-aware sizing (FR-27)."""
+#: Returned when the card artifact is absent entirely. Distinct from a computed
+#: card in which nothing qualified — the first is missing work, the second is a
+#: finding, and before Plan §4 Phase B this route could not tell them apart
+#: because it returned a hardcoded empty list either way.
+NO_CARD_REASON = (
+    "No card artifact is loaded. The matchday card is built offline by "
+    "scripts/build_card.py and read at startup, because deriving 86 selections "
+    "per fixture and solving a joint Kelly allocation is far outside NFR-2's "
+    "latency budget."
+)
+
+
+def _card_today() -> tuple[pd.DataFrame | None, str]:
+    """Today's card rows, and the ISO date they were selected for."""
+    artifacts = predictor().artifacts
+    today = datetime.now(UTC).date()
+    if artifacts.card is None:
+        return None, today.isoformat()
+    card = artifacts.card
+    if card.empty:
+        return card, today.isoformat()
+    return card[card["date"].dt.date == today], today.isoformat()
+
+
+def _card_row(record: dict) -> dict:
+    """One graded selection, in the shape a downstream store can key on."""
+    q_fair = record.get("q_fair")
+    return {
+        "fixture_id": record.get("fixture_id"),
+        "competition_id": record.get("competition_id"),
+        "home_team": record.get("home_team"),
+        "away_team": record.get("away_team"),
+        "selection": record.get("selection_key"),
+        "market_family": record.get("market_family"),
+        "line": record.get("line"),
+        "description": record.get("description"),
+        # The two market numbers, kept apart exactly as FR-16a requires: fair
+        # probability is de-vigged from the consensus, the price is the best quote.
+        "q_fair": q_fair,
+        "fair_odds": round(1.0 / q_fair, 4) if q_fair else None,
+        "consensus_odds": record.get("odds_avg"),
+        "odds": record.get("odds_max"),
+        "p_model": record.get("p_model"),
+        "p_used": record.get("p_used"),
+        # Decomposed, and never summed into one "edge" — the whole point of
+        # FR-16a is that a consumer can see which half is doing the work.
+        "edge_prob": record.get("edge_prob"),
+        "expected_value": record.get("expected_value"),
+        "price_edge": record.get("price_edge"),
+        "model_edge": record.get("model_edge"),
+        "grade": record.get("grade"),
+        "composite": record.get("composite"),
+        "stake_fraction": record.get("stake_fraction"),
+        "reasons": [r for r in str(record.get("reasons") or "").split("; ") if r],
+    }
+
+
+def _card_response(*, key: str, placeholder_code: ReasonCode) -> dict:
+    """Shared body for the two slate routes.
+
+    `key` is the list's name, which differs between them and must not change:
+    `/value-bets/today` predates `/card/today` and a consumer already reads
+    `value_bets` (NFR-13).
+
+    `placeholder_code` differs for the same reason. Both codes are true while the
+    config is a placeholder — `w` really is 0.000 *and* the config really is
+    unfitted — and each route has been emitting its own since v1. A consumer
+    branches on that code, so which one a given route returns is as much a part
+    of the contract as the path is, and sharing this helper must not quietly
+    unify them.
+    """
     config = decision_config.config()
+    rows, date = _card_today()
+
+    if rows is None:
+        return {
+            "date": date, key: [], "total_exposure": 0.0,
+            "reason": NO_CARD_REASON,
+            **refusal(
+                ReasonCode.NO_CARD_SOURCE, NO_CARD_REASON,
+                artifact="data/processed/card.parquet", loaded=False,
+            ),
+            "assessed": 0,
+            "disclaimer": DISCLAIMER, **provenance(),
+        }
+
+    records = rows.to_dict("records")
+    staked = [r for r in records if float(r.get("stake_fraction") or 0.0) > 0.0]
+    grades: dict[str, int] = {}
+    for record in records:
+        grade = str(record.get("grade") or "?")
+        grades[grade] = grades.get(grade, 0) + 1
+    positive_ev = sum(1 for r in records if float(r.get("expected_value") or 0.0) > 0)
+
     if config.is_placeholder:
+        # The dominant gate, and it holds whatever today's fixtures look like:
+        # StakingEngine refuses to size from unfitted parameters, so a card can
+        # be computed in full and still stake nothing.
         reason = (
             f"Staking is disabled: decision_config '{config.config_version}' is "
-            f"unfitted (status={config.status})."
+            f"unfitted (status={config.status}). {len(records)} selection(s) were "
+            "assessed and graded; none can be sized until the config is fitted."
         )
         structured = refusal(
-            ReasonCode.DECISION_CONFIG_UNFITTED,
-            reason,
+            placeholder_code, reason,
             config_version=config.config_version,
             status=config.status,
             w_fitted=config.w_fitted,
+            selections_assessed=len(records),
+            **contract.W_MEASUREMENT,
+        )
+    elif records and not staked:
+        reason = (
+            f"{len(records)} selection(s) were assessed and none reached the "
+            f"staking cutoff. Grades: "
+            f"{', '.join(f'{g}={n}' for g, n in sorted(grades.items()))}."
+        )
+        structured = refusal(
+            ReasonCode.NO_QUALIFYING_SELECTION, reason,
+            selections_assessed=len(records),
+            positive_expected_value=positive_ev,
+            grades=grades,
         )
     else:
-        reason = "No qualifying bets on today's slate."
+        # Genuinely nothing on, or genuine recommendations. Neither is a refusal.
+        reason = (
+            "No fixtures priced for today." if not records
+            else f"{len(staked)} selection(s) recommended."
+        )
         structured = {}
 
     return {
-        "date": None,
-        "bets": [],
-        "total_exposure": 0.0,
+        "date": date,
+        key: [_card_row(r) for r in staked],
+        "total_exposure": round(
+            sum(float(r.get("stake_fraction") or 0.0) for r in staked), 6
+        ),
         "reason": reason,
         **structured,
+        # Additive, and the reason this route is now worth calling even when it
+        # recommends nothing: a consumer can see the card was computed, how the
+        # grades fell out, and how much of the apparent value was price rather
+        # than model.
+        "assessed": len(records),
+        "positive_expected_value": positive_ev,
+        "grades": grades,
+        "card_generated_at": predictor().artifacts.card_generated_at,
         "disclaimer": DISCLAIMER,
         **provenance(),
     }
+
+
+@app.get("/card/today")
+def card_today() -> dict:
+    """Graded matchday slate with correlation-aware sizing (FR-27).
+
+    Reads the precomputed card rather than returning a fixed empty list. The
+    slate may still be empty — with `w`=0.000 and an unfitted config it will be —
+    but the response now distinguishes *computed and nothing qualified* from
+    *never built*, and carries the assessment behind either.
+    """
+    return _card_response(
+        key="bets", placeholder_code=ReasonCode.DECISION_CONFIG_UNFITTED
+    )
 
 
 @app.get("/clv/report")

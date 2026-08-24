@@ -213,3 +213,17 @@ def test_health_reports_not_ready_instead_of_raising(client, monkeypatch):
     assert body["ready"] is False
     assert body["status"] == "starting"
     assert "artifacts not on disk" in body["error"]
+
+
+def test_the_two_slate_routes_keep_their_own_refusal_codes(client):
+    """Sharing a helper must not unify two codes a consumer branches on.
+
+    Both are true while the config is a placeholder — `w` is 0.000 *and* the
+    config is unfitted — and each route has emitted its own since v1. Which one
+    a route returns is as much a part of the contract as its path.
+    """
+    card = client.get("/card/today").json()["refusal"]["reason_code"]
+    value = client.get("/value-bets/today").json()["refusal"]["reason_code"]
+    assert card == "DECISION_CONFIG_UNFITTED"
+    assert value == "SHRINKAGE_WEIGHT_ZERO"
+    assert card != value

@@ -286,3 +286,53 @@ def test_bankroll_simulation_refuses_an_empty_track_record(client):
 
 def test_openapi_docs_are_served(client):
     assert client.get("/openapi.json").status_code == 200
+
+
+# --- the card routes now read a computed artifact (Plan §4 Phase B) -----------
+
+def test_card_today_reports_that_it_computed_something(client):
+    """An empty slate must be distinguishable from unwritten code.
+
+    Before Phase B this route returned a hardcoded `[]` whatever the state of the
+    world, so "nothing qualified" and "nobody wired it up" were the same JSON.
+    """
+    body = client.get("/card/today").json()
+    assert "assessed" in body
+    assert "grades" in body
+    assert body["refusal"]["reason_code"] in {
+        "DECISION_CONFIG_UNFITTED", "NO_QUALIFYING_SELECTION", "NO_CARD_SOURCE",
+    }
+
+
+def test_card_today_keeps_its_v1_keys(client):
+    """NFR-13: `bets`, `total_exposure` and `reason` are already stored downstream."""
+    body = client.get("/card/today").json()
+    for key in ("date", "bets", "total_exposure", "reason", "disclaimer"):
+        assert key in body
+    assert isinstance(body["bets"], list)
+
+
+def test_value_bets_today_keeps_its_v1_keys(client):
+    body = client.get("/value-bets/today").json()
+    for key in ("date", "value_bets", "note", "disclaimer"):
+        assert key in body
+    # `reason` is the card route's name for it; this route must not grow one in
+    # place of `note`, which a v1 consumer reads.
+    assert "reason" not in body
+
+
+def test_the_two_slate_routes_agree_on_what_is_recommended(client):
+    card = client.get("/card/today").json()
+    value = client.get("/value-bets/today").json()
+    assert card["bets"] == value["value_bets"]
+    assert card["assessed"] == value["assessed"]
+
+
+def test_a_staking_refusal_carries_the_measurement_behind_it(client):
+    """The project's rule: a refusal cites the number that caused it."""
+    body = client.get("/card/today").json()
+    if body["refusal"]["reason_code"] == "DECISION_CONFIG_UNFITTED":
+        measurement = body["refusal"]["measurement"]
+        assert measurement["w"] == 0.0
+        assert measurement["n_validation_matches"] == 5306
+        assert "selections_assessed" in measurement

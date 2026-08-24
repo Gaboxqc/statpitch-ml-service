@@ -500,12 +500,26 @@ def attach_fixture_ids(
     club pair takes whatever the fixture list already decided.
 
     A priced fixture that is not in the list is dropped and counted, not
-    invented — most often a division inside the taxonomy whose openfootball
-    schedule has not been published.
+    invented. Two very different things cause that, and they are counted apart:
+
+    `already_played`
+        The feed prices a rolling window that includes matches which have
+        already kicked off, while the fixture list holds only unplayed
+        fixtures. On any matchday this is most of the difference — 20 of 38
+        priced fixtures the first time this ran — and it is not a fault.
+
+    `unlisted`
+        A fixture inside the list's own horizon that still did not match: an
+        unaliased club, or a schedule openfootball has not published. This is
+        the number worth alarming on.
+
+    Conflating the two makes the coverage floor fire every matchday, which is
+    how a real gap ends up buried in a warning nobody trusts.
     """
     if odds.empty:
         return odds.assign(fixture_id=pd.Series(dtype="string")), {
-            "priced": 0, "keyed": 0, "unlisted": 0, "unmapped_club": 0,
+            "priced": 0, "keyed": 0, "unlisted": 0, "already_played": 0,
+            "unmapped_club": 0, "listable": 0,
         }
 
     work = odds.copy()
@@ -533,7 +547,19 @@ def attach_fixture_ids(
         how="left",
     )
     keyed = joined["fixture_id"].notna()
-    unlisted = int((~keyed).sum())
+
+    # The list contains only unplayed fixtures, so its earliest row IS its lower
+    # horizon: anything priced before that cannot be matched by construction, no
+    # matter how good the club map is. Derived from the list rather than from a
+    # clock so the split is reproducible from the two artifacts alone — a
+    # re-run tomorrow classifies today's capture the same way.
+    horizon = fixtures["date"].min() if not fixtures.empty else None
+    before_horizon = (
+        joined["date"] < horizon if horizon is not None
+        else pd.Series(False, index=joined.index)
+    )
+    already_played = int((~keyed & before_horizon).sum())
+    unlisted = int((~keyed & ~before_horizon).sum())
     joined = joined[keyed]
 
     # The odds date is confirmed by the bookmakers; the fixture list's may still
@@ -547,7 +573,10 @@ def attach_fixture_ids(
         "priced": int(len(odds)),
         "keyed": int(len(joined)),
         "unlisted": unlisted,
+        "already_played": already_played,
         "unmapped_club": unmapped_club,
+        # The denominator the coverage floor is meaningful against.
+        "listable": int(len(odds)) - already_played,
     }
     columns = [*TIDY_COLUMNS, "fixture_id", "of_home", "of_away", "date_shift_days"]
     return joined[columns].reset_index(drop=True), stats

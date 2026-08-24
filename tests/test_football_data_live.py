@@ -313,8 +313,49 @@ def test_prices_for_an_unlisted_fixture_are_dropped_and_counted(parsed, fixtures
     }
     keyed, stats = live.attach_fixture_ids(parsed, listed, mapping)
     assert set(keyed["competition_id"]) == {"ENG.PL"}
-    assert stats["unmapped_club"] + stats["unlisted"] == stats["priced"] - stats["keyed"]
+    dropped = stats["unmapped_club"] + stats["unlisted"] + stats["already_played"]
+    assert dropped == stats["priced"] - stats["keyed"]
     assert stats["keyed"] < stats["priced"]
+
+
+def test_an_already_played_fixture_is_not_counted_as_a_coverage_gap(parsed, fixtures):
+    """The feed's window is rolling; the fixture list holds only unplayed games.
+
+    Counting the overlap as "unlisted" made the coverage floor fire at 47.4% on a
+    healthy matchday capture, because openfootball had published results for the
+    earlier half of the round.
+    """
+    # The club map is built against the full list, so a drop below is
+    # attributable to the horizon rather than to an unmapped name.
+    mapping = {
+        competition: resolution.mapping
+        for competition, resolution in live.resolve_all(parsed, fixtures).items()
+    }
+    # A list whose horizon starts after the Arsenal fixture on the 21st.
+    later = fixtures[fixtures["date"] >= pd.Timestamp("2026-08-23")]
+    _, stats = live.attach_fixture_ids(parsed, later, mapping)
+
+    assert stats["already_played"] > 0
+    assert stats["unlisted"] == 0
+    # The floor's denominator excludes them, so coverage reads as complete.
+    assert stats["keyed"] == stats["listable"]
+
+
+def test_a_genuine_gap_inside_the_horizon_still_counts_as_unlisted(parsed, fixtures):
+    """An unaliased club must not be excused by the already-played carve-out."""
+    mapping = {
+        competition: resolution.mapping
+        for competition, resolution in live.resolve_all(parsed, fixtures).items()
+    }
+    # Keep the EARLIEST fixture, so the horizon covers everything priced, but
+    # drop the Espanyol row so its prices have nothing to key onto. The clubs
+    # still map, so the only possible attribution is `unlisted`.
+    partial = fixtures[fixtures["competition_id"] == "ENG.PL"]
+    _, stats = live.attach_fixture_ids(parsed, partial, mapping)
+
+    assert stats["already_played"] == 0
+    assert stats["unlisted"] > 0
+    assert stats["keyed"] < stats["listable"]
 
 
 # --- append-only discipline ---------------------------------------------------

@@ -51,9 +51,14 @@ from statpitch.data import football_data_live as live
 
 log = logging.getLogger("collect_live_odds")
 
-#: Below this share of priced fixtures resolving to a fixture_id, the run still
-#: writes but says loudly that the club map has fallen behind — a promoted club
-#: nobody has aliased looks exactly like a quiet 5% coverage drop.
+#: Below this share of *listable* priced rows resolving to a fixture_id, the run
+#: still writes but says loudly that the club map has fallen behind — a promoted
+#: club nobody has aliased looks exactly like a quiet 5% coverage drop.
+#:
+#: Listable excludes already-played fixtures. Measured against every priced row
+#: instead, this floor fired at 47.4% on a perfectly healthy matchday capture,
+#: because the feed prices a rolling window that still contains matches played
+#: hours earlier. A guard that cries wolf every Saturday is worse than none.
 MIN_KEYED_SHARE = 0.90
 
 
@@ -184,17 +189,25 @@ def main() -> int:
 
     mapping = {competition: r.mapping for competition, r in resolutions.items()}
     keyed, stats = live.attach_fixture_ids(odds, fixtures, mapping)
-    share = stats["keyed"] / stats["priced"] if stats["priced"] else 0.0
+    share = stats["keyed"] / stats["listable"] if stats["listable"] else 0.0
     log.info(
-        "keyed %d/%d selection rows (%.1f%%) — %d dropped for an unmapped club, "
-        "%d for a fixture not in the list",
-        stats["keyed"], stats["priced"], share * 100,
-        stats["unmapped_club"], stats["unlisted"],
+        "keyed %d/%d listable selection rows (%.1f%%) — %d already played, "
+        "%d dropped for an unmapped club, %d for a fixture not in the list",
+        stats["keyed"], stats["listable"], share * 100,
+        stats["already_played"], stats["unmapped_club"], stats["unlisted"],
     )
+    if stats["already_played"]:
+        log.info(
+            "%d row(s) priced a match that has already kicked off. The feed's "
+            "window is rolling and the fixture list holds only unplayed "
+            "fixtures, so this is expected on a matchday, not a gap.",
+            stats["already_played"],
+        )
     if share < MIN_KEYED_SHARE:
         log.warning(
-            "only %.1f%% of priced rows keyed, below the %.0f%% floor — the club "
-            "map or the fixture list is behind the season",
+            "only %.1f%% of LISTABLE priced rows keyed, below the %.0f%% floor — "
+            "the club map or the fixture list is behind the season. Already-played "
+            "fixtures are excluded from this number, so it is a real gap.",
             share * 100, MIN_KEYED_SHARE * 100,
         )
 

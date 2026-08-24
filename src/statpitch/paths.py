@@ -84,6 +84,16 @@ def live_odds_file() -> Path:
     return processed_dir() / "live_odds.parquet"
 
 
+def card_file() -> Path:
+    """Today's graded selections, built offline by `scripts/build_card.py`.
+
+    Serving reads this and never computes it: deriving 86 selections per fixture
+    and solving a joint Kelly allocation is far outside NFR-2's ~200 ms budget,
+    and the market engine has no business on a request path.
+    """
+    return processed_dir() / "card.parquet"
+
+
 def ensure_dirs() -> None:
     for d in (raw_dir(), cache_dir(), processed_dir(), models_dir()):
         d.mkdir(parents=True, exist_ok=True)

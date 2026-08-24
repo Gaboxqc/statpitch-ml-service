@@ -190,7 +190,41 @@ The original plan for this phase follows.
   quoted price, which is the correct behaviour and needs no change.
 - Fold confirmed kickoff times from the same fetch into `date_confirmed`.
 
-### Phase B — make the card compute
+### Phase B — make the card compute — **done**
+
+Delivered: `src/statpitch/decision/card.py`, `scripts/build_card.py`,
+`tests/test_card.py` (18 tests), `paths.card_file()`, plus the serving and
+`flag_card` rewiring. First build: **126 selections over 18 fixtures**.
+
+The measurement that matters, and it corrects §1 of this document:
+
+> Every selection grades **F**. Not C or D as estimated above — F.
+>
+> With `w`=0, `edge_prob` is 0, so `c_edge` is 0 and contributes nothing against
+> its 0.30 weight. The remaining sub-scores are not the 1.0 the earlier estimate
+> implicitly assumed: `c_robust`, `c_calib` and `c_support` all return their
+> 0.5 "unknown" default because no ensemble dispersion, calibration history or
+> realised CLV is wired in, and `c_market` reads **0.269** on a normal 6.5%
+> consensus overround. The composite is **0.3038**, against a D cutoff of 0.35.
+>
+> So nothing can grade above F while `w`=0 — regardless of price edge, and
+> regardless of what Phase C does to `e_peak`. Repointing `c_edge` at
+> `price_advantage` is necessary but **not sufficient**: `c_market` and the three
+> 0.5 defaults have to be addressed too, or the ceiling stays below the cutoff.
+
+Of 126 selections, 104 were F'd for non-positive EV, and the 22 with positive EV
+were all price-driven — `model_edge` is exactly 0.0 everywhere, as arithmetic
+rather than as prose. Two fixtures were flagged with `max_book_sum` below 1.0.
+
+One deviation from the plan below: **`/best-bet` still refuses.** The plan said
+it should read the card, but that was written before re-reading MODEL_CARD §4 —
+best-bet-per-match selection measured at −2.12% ROI against +0.13% for
+committing to one market, a finding independent of `w`. Wiring it to the card
+would contradict a measurement, so it keeps its `MAX_EDGE_SELECTION_HARMFUL`
+refusal.
+
+The original plan for this phase follows.
+
 
 - `scripts/build_card.py`: fixtures × predictions × live_odds →
   `dixon_coles` matrix (with the per-competition `rho` already carried in

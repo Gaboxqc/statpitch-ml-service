@@ -19,9 +19,9 @@ here uses the ACTUAL run time, never the nominal cron time, because the CLV
 measurement is "Friday-to-close" and a snapshot mislabelled by six hours is worse
 than a missing one. Delay beyond a threshold is reported rather than swallowed.
 
-**Free of the API budget.** Neither job calls API-Football. There is no live odds
-source in this stack (Requirements §9), so a scheduled job that polls would spend
-the 100/day allowance on nothing. If one is added later, it goes through
+**Free of the API budget.** No job here calls API-Football. Live prices come from
+football-data.co.uk, which is free and keyless, so nothing on this path spends
+the 100/day allowance. Anything that later needs it goes through
 `statpitch.quota`.
 """
 
@@ -112,13 +112,19 @@ def flag_card(
 ) -> JobResult:
     """Flag today's graded recommendations into the ledger (FR-25, FR-29).
 
-    With the decision config unfitted this flags nothing, and that is the correct
-    behaviour rather than a stub: `w` fits at 0.000, so there is no measured edge
-    to stake, and `StakingEngine` refuses to size from placeholder parameters.
+    Reads the card `scripts/build_card.py` produced. With the decision config
+    unfitted this flags nothing, and that is the correct behaviour rather than a
+    stub: `w` fits at 0.000, so there is no measured edge to stake, and
+    `StakingEngine` refuses to size from placeholder parameters.
 
     The job still runs, still records that it ran, and still says why it flagged
     nothing. A scheduled job that silently produces an empty result is
     indistinguishable from one that is broken.
+
+    Until Plan §4 Phase B there was a third possibility this could not report:
+    that the machinery had never been connected at all. The fitted branch used to
+    return "no fixture source is wired in", which is neither a refusal nor a
+    result. It now reads a real card or says the card is missing.
     """
     ran_at = _now(now)
     config = config or decision_config.config()
@@ -144,15 +150,65 @@ def flag_card(
     # it is unrecoverable after the fact: an append-only ledger cannot un-append.
     ledger = clv.BetLedger(ledger_path or paths.bet_ledger_file())
     already = _flagged_keys(ledger, on=ran_at.date())
-    result.counts = {
-        "considered": 0,
-        "flagged": 0,
-        "skipped_duplicate": len(already),
-    }
-    result.reason = (
-        "config is fitted but no fixture source is wired in; see Requirements §9 "
-        "on the absence of a live odds feed."
+
+    card_path = paths.card_file()
+    if not card_path.exists():
+        result.counts = {"considered": 0, "flagged": 0, "skipped_duplicate": len(already)}
+        result.reason = (
+            f"no card at {card_path.name} — run scripts/build_card.py, which "
+            "refresh_fixtures does as its last step."
+        )
+        return result
+
+    card = pd.read_parquet(card_path)
+    today = ran_at.date()
+    if not card.empty:
+        card = card[card["date"].dt.date == today]
+    staked = (
+        card[card["stake_fraction"] > 0.0] if not card.empty else card
     )
+
+    flagged = 0
+    skipped = 0
+    for record in staked.to_dict("records"):
+        key = (str(record["fixture_id"]), str(record["selection_key"]))
+        if key in already:
+            skipped += 1
+            continue
+        ledger.append(
+            clv.flag(
+                fixture_id=str(record["fixture_id"]),
+                competition_id=str(record["competition_id"]),
+                selection=str(record["selection_key"]),
+                market_family=str(record["market_family"]),
+                odds_taken=float(record["odds_max"]),
+                # The price came from the best-of-N column while the fair
+                # probability came from the consensus (FR-16a), so the ledger
+                # records the source that actually quoted it.
+                price_source=clv.PriceSource.CONSENSUS,
+                p_model=float(record["p_used"]),
+                q_fair=float(record["q_fair"]),
+                grade=str(record["grade"]),
+                stake_fraction=float(record["stake_fraction"]),
+                kelly_lambda=config.staking.kelly_lambda,
+                w=float(config.w or 0.0),
+                config_version=config.config_version,
+                now=ran_at,
+            )
+        )
+        already.add(key)
+        flagged += 1
+
+    result.counts = {
+        "considered": int(len(card)),
+        "flagged": flagged,
+        "skipped_duplicate": skipped,
+    }
+    if flagged == 0:
+        result.reason = (
+            f"{len(card)} selection(s) on today's card, none sized above zero — "
+            "nothing to flag."
+        )
     return result
 
 
@@ -315,6 +371,7 @@ def refresh_fixtures(
         ("scripts/collect_fixtures.py", "date correction"),
         ("scripts/collect_live_odds.py", "live odds"),
         ("scripts/precompute_predictions.py", "predictions"),
+        ("scripts/build_card.py", "card"),
     ):
         try:
             # `run_path` executes in THIS process, so a script reading sys.argv

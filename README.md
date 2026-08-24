@@ -31,6 +31,7 @@ src/statpitch/
     club_elo.py        As-of-date strength ratings, reported name reconciliation
     openfootball.py    Domestic cups + UCL/UEL, with ET and shootout columns kept apart
     openligadb.py      Keyless DFB-Pokal fixtures, with the round parsed
+    odds_api.py        The six cups nothing free reaches; needs a key, /events is free
     understat.py       Shot-based xG; club map derived from fixture identity
   features/
     build.py           Single chronological pass — the leakage guarantee (NFR-10)
@@ -89,7 +90,7 @@ Ingest the archive (downloads are cached; re-runs do not re-hit the origin):
 
 ## Current state
 
-Phases 0–9 complete, plus Plan Phases A–C and part of D. **1,140 tests**, all offline.
+Phases 0–9 complete, plus Plan Phases A–D. **1,168 tests**, all offline.
 
 | Layer | Item | Status |
 |---|---|---|
@@ -108,7 +109,7 @@ Phases 0–9 complete, plus Plan Phases A–C and part of D. **1,140 tests**, al
 | A | Live pre-match prices, keyed to the fixture list ([plan](docs/05_Gaps_and_Plan.md)) | done |
 | B | Card built from prices + predictions; slate routes read it | done |
 | C | Sharp-reference study — **no tradeable rule clears the 2-season bar** | done |
-| D | Cup fixtures via keyless OpenLigaDB (1 of 7); odds-coverage split | partial |
+| D | Cup fixtures: keyless OpenLigaDB + Odds API client for the other six | done |
 
 Ingested: **64,795 matches** — 59,079 league (1993/94–), 5,716 cup and
 continental — **417,631 tidy odds rows**, **1,274,186 Club Elo rating intervals**

@@ -32,6 +32,7 @@ from datetime import UTC, datetime
 import pandas as pd
 
 from statpitch import paths
+from statpitch.data import odds_api
 from statpitch.data import openfootball as of
 from statpitch.data import openligadb as old
 from statpitch.data.http import PoliteSession
@@ -71,6 +72,12 @@ def build(
     # the DFB-Pokal with confirmed UTC kickoffs and a round label; the other six
     # cups have no free source and are reported as absent per competition.
     sources.append(old.build_all_schedules(seasons, session=session))
+
+    # The six cups nothing free can reach. Costs no credits — the Odds API's
+    # /events endpoint is free and only /odds is metered — but it needs a key,
+    # and without one this returns nothing and says which competitions that
+    # leaves uncovered.
+    sources.append(odds_api.build_all_schedules(session=session))
 
     populated = [f for f in sources if not f.empty]
     if not populated:

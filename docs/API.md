@@ -651,3 +651,31 @@ Existing fields are never renamed, removed or retyped. New capability arrives as
 new keys or new routes, so **ignore unknown fields** rather than validating
 strictly against a closed schema. `schema_version` bumps only on a breaking change;
 it is `1` today.
+
+## `/card/assessments`
+
+Every assessed selection — priced, de-vigged and graded — whether or not it is
+recommended.
+
+This exists because the analysis was invisible. `/card/today` returns only
+selections that were *staked*, so with staking gated off it returned an empty
+list and a count: a consumer could not see the odds, the fair probability, the
+edge decomposition or the grade, all of which are computed for every selection
+and written to `card.parquet` on every run.
+
+An empty slate is the correct recommendation. It is not a reason to hide the work
+behind it — "126 selections assessed and none qualified" is only checkable if the
+126 are available.
+
+```
+GET /card/assessments?date=2026-08-24&competition_id=ENG.PL&graded=F&limit=200
+```
+
+Each row carries the two market numbers FR-16a keeps apart — `consensus_odds`
+(what the fair probability is derived from) and `odds` (the best quote, what
+would actually be taken) — alongside `fair_odds`, `p_model`, `p_used`, the
+`price_edge` / `model_edge` split, the grade and its reasons.
+
+**Nothing here is a recommendation.** `stake_fraction` is on every row and says
+so; under the current configuration it is `0.0` everywhere. See `/card/today`
+for the refusal and the measurement behind it.

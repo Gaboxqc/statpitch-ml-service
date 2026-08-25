@@ -336,3 +336,64 @@ def test_a_staking_refusal_carries_the_measurement_behind_it(client):
         assert measurement["w"] == 0.0
         assert measurement["n_validation_matches"] == 5306
         assert "selections_assessed" in measurement
+
+
+# --- the assessed card is visible even when nothing is recommended ------------
+
+def test_assessments_return_the_analysis_behind_an_empty_slate(client):
+    """An empty slate is the right recommendation; it is not a reason to hide
+    the work. "126 assessed, none qualified" is only checkable if the 126 are
+    available."""
+    body = client.get("/card/assessments?limit=5").json()
+    if body.get("total", 0) == 0:
+        pytest.skip("no card built in this checkout")
+    row = body["assessments"][0]
+    for field in ("odds", "consensus_odds", "fair_odds", "q_fair", "p_model",
+                  "price_edge", "model_edge", "grade", "stake_fraction"):
+        assert field in row, field
+
+
+def test_assessments_keep_the_two_market_numbers_apart(client):
+    """FR-16a: fair probability comes from the consensus, the bet from the best
+    quote, and a consumer must be able to see both."""
+    body = client.get("/card/assessments?limit=50").json()
+    if body.get("total", 0) == 0:
+        pytest.skip("no card built in this checkout")
+    for row in body["assessments"]:
+        if row["consensus_odds"] and row["odds"]:
+            assert row["odds"] >= row["consensus_odds"] - 1e-9
+
+
+def test_assessments_say_they_are_not_recommendations(client):
+    body = client.get("/card/assessments?limit=1").json()
+    assert "not recommendations" in body["note"]
+    assert body["disclaimer"]
+
+
+def test_assessments_can_be_filtered_by_grade(client):
+    body = client.get("/card/assessments?graded=F&limit=5").json()
+    if body.get("total", 0) == 0:
+        pytest.skip("no card built in this checkout")
+    assert all(r["grade"] == "F" for r in body["assessments"])
+
+
+def test_an_unparseable_date_is_a_400_not_a_silent_empty_list(client):
+    assert client.get("/card/assessments?date=not-a-date").status_code == 400
+
+
+def test_an_empty_slate_says_which_kind_of_empty_it_is(client):
+    """Four different states used to collapse into `assessed: 0`.
+
+    Never built, built and all played, no football today, or fixtures today with
+    no price — the last is the common one and the least obvious, because the
+    price feed publishes one matchday block at a time rather than a rolling week.
+    """
+    body = client.get("/card/today").json()
+    if body["bets"]:
+        pytest.skip("something is staked in this checkout")
+    cause = body["empty_because"]["cause"]
+    assert cause in {
+        "no_card_artifact", "card_is_empty", "assessed_but_nothing_qualified",
+        "priced_fixtures_all_played", "no_fixtures_today",
+        "fixtures_today_carry_no_price",
+    }

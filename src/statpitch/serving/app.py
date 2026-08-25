@@ -554,6 +554,58 @@ def _card_today() -> tuple[pd.DataFrame | None, str]:
     return card[card["date"].dt.date == today], today.isoformat()
 
 
+def _why_the_card_is_empty(card: pd.DataFrame | None) -> dict[str, Any]:
+    """Which of several different things "nothing today" actually means.
+
+    `assessed: 0` conflated four states, and they want different responses:
+    the card was never built, it was built and every fixture on it has since
+    been played, there is genuinely no football today, or today's fixtures exist
+    but carry no price.
+
+    The last one is the common case and the least obvious. football-data.co.uk's
+    `fixtures.csv` is **not** a rolling week-ahead feed — it publishes one
+    matchday block and then holds it, already-played, until the next block goes
+    up. So on a midweek day the price feed can be entirely stale while the
+    fixture list is perfectly current.
+    """
+    today = datetime.now(UTC).date()
+    detail: dict[str, Any] = {"card_dates": [], "fixtures_today": 0}
+
+    fixtures = predictor().artifacts.fixtures
+    if fixtures is not None and not fixtures.empty:
+        detail["fixtures_today"] = int((fixtures["date"].dt.date == today).sum())
+
+    if card is None:
+        detail["cause"] = "no_card_artifact"
+        return detail
+    if card.empty:
+        detail["cause"] = "card_is_empty"
+        return detail
+
+    dates = sorted({d.date() for d in card["date"]})
+    detail["card_dates"] = [d.isoformat() for d in dates]
+    detail["card_covers_today"] = today in dates
+
+    if today in dates:
+        detail["cause"] = "assessed_but_nothing_qualified"
+    elif dates and max(dates) < today:
+        detail["cause"] = "priced_fixtures_all_played"
+        detail["note"] = (
+            "Every fixture the card was built from has been played. The price "
+            "feed publishes one matchday block at a time rather than a rolling "
+            "week, so between blocks there is nothing upcoming to price."
+        )
+    elif detail["fixtures_today"] == 0:
+        detail["cause"] = "no_fixtures_today"
+    else:
+        detail["cause"] = "fixtures_today_carry_no_price"
+        detail["note"] = (
+            f"{detail['fixtures_today']} fixture(s) today, none of them priced. "
+            "The price feed has not published this matchday block yet."
+        )
+    return detail
+
+
 def _card_row(record: dict) -> dict:
     """One graded selection, in the shape a downstream store can key on."""
     q_fair = record.get("q_fair")
@@ -666,6 +718,12 @@ def _card_response(*, key: str, placeholder_code: ReasonCode) -> dict:
         )
         structured = {}
 
+    body_extra: dict[str, Any] = {}
+    if not staked:
+        body_extra["empty_because"] = _why_the_card_is_empty(
+            predictor().artifacts.card
+        )
+
     return {
         "date": date,
         key: [_card_row(r) for r in staked],
@@ -682,6 +740,7 @@ def _card_response(*, key: str, placeholder_code: ReasonCode) -> dict:
         "positive_expected_value": positive_ev,
         "grades": grades,
         "card_generated_at": predictor().artifacts.card_generated_at,
+        **body_extra,
         "disclaimer": DISCLAIMER,
         **provenance(),
     }
@@ -699,6 +758,91 @@ def card_today() -> dict:
     return _card_response(
         key="bets", placeholder_code=ReasonCode.DECISION_CONFIG_UNFITTED
     )
+
+
+@app.get("/card/assessments")
+def card_assessments(
+    date: str | None = Query(
+        None, description="ISO date. Defaults to every date the card covers."
+    ),
+    competition_id: str | None = None,
+    graded: str | None = Query(
+        None, description="Filter to one grade, e.g. `A`. Default returns all."
+    ),
+    limit: int = Query(200, ge=1, le=2000),
+    offset: int = Query(0, ge=0),
+) -> dict:
+    """Every assessed selection, priced and graded — recommendation or not.
+
+    This exists because the analysis was invisible. `/card/today` returns only
+    selections that were *staked*, so with staking gated off it returned an empty
+    list and a count, and a consumer could not see the odds, the de-vigged fair
+    probability, the edge decomposition or the grade — all of which are computed
+    for every selection and written to `card.parquet` on every run.
+
+    An empty slate is the correct recommendation. It is not a reason to hide the
+    work behind it, and "we assessed 126 selections and none qualified" is only
+    checkable if the 126 are available.
+
+    **Nothing here is a recommendation.** `stake_fraction` is on every row and is
+    the field that says so; under the current configuration it is 0.0 everywhere.
+    The prices are real, the fair probabilities are real, and the grades are real
+    — the reason not to bet them is in `/card/today`'s refusal, with the
+    measurement behind it.
+    """
+    artifacts = predictor().artifacts
+    if artifacts.card is None:
+        return {
+            "assessments": [], "count": 0, "total": 0,
+            "reason": NO_CARD_REASON,
+            **refusal(
+                ReasonCode.NO_CARD_SOURCE, NO_CARD_REASON,
+                artifact="data/processed/card.parquet", loaded=False,
+            ),
+            "disclaimer": DISCLAIMER, **provenance(),
+        }
+
+    frame = artifacts.card
+    if date is not None:
+        try:
+            wanted = pd.Timestamp(date).date()
+        except ValueError:
+            raise HTTPException(
+                status_code=400, detail=f"unparseable date '{date}'"
+            ) from None
+        frame = frame[frame["date"].dt.date == wanted]
+    if competition_id is not None:
+        _competition_or_404(competition_id)
+        frame = frame[frame["competition_id"] == competition_id]
+    if graded is not None:
+        frame = frame[frame["grade"].str.upper() == graded.upper()]
+
+    total = int(len(frame))
+    window = frame.sort_values(
+        ["date", "competition_id", "fixture_id", "selection_key"]
+    ).iloc[offset : offset + limit]
+    rows = [_card_row(record) for record in window.to_dict("records")]
+
+    return {
+        "assessments": rows,
+        "count": len(rows),
+        "total": total,
+        "dates_covered": sorted({str(d.date()) for d in frame["date"]}),
+        "grades": {
+            str(g): int(n) for g, n in frame["grade"].value_counts().items()
+        },
+        # Said in the payload rather than only in the docs, because this route
+        # returns priced selections and a reader could otherwise mistake the list
+        # for a slate.
+        "note": (
+            "Assessed selections, not recommendations. stake_fraction is 0.0 on "
+            "every row while staking is gated; see /card/today for the refusal "
+            "and the measurement behind it."
+        ),
+        "card_generated_at": artifacts.card_generated_at,
+        "disclaimer": DISCLAIMER,
+        **provenance(),
+    }
 
 
 @app.get("/clv/report")

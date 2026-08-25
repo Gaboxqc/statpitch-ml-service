@@ -36,6 +36,7 @@ from statpitch.data import odds_api
 from statpitch.data import openfootball as of
 from statpitch.data import openligadb as old
 from statpitch.data.http import PoliteSession
+from statpitch.env import load_dotenv
 
 log = logging.getLogger("build_fixtures")
 
@@ -110,6 +111,9 @@ def main() -> int:
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    # Before anything asks whether a credential is configured. `.env.example`
+    # has always told people to put one here; nothing read it until now.
+    load_dotenv()
 
     if args.seasons is None:
         # A season is named for the year it starts, and starts in July.

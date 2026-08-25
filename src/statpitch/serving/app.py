@@ -34,7 +34,7 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pandas as pd
@@ -676,15 +676,42 @@ def _card_response(*, key: str, placeholder_code: ReasonCode) -> dict:
         grades[grade] = grades.get(grade, 0) + 1
     positive_ev = sum(1 for r in records if float(r.get("expected_value") or 0.0) > 0)
 
-    if config.is_placeholder:
-        # The dominant gate, and it holds whatever today's fixtures look like:
-        # StakingEngine refuses to size from unfitted parameters, so a card can
-        # be computed in full and still stake nothing.
+    if config.is_placeholder and not records:
+        # Naming the config gate here would be true and misleading. With nothing
+        # assessed there is nothing to size, fitted or not, so the proximate
+        # cause is the absence of priced fixtures — and a reader told "staking is
+        # disabled" goes and looks at the config, which is not the problem.
+        detail = _why_the_card_is_empty(predictor().artifacts.card)
+        reason = (
+            f"Nothing to assess: {detail.get('note') or detail['cause']}. "
+            f"Staking is also disabled (decision_config "
+            f"'{config.config_version}' is unfitted), so nothing would be sized "
+            "even if there were."
+        )
+        binding = detail["cause"]
+        # The reason_code stays DECISION_CONFIG_UNFITTED: the config really is
+        # unfitted, a consumer branches on that code, and it has meant this since
+        # v1. The prose and `binding_constraint` carry the proximate cause, which
+        # is additive rather than a re-typing of the existing field (NFR-13).
+        structured = refusal(
+            placeholder_code, reason,
+            config_version=config.config_version,
+            status=config.status,
+            w_fitted=config.w_fitted,
+            selections_assessed=0,
+            binding_constraint=binding,
+            **contract.W_MEASUREMENT,
+            **contract.SELECTION_RULE_MEASUREMENT,
+        )
+    elif config.is_placeholder:
+        # Now the config gate IS what is binding: selections exist and graded,
+        # and StakingEngine refuses to size from unfitted parameters.
         reason = (
             f"Staking is disabled: decision_config '{config.config_version}' is "
             f"unfitted (status={config.status}). {len(records)} selection(s) were "
             "assessed and graded; none can be sized until the config is fitted."
         )
+        binding = "decision_config_unfitted"
         structured = refusal(
             placeholder_code, reason,
             config_version=config.config_version,
@@ -699,6 +726,7 @@ def _card_response(*, key: str, placeholder_code: ReasonCode) -> dict:
             **contract.SELECTION_RULE_MEASUREMENT,
         )
     elif records and not staked:
+        binding = "nothing_reached_the_cutoff"
         reason = (
             f"{len(records)} selection(s) were assessed and none reached the "
             f"staking cutoff. Grades: "
@@ -711,14 +739,14 @@ def _card_response(*, key: str, placeholder_code: ReasonCode) -> dict:
             grades=grades,
         )
     else:
-        # Genuinely nothing on, or genuine recommendations. Neither is a refusal.
+        binding = None
         reason = (
             "No fixtures priced for today." if not records
             else f"{len(staked)} selection(s) recommended."
         )
         structured = {}
 
-    body_extra: dict[str, Any] = {}
+    body_extra: dict[str, Any] = {"binding_constraint": binding}
     if not staked:
         body_extra["empty_because"] = _why_the_card_is_empty(
             predictor().artifacts.card
@@ -758,6 +786,85 @@ def card_today() -> dict:
     return _card_response(
         key="bets", placeholder_code=ReasonCode.DECISION_CONFIG_UNFITTED
     )
+
+
+@app.get("/card/upcoming")
+def card_upcoming(
+    days: int = Query(
+        14, ge=1, le=60,
+        description="How far ahead to include. The price feed rarely reaches "
+                    "beyond the next matchday block, so a longer window is "
+                    "harmless rather than useful.",
+    ),
+) -> dict:
+    """The whole priced slate ahead, not only the fixtures kicking off today.
+
+    `/card/today` filters to the current date, which is right for a "what is on
+    now" view and wrong for almost every other purpose. The price feed publishes
+    a matchday block a few days before it is played, so on the Thursday before a
+    Saturday round `/card/today` returns nothing while a full assessed slate is
+    sitting in the card. Answering "nothing" there is technically accurate and
+    reads exactly like a broken service.
+
+    Same shape as `/card/today`, same refusal, same disclaimer — a wider window.
+    """
+    artifacts = predictor().artifacts
+    today = datetime.now(UTC).date()
+    horizon = today + timedelta(days=days)
+
+    if artifacts.card is None:
+        return {
+            "from": today.isoformat(), "to": horizon.isoformat(),
+            "bets": [], "assessments": [], "total_exposure": 0.0,
+            "reason": NO_CARD_REASON,
+            **refusal(
+                ReasonCode.NO_CARD_SOURCE, NO_CARD_REASON,
+                artifact="data/processed/card.parquet", loaded=False,
+            ),
+            "assessed": 0, "disclaimer": DISCLAIMER, **provenance(),
+        }
+
+    card = artifacts.card
+    window = card[
+        (card["date"].dt.date >= today) & (card["date"].dt.date <= horizon)
+    ] if not card.empty else card
+
+    records = window.to_dict("records")
+    staked = [r for r in records if float(r.get("stake_fraction") or 0.0) > 0.0]
+    grades: dict[str, int] = {}
+    for record in records:
+        grades[str(record.get("grade") or "?")] = (
+            grades.get(str(record.get("grade") or "?"), 0) + 1
+        )
+
+    return {
+        "from": today.isoformat(),
+        "to": horizon.isoformat(),
+        "bets": [_card_row(r) for r in staked],
+        # The assessed slate travels with it. A caller asking what is coming up
+        # wants the analysis, and making them issue a second request to
+        # /card/assessments to get it is the same omission this route exists to
+        # correct, one level down.
+        "assessments": [_card_row(r) for r in records],
+        "assessed": len(records),
+        "total_exposure": round(
+            sum(float(r.get("stake_fraction") or 0.0) for r in staked), 6
+        ),
+        "grades": grades,
+        "dates_covered": sorted({str(d.date()) for d in window["date"]})
+        if not window.empty else [],
+        "reason": (
+            f"{len(staked)} selection(s) recommended." if staked
+            else f"{len(records)} selection(s) assessed, none recommended."
+        ),
+        "note": (
+            "`assessments` are priced and graded, not recommendations. "
+            "stake_fraction says which is which."
+        ),
+        "card_generated_at": artifacts.card_generated_at,
+        "disclaimer": DISCLAIMER,
+        **provenance(),
+    }
 
 
 @app.get("/card/assessments")

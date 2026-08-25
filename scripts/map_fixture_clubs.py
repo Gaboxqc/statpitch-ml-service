@@ -41,7 +41,7 @@ from datetime import UTC, datetime
 
 import pandas as pd
 
-from statpitch import paths
+from statpitch import paths, taxonomy
 from statpitch.data import club_elo as ce
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
@@ -54,6 +54,16 @@ OUTPUT_NAME = "fixture_club_elo_map.json"
 
 #: Below this, the fixture list is not worth serving predictions from and the
 #: run fails rather than writing a mapping that looks complete.
+#:
+#: Measured over LEAGUE clubs only, and the scoping is load-bearing. Club Elo
+#: rates the top two tiers; a cup admits far deeper entrants, so an unmapped
+#: eighth-tier side is the expected state rather than a mapping bug. Pooled
+#: together, two FA Cup qualifying ties took coverage to 95.1% — one fixture from
+#: failing the run — and a full FA Cup round of 100+ non-league ties would fail it
+#: outright, for an entirely correct fixture list.
+#:
+#: The cup number is reported beside it, because "how many entrants are on a
+#: prior" is worth knowing; it just is not a pass/fail condition.
 MIN_COVERAGE = 0.95
 
 
@@ -68,10 +78,13 @@ def main() -> int:
 
     # The competition_id prefix is the Club Elo country code already.
     names: dict[str, str | None] = {}
+    league_clubs: set[str] = set()
     for row in fixtures.itertuples():
         country = str(row.competition_id).split(".")[0]
         names[str(row.home_team)] = country
         names[str(row.away_team)] = country
+        if taxonomy.get(str(row.competition_id)).competition_type == "league":
+            league_clubs.update({str(row.home_team), str(row.away_team)})
 
     resolved = ce.resolve_cup_clubs(names, roster)
     mapping = dict(resolved.mapping)
@@ -86,29 +99,46 @@ def main() -> int:
     mapping.update(curated_used)
 
     still_missing = sorted(set(names) - set(mapping))
-    coverage = len(mapping) / len(names) if names else 0.0
+    missing_league = sorted(set(league_clubs) - set(mapping))
+    missing_cup = sorted(set(still_missing) - set(league_clubs))
+    coverage = (
+        (len(league_clubs) - len(missing_league)) / len(league_clubs)
+        if league_clubs else 0.0
+    )
 
     log.info(
-        "%d/%d clubs mapped (%.1f%%) — %d automatic, %d curated",
-        len(mapping), len(names), coverage * 100,
-        len(resolved.mapping), len(curated_used),
+        "%d/%d clubs mapped overall — %d automatic, %d curated",
+        len(mapping), len(names), len(resolved.mapping), len(curated_used),
     )
+    log.info(
+        "league coverage %.1f%% (%d/%d) — this is the number the floor applies to",
+        coverage * 100, len(league_clubs) - len(missing_league), len(league_clubs),
+    )
+    if missing_cup:
+        log.info(
+            "%d cup entrant(s) have no Club Elo rating, which is expected — it "
+            "rates tiers 1-2 and a cup admits deeper: %s",
+            len(missing_cup), ", ".join(missing_cup),
+        )
     if resolved.ambiguous:
         log.info(
             "ambiguous, resolved by hand where used: %s",
             json.dumps({k: list(v) for k, v in resolved.ambiguous.items()}),
         )
-    if still_missing:
+    if missing_league:
         log.warning(
-            "%d club(s) still unmapped — they will rate at the pooled prior and "
-            "report fully_rated=false: %s",
-            len(still_missing), ", ".join(still_missing),
+            "%d LEAGUE club(s) unmapped — they will rate at the pooled prior and "
+            "report fully_rated=false, which for a top-flight club is a mapping "
+            "bug rather than a tier limit: %s",
+            len(missing_league), ", ".join(missing_league),
         )
 
     if coverage < MIN_COVERAGE:
         log.error(
-            "coverage %.1f%% is below the %.0f%% floor; add the missing clubs to "
-            "club_elo.OPENFOOTBALL_ALIASES rather than shipping this mapping",
+            "league coverage %.1f%% is below the %.0f%% floor; add the missing "
+            "clubs to club_elo.OPENFOOTBALL_ALIASES rather than shipping this "
+            "mapping. Cup entrants are excluded from this number and are not the "
+            "cause.",
             coverage * 100, MIN_COVERAGE * 100,
         )
         return 1
@@ -123,6 +153,9 @@ def main() -> int:
                 "stats": {
                     "clubs": len(names),
                     "matched": len(mapping),
+                    "league_clubs": len(league_clubs),
+                    "league_coverage": round(coverage, 4),
+                    "cup_entrants_on_a_prior": len(missing_cup),
                     "coverage": round(coverage, 4),
                     "automatic": len(resolved.mapping),
                     "curated": len(curated_used),

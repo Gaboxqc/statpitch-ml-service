@@ -325,3 +325,22 @@ def test_the_artifact_keeps_recently_past_fixtures(fixtures):
     assert (today - earliest).days <= 10, (
         "the artifact starts too far in the past to be a lookback window"
     )
+
+
+def test_a_source_that_cannot_supply_the_round_says_so(fixtures):
+    """The Odds API carries clubs and a kick-off, not "quarter-final".
+
+    `resolve_format` keys the tie format off the stage, so a fixture from that
+    source takes the competition default and flags that it did. Guessing the
+    round from the date would price a two-legged tie as a single leg.
+    """
+    if "stage_confirmed" not in fixtures.columns:
+        pytest.skip("no source in this artifact reports stage confidence")
+    for source, group in fixtures.groupby("source"):
+        confirmed = group["stage_confirmed"].fillna(True).all()
+        if source == "odds_api":
+            assert not group["stage_confirmed"].fillna(True).any(), (
+                "the odds API cannot supply a round and must not claim one"
+            )
+        else:
+            assert confirmed, f"{source} supplies a round and should confirm it"

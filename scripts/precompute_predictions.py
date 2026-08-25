@@ -239,6 +239,9 @@ def main() -> int:
         }
     )
 
+    explanations = explain.explanations_frame(model, rows, rows["match_id"])
+    explanations["model_version"] = version
+
     unrated = int(out["home_elo"].isna().sum() + out["away_elo"].isna().sum())
     if unrated:
         log.error(
@@ -252,6 +255,41 @@ def main() -> int:
     if priors:
         log.info("%d club slot(s) rated from the pooled entrant prior", priors)
 
+    # A fixture where NEITHER club has a measured rating is not predicted here.
+    #
+    # Both sides take the same pooled prior, so the Elo difference is exactly
+    # zero and the fitted model has no rating signal at all — it then
+    # discriminates on form and xG features that do not exist for either club and
+    # returns a confident, asymmetric answer built on noise. Measured: Milton
+    # Keynes Dons, a Football League club, came back at 28.8% at home with an
+    # eighth-tier opponent favoured at 48.4%.
+    #
+    # Serving's Elo mapping is strictly better here precisely because it is
+    # simpler: equal ratings plus home advantage gives 45.4/25.6/29.1, which is
+    # the right shape. Omitting the row lets that fallback answer, which is the
+    # documented behaviour for any fixture that was never precomputed.
+    #
+    # One prior and one measured rating is left alone: there the Elo difference
+    # is real and the model has something to work with.
+    both_priors = (
+        (out["home_rating_source"] == "pooled_prior")
+        & (out["away_rating_source"] == "pooled_prior")
+    )
+    if both_priors.any():
+        dropped = out[both_priors]
+        log.warning(
+            "%d fixture(s) have no measured rating on EITHER side and are left "
+            "to the Elo fallback, which handles equal ratings correctly: %s",
+            len(dropped),
+            "; ".join(
+                f"{r.home_team} v {r.away_team}" for r in dropped.itertuples()
+            ),
+        )
+        out = out[~both_priors].reset_index(drop=True)
+        explanations = explanations[
+            explanations["fixture_id"].isin(set(out["fixture_id"]))
+        ]
+
     destination = processed / "predictions.parquet"
     out.to_parquet(destination, index=False)
 
@@ -259,8 +297,6 @@ def main() -> int:
     # the training stack, and requirements-serving.txt excludes it. The
     # explanation is written beside the prediction it explains, from the same
     # model in the same run, so the two cannot describe different fixtures.
-    explanations = explain.explanations_frame(model, rows, rows["match_id"])
-    explanations["model_version"] = version
     explanations.to_parquet(processed / "explanations.parquet", index=False)
     log.info(
         "wrote %d explanation rows (%d per fixture per side)",

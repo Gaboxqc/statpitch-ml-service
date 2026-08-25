@@ -63,6 +63,24 @@ class FetchError(RuntimeError):
     """A download failed after exhausting retries."""
 
 
+def is_absent(exc: Exception) -> bool:
+    """Whether a failure means "this file does not exist upstream".
+
+    Distinct from "the request failed": an absent season file is the normal
+    state for a division that has not started, while a network error is not, and
+    the two want opposite responses — skip quietly, or retry and complain.
+
+    Covers 3xx as well as 404 because football-data.co.uk answers an unpublished
+    season with **300 Multiple Choices** and an HTML body, not a 404. That is
+    Apache offering alternative filenames, and it is how the 2026/27 Bundesliga
+    file came to sit on disk as a 1,134-byte HTML error page named `D1.csv` —
+    saved because `requests.Response.ok` is true for anything under 400, then
+    never re-fetched because the path existed.
+    """
+    text = str(exc)
+    return any(marker in text for marker in ("404", "HTTP 30"))
+
+
 @dataclass
 class PoliteSession:
     """Rate-limited, retrying, disk-cached HTTP GET."""
@@ -165,7 +183,7 @@ class PoliteSession:
         try:
             body, headers = self._get_with_retries(url, with_headers=True)
         except FetchError as exc:
-            if path.exists() and not force and "404" not in str(exc):
+            if path.exists() and not force and not is_absent(exc):
                 age = (time.time() - path.stat().st_mtime) / 3600
                 log.warning(
                     "http: %s unreachable (%s) — serving a cached copy %.1fh old. "
@@ -217,6 +235,14 @@ class PoliteSession:
                     # A missing season/division file is normal (a league may not
                     # have existed, or the season has not started). Do not retry.
                     raise FetchError(f"404 Not Found: {redact_url(url)}")
+                if 300 <= resp.status_code < 400:
+                    # An unfollowable redirect. requests follows 301/302 itself,
+                    # so a 3xx arriving here is the server declining to serve the
+                    # path rather than pointing at another one — stable, so there
+                    # is nothing to retry.
+                    raise FetchError(
+                        f"HTTP {resp.status_code} {resp.reason}: {redact_url(url)}"
+                    )
                 if resp.ok:
                     if with_headers:
                         return resp.content, {

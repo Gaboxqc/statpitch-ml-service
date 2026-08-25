@@ -91,9 +91,13 @@ Ingest the archive (downloads are cached; re-runs do not re-hit the origin):
 .venv/Scripts/python.exe -m statpitch.data.football_data
 ```
 
+Add `--dry-run` to parse and report without writing, or `--force` to re-download
+rather than reuse the cache. Re-running over cached files is how a parser change
+is picked up — `odds_bfe` was added that way.
+
 ## Current state
 
-Phases 0–9 complete, plus Plan Phases A–E. **1,202 tests**, all offline.
+Phases 0–9 complete, plus Plan Phases A–E. **1,209 tests**, all offline.
 
 | Layer | Item | Status |
 |---|---|---|

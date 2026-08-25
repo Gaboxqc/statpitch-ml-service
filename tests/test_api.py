@@ -397,3 +397,108 @@ def test_an_empty_slate_says_which_kind_of_empty_it_is(client):
         "priced_fixtures_all_played", "no_fixtures_today",
         "fixtures_today_carry_no_price",
     }
+
+
+# --- the upcoming slate, not just today ---------------------------------------
+
+def _fake_card(client, dates):
+    """Point the loaded artifacts at a card covering chosen dates."""
+    import pandas as pd
+
+    from statpitch.serving.app import predictor
+
+    rows = []
+    for i, day in enumerate(dates):
+        rows.append({
+            "fixture_id": f"ENG.PL|2026-2027|A{i} FC|B{i} FC",
+            "competition_id": "ENG.PL", "date": pd.Timestamp(day),
+            "kickoff_utc": pd.Timestamp(day), "home_team": f"A{i} FC",
+            "away_team": f"B{i} FC", "selection_key": "1x2_home",
+            "market_family": "1x2", "line": None, "description": "Home win",
+            "p_model": 0.5, "q_fair": 0.45, "p_used": 0.45,
+            "odds_avg": 2.1, "fair_odds": 2.22, "odds_max": 2.2,
+            "edge_prob": 0.0, "expected_value": -0.01, "price_edge": -0.01,
+            "model_edge": 0.0, "grade": "F", "composite": 0.3, "reasons": "",
+            "stake_fraction": 0.0, "book_margin": 0.05, "max_book_sum": 1.02,
+            "n_books": 7, "capture_id": "T1", "w": 0.0,
+            "config_version": "test", "config_status": "placeholder",
+            "model_version": "test", "generated_at": "2026-08-25T00:00:00+00:00",
+        })
+    artifacts = predictor().artifacts
+    saved = artifacts.card
+    artifacts.card = pd.DataFrame(rows)
+    return saved
+
+
+def test_upcoming_shows_a_slate_that_today_would_hide(client):
+    """The Thursday-before-Saturday case.
+
+    The feed publishes a matchday block days before it is played, so filtering to
+    the current date returns nothing while a full assessed slate sits in the
+    card. Accurate, and indistinguishable from a broken service.
+    """
+    from datetime import UTC, datetime, timedelta
+
+    from statpitch.serving.app import predictor
+
+    soon = (datetime.now(UTC).date() + timedelta(days=2)).isoformat()
+    saved = _fake_card(client, [soon, soon])
+    try:
+        upcoming = client.get("/card/upcoming").json()
+        today = client.get("/card/today").json()
+        assert upcoming["assessed"] == 2
+        assert today["assessed"] == 0, "the fixtures are not today, by construction"
+        assert upcoming["dates_covered"] == [soon]
+    finally:
+        predictor().artifacts.card = saved
+
+
+def test_upcoming_excludes_what_has_already_been_played(client):
+    from datetime import UTC, datetime, timedelta
+
+    from statpitch.serving.app import predictor
+
+    past = (datetime.now(UTC).date() - timedelta(days=3)).isoformat()
+    saved = _fake_card(client, [past])
+    try:
+        assert client.get("/card/upcoming").json()["assessed"] == 0
+    finally:
+        predictor().artifacts.card = saved
+
+
+def test_upcoming_carries_the_analysis_not_only_the_bets(client):
+    from datetime import UTC, datetime, timedelta
+
+    from statpitch.serving.app import predictor
+
+    soon = (datetime.now(UTC).date() + timedelta(days=1)).isoformat()
+    saved = _fake_card(client, [soon])
+    try:
+        body = client.get("/card/upcoming").json()
+        assert body["bets"] == []
+        assert len(body["assessments"]) == 1
+        assert body["assessments"][0]["odds"] == 2.2
+        assert body["assessments"][0]["consensus_odds"] == 2.1
+    finally:
+        predictor().artifacts.card = saved
+
+
+# --- the reason must blame the thing that is actually binding -----------------
+
+def test_an_empty_card_does_not_blame_the_staking_gate(client):
+    """With nothing assessed there is nothing to size, fitted or not.
+
+    Telling a reader "staking is disabled" sends them to look at the decision
+    config, which is not what is stopping them.
+    """
+    body = client.get("/card/today").json()
+    if body["assessed"]:
+        pytest.skip("something is assessed for today in this checkout")
+    assert body["binding_constraint"] != "decision_config_unfitted"
+    assert body["reason"].startswith("Nothing to assess")
+
+
+def test_the_refusal_code_is_unchanged_by_the_clearer_prose(client):
+    """NFR-13: a consumer branches on the code, which has meant this since v1."""
+    body = client.get("/card/today").json()
+    assert body["refusal"]["reason_code"] == "DECISION_CONFIG_UNFITTED"

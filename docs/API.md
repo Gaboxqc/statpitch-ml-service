@@ -652,6 +652,23 @@ new keys or new routes, so **ignore unknown fields** rather than validating
 strictly against a closed schema. `schema_version` bumps only on a breaking change;
 it is `1` today.
 
+## `/card/upcoming`
+
+The whole priced slate ahead, not only fixtures kicking off today.
+
+`/card/today` filters to the current date — right for a "what is on now" view,
+wrong for almost everything else. The price feed publishes a matchday block a few
+days before it is played, so on the Thursday before a Saturday round
+`/card/today` returns nothing while a full assessed slate sits in the card.
+Accurate, and indistinguishable from a broken service.
+
+```
+GET /card/upcoming?days=14
+```
+
+Returns `bets` (recommended, currently always empty) *and* `assessments` (the
+priced, graded slate). `stake_fraction` says which is which.
+
 ## `/card/assessments`
 
 Every assessed selection — priced, de-vigged and graded — whether or not it is

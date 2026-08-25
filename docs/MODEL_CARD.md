@@ -410,10 +410,52 @@ They do not exist for the domestic cups or for UCL/UEL. Those competitions get
 predictions, brackets and simulations; they never get a bet recommendation, and
 the API says so per request with a stated reason rather than omitting the field.
 
-**No live odds.** football-data.co.uk publishes after the fact. There is no free
-real-time feed, so the CLV result above cannot currently be traded forward — only
-measured backward. This is the single largest gap, and it is a direct consequence
-of the $0 constraint rather than an oversight.
+*Refined 2026-08-24.* `odds_coverage` is now the conjunction of two flags that
+were always distinct: `live_odds_coverage` (a price can be obtained) and
+`benchmark_coverage` (history exists to validate against). They still move
+together, and they will not for long — a keyed odds feed would give the cups
+prices whose closing-odds history stays empty forever. A bet needs both, and a
+gate reading one flag could not tell that apart from full coverage.
+
+**Cup fixtures were absent entirely for a period, and the model card did not
+know.** openfootball stopped publishing every cup file; the fixture artifact
+carried five leagues and nothing else while the FR-9 entrant prior, the FR-8
+extra-time model and the FR-20 bracket simulator sat complete and idle. Two
+sources now cover two of the seven competitions — OpenLigaDB keylessly for the
+DFB-Pokal, and The Odds API behind a key for the rest, whose `/events` endpoint
+costs no credits. Restoring them exposed two prediction defects that had never
+been reachable: see §8.
+
+**~~No live odds.~~ Live odds exist; the rule that used them does not.**
+*Superseded 2026-08-24.* `football-data.co.uk/fixtures.csv` publishes pre-match
+prices for the coming week — free, keyless, and in the same schema as the
+archive, so a captured price and a published close are same-source and
+`clv_tracker` will compare them. Captured daily since Plan §4 Phase A.
+
+That closed the plumbing gap and opened a sharper one. §5's result is defined on
+**Pinnacle**-referenced selections, and Pinnacle is not in that feed. Every
+reference the feed *does* carry was measured against the same window
+(`data/selection_rule_study.json`):
+
+| reference | in the live feed | CLV, pre-break | clustered t |
+|---|---|---|---|
+| none (whole book) | — | −0.09% | −2.58 |
+| **Pinnacle** | **no** | **+0.51%** | **+7.53** |
+| B365 | yes | −0.07% | −1.09 |
+| consensus | yes | −0.23% | −3.35 |
+
+Betfair Exchange leads post-break at +2.51% (t=+7.86) and *is* in the feed, but
+has one season — below Requirements line 250's ≥2-season bar, and the same
+consensus rule flips sign between regimes, which is what a regime-specific
+artifact looks like. So the finding still cannot be traded forward, for a
+different and more precise reason than when this paragraph was written.
+
+**Scoring choice, because it decides the answer.** Every rule selects using
+`odds_max`, so scoring it on how `odds_max` then moves scores a variable on
+itself: the max-vs-consensus spread narrows from +11.64% to +10.23% on selected
+rows while the consensus moves 0.28% *against* the bet. Scored that way the
+tradeable consensus rule reads +1.13% at t=+4.25 and is mean reversion. All
+figures above are `avg → avg`.
 
 **A club's rating is only as good as its source, and the response says which.**
 Every prediction reports whether each club carried a measured Club Elo rating, a
@@ -530,6 +572,37 @@ thirty minutes against 0.927 from the league rate, giving a multiplier of 1.39
 against the fixtures that actually reach it.
 
 ---
+
+**Two defects that only a cup fixture could reach** *(added 2026-08-24)*. The
+offline prediction path had never seen a club Club Elo does not rate, because
+cups had never reached it. When they did, it produced confident nonsense twice,
+in two different ways, neither raising an error:
+
+* A **null** rating. Hamburg Eimsbütteler BC, a fifth-tier amateur side, came
+  back at **52.9% to beat Borussia Dortmund**. The fitted model does not abstain
+  on a missing feature — it predicted from the rest and invented a number.
+  Filling the slot with the FR-9 pooled entrant level gives 9.1%.
+* **Two equal** ratings. That fix created the second case: with both clubs on the
+  same prior the Elo difference is exactly zero, and the model again found
+  something to discriminate on. Milton Keynes Dons, a Football League club, came
+  back at **28.8% at home against an eighth-tier opponent favoured at 48.4%**.
+  The Elo fallback gives 45.4/25.6/29.1 — the right shape — precisely because it
+  is simpler, so precompute now declines a fixture where neither side has a
+  measured rating.
+
+Both are the failure this document already names elsewhere: no error, no missing
+field, just a confident wrong number. What made them survivable is that
+`fully_rated` was already part of the response contract, so every affected
+prediction was at least declaring its evidence tier while being wrong.
+
+**Guards written for leagues do not transfer to cups** *(added 2026-08-24)*.
+Three separate thresholds fired on entirely correct cup behaviour once cup
+fixtures existed: the club-mapping coverage floor (95.1%, one fixture from
+failing the run, against a real league coverage of 100%), the live-odds
+keyed-share floor (47.4% on a healthy capture, because the price feed lists
+matches the fixture list has already dropped as played), and a test asserting
+every fixture club carries a measured rating. Each was scoped to the population
+it was actually written about. Worth expecting a fourth.
 
 ## 9. Intended use
 

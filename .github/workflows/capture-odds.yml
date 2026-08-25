@@ -62,6 +62,22 @@ jobs:
       - name: Capture pre-match prices
         run: python scripts/collect_live_odds.py
 
+      # The keyed source, and the only one carrying Pinnacle — the reference
+      # MODEL_CARD §5's finding is defined on. Also the only source that reaches
+      # the cups, and the only one that prices midweek at all: football-data.co.uk
+      # publishes one matchday block at a time and holds it, already played,
+      # until the next goes up.
+      #
+      # 1X2 everywhere, all three markets only where a fixture kicks off today.
+      # Billing is per market per competition, so that split is what keeps a
+      # daily sweep inside 500 credits a month (~330). Without a key this exits
+      # 1 and the step is skipped rather than failing the run.
+      - name: Capture prices from The Odds API
+        continue-on-error: true
+        env:
+          STATPITCH_ODDS_API_KEY: ${{ secrets.STATPITCH_ODDS_API_KEY }}
+        run: python scripts/collect_odds_api.py
+
       # Immediately after, so the card reflects the prices just captured rather
       # than last week's. flag-card.yml reads this at 06:00.
       - name: Rebuild the card

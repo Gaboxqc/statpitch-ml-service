@@ -20,9 +20,19 @@ reused verbatim below rather than restated.
 What it covers, and what it does not
 ====================================
 
-About 180 fixtures a week across 20 divisions, of which five are in the
-taxonomy. Roughly a week ahead — a division with no fixture inside that window
-is simply absent, which is normal and never an error.
+About 180 fixtures across 20 divisions, of which five are in the taxonomy.
+
+**One matchday block at a time, not a rolling week.** This was originally
+described here as "roughly a week ahead", and that is wrong in a way that
+matters. The feed publishes the next block of fixtures, holds it while they are
+played, and only then rolls forward — so between blocks it contains nothing but
+matches that have already kicked off. Observed on 2026-08-25: the feed still
+listed 21-24 August, all played, while three fixtures were scheduled that day.
+
+The consequence is that a card built midweek can be empty for a reason that has
+nothing to do with the model: today's fixtures simply have no price yet.
+`serving.app._why_the_card_is_empty` separates that from "nothing qualified",
+because a consumer seeing an empty slate deserves to know which.
 
 **Pinnacle is not in this file.** The archive carries `PSH/PSD/PSA`; the fixture
 feed carries B365, BFD, BV, BW, PP, SKB and BFE. The sharp-reference rule that

@@ -63,7 +63,7 @@ from dataclasses import dataclass
 import pandas as pd
 
 from statpitch import taxonomy
-from statpitch.data.http import FetchError, PoliteSession
+from statpitch.data.http import FetchError, PoliteSession, is_absent
 
 log = logging.getLogger(__name__)
 
@@ -480,7 +480,7 @@ def fetch_file(
             url, suffix=".txt", force=force, max_age=max_age
         ).decode("utf-8", errors="replace")
     except FetchError as exc:
-        if "404" in str(exc):
+        if is_absent(exc):
             return None
         raise
 

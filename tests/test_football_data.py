@@ -391,3 +391,42 @@ def test_build_survives_an_unreadable_file(tmp_path, modern):
 
 def test_normalise_team_collapses_whitespace():
     assert fd.normalise_team("  Man   United ") == "Man United"
+
+
+# --- a cached error page is not a season file --------------------------------
+
+def test_a_non_csv_file_is_skipped_with_a_sentence_not_a_stack_trace(tmp_path, caplog):
+    """A soft-404 HTML page cached under a .csv name.
+
+    `build` catches everything per file, so this surfaced as a stack trace for
+    what is usually a mundane cause. It should say what is wrong and which file
+    to delete.
+    """
+    path = tmp_path / "D1.csv"
+    path.write_text(
+        '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">\n<html>300</html>\n',
+        encoding="utf-8",
+    )
+    sf = SeasonFile("GER.BUNDESLIGA", "D1", 2026, path)
+
+    with caplog.at_level("WARNING"):
+        frame = fd.parse_matches(sf)
+
+    assert frame.empty
+    assert "not a fixtures CSV" in caplog.text
+    assert "D1.csv" in caplog.text
+
+
+def test_such_a_file_does_not_break_a_whole_build(tmp_path):
+    """One unparseable division must not cost the other four."""
+    bad = tmp_path / "D1.csv"
+    bad.write_text("<!DOCTYPE HTML>\n", encoding="utf-8")
+    good = tmp_path / "E0.csv"
+    good.write_text(MODERN_CSV, encoding="utf-8")
+
+    matches, _ = fd.build([
+        SeasonFile("GER.BUNDESLIGA", "D1", 2026, bad),
+        SeasonFile("ENG.PL", "E0", 2024, good),
+    ])
+    assert not matches.empty
+    assert set(matches["competition_id"]) == {"ENG.PL"}

@@ -48,6 +48,10 @@ class FakeResponse:
         self.content = content
         self.status_code = status
         self.headers = headers or {}
+        self.reason = {
+            200: "OK", 300: "Multiple Choices", 404: "Not Found",
+            500: "Internal Server Error",
+        }.get(status, "Unknown")
 
     @property
     def ok(self):
@@ -70,7 +74,8 @@ def _age(path, seconds):
 
 
 def _cached_file(session, url=URL):
-    return session._cache_path(url, ".txt")
+    suffix = ".csv" if url.endswith(".csv") else ".txt"
+    return session._cache_path(url, suffix)
 
 
 # --- the default: cache forever -----------------------------------------------
@@ -286,3 +291,67 @@ def test_a_404_message_does_not_leak_the_key(tmp_path):
     with pytest.raises(FetchError) as excinfo:
         session.get_bytes("https://x.test/e?apiKey=super-secret", suffix=".json")
     assert "super-secret" not in str(excinfo.value)
+
+
+# --- "absent upstream" is not the same as "the request failed" ---------------
+
+def test_a_soft_404_is_not_treated_as_success(tmp_path):
+    """football-data.co.uk answers an unpublished season with 300, not 404.
+
+    `requests.Response.ok` is true for anything under 400, so the HTML body of a
+    300 was saved as a season CSV — and `download_to` skips a path that exists,
+    so the poisoned file was never re-fetched. The 2026/27 Bundesliga file sat on
+    disk as a 1,134-byte error page named D1.csv, and would have blocked that
+    season from ever ingesting.
+    """
+    transport = FakeTransport(body=b"<!DOCTYPE HTML><html>300</html>", status=300)
+    session = _session(tmp_path, transport)
+    with pytest.raises(FetchError, match="HTTP 300"):
+        session.get_bytes("https://x.test/2627/D1.csv", suffix=".csv")
+
+
+def test_a_soft_404_is_not_cached(tmp_path):
+    """The poisoning is what made it permanent rather than transient."""
+    transport = FakeTransport(body=b"<!DOCTYPE HTML>", status=300)
+    session = _session(tmp_path, transport)
+    url = "https://x.test/2627/D1.csv"
+    with pytest.raises(FetchError):
+        session.get_bytes(url, suffix=".csv")
+    assert not session._cache_path(url, ".csv").exists()
+
+
+def test_a_3xx_is_not_retried(tmp_path):
+    """It is a stable answer, so retrying only wastes politeness budget."""
+    transport = FakeTransport(body=b"<html>", status=300)
+    session = PoliteSession(
+        min_interval=0.0, max_retries=3,
+        cache_root=tmp_path / "cache", _session=transport,
+    )
+    with pytest.raises(FetchError):
+        session.get_bytes("https://x.test/a.csv", suffix=".csv")
+    assert transport.calls == 1
+
+
+def test_absence_covers_both_the_404_and_the_300_forms():
+    from statpitch.data.http import is_absent
+
+    assert is_absent(FetchError("404 Not Found: https://x.test/a"))
+    assert is_absent(FetchError("HTTP 300 Multiple Choices: https://x.test/a"))
+    assert not is_absent(FetchError("failed after 3 attempts: https://x.test/a"))
+    assert not is_absent(FetchError("HTTP 500 Server Error: https://x.test/a"))
+
+
+def test_a_server_error_is_still_retried_and_still_falls_back(tmp_path, caplog):
+    """A 500 is not absence — it is a failure, and a cached copy still serves."""
+    transport = FakeTransport()
+    session = _session(tmp_path, transport)
+    url = "https://x.test/a.csv"
+    session.get_bytes(url, suffix=".csv")
+
+    # max_age forces a re-fetch; without it the cached copy is served and the
+    # 500 path is never reached, which is how this test first passed vacuously.
+    transport.status = 500
+    _age(_cached_file(session, url), 10 * 3600)
+    with caplog.at_level("WARNING"):
+        assert session.get_bytes(url, suffix=".csv", max_age=3600) == b"fresh"
+    assert "serving a cached copy" in caplog.text

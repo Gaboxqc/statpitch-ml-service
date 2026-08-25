@@ -48,7 +48,7 @@ from pathlib import Path
 import pandas as pd
 
 from statpitch import paths, taxonomy
-from statpitch.data.http import FetchError, PoliteSession
+from statpitch.data.http import FetchError, PoliteSession, is_absent
 
 log = logging.getLogger(__name__)
 
@@ -310,8 +310,13 @@ def download_season(
     try:
         return session.download_to(csv_url(start_year, div_code), dest, force=force)
     except FetchError as exc:
-        if "404" in str(exc):
-            log.info("football-data: no file for %s %s", div_code, season_label(start_year))
+        if is_absent(exc):
+            # Includes 300 Multiple Choices, which is how this host answers a
+            # season it has not published yet.
+            log.info(
+                "football-data: no file for %s %s (%s)",
+                div_code, season_label(start_year), exc,
+            )
             return None
         raise
 
@@ -556,6 +561,19 @@ def parse_matches(sf: SeasonFile) -> pd.DataFrame:
     """One division-season CSV -> canonical match rows."""
     raw = _read_raw(sf.path)
     if raw.empty:
+        return pd.DataFrame()
+    if "Date" not in raw.columns:
+        # Not a fixtures CSV at all. This surfaced as a bare KeyError swallowed
+        # by `build`'s blanket except, which printed a stack trace for what is
+        # usually a mundane cause — a cached soft-404 HTML page sitting on disk
+        # under a .csv name. Say what is wrong instead of raising from inside a
+        # column lookup.
+        log.warning(
+            "football-data: %s %s has no Date column and is not a fixtures CSV "
+            "(%d bytes) — skipping. If it was cached from an error page, delete "
+            "%s and re-run.",
+            sf.div_code, sf.season, sf.path.stat().st_size, sf.path,
+        )
         return pd.DataFrame()
 
     raw = _drop_foreign_divisions(raw, sf)
@@ -808,3 +826,67 @@ def decision_layer_seasons(
         today = pd.Timestamp.today()
         last = today.year if today.month >= 7 else today.year - 1
     return [y for y in range(max(first, FIRST_MODERN_SEASON), last + 1)]
+
+
+# --- entry point --------------------------------------------------------------
+
+def main(argv: list[str] | None = None) -> int:
+    """Download the archive and rebuild `matches_clean` and `closing_odds`.
+
+    This exists because the README has always told people to run
+    `python -m statpitch.data.football_data`, and until now that imported the
+    module, defined some functions and exited 0 — doing nothing, successfully.
+    A documented setup step that silently no-ops is worse than a missing one: the
+    reader believes the archive is ingested.
+
+    Downloads are cached, so a re-run does not re-hit the origin. Rebuilding from
+    cached files is the normal way to pick up a parser change, which is exactly
+    what `odds_bfe` needed in Plan §4 Phase C.
+    """
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Ingest the football-data.co.uk archive")
+    parser.add_argument("--first-season", type=int, default=1993)
+    parser.add_argument("--last-season", type=int, default=None)
+    parser.add_argument(
+        "--force", action="store_true",
+        help="Re-download rather than reusing the cached CSVs.",
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Parse and report, write nothing."
+    )
+    args = parser.parse_args(argv)
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+
+    season_files = download_all(
+        first_season=args.first_season,
+        last_season=args.last_season,
+        force=args.force,
+    )
+    log.info("football-data: %d season file(s)", len(season_files))
+    matches, odds = build(season_files)
+    if matches.empty:
+        log.error("no matches parsed — nothing written")
+        return 1
+
+    log.info(
+        "parsed %d matches and %d tidy odds rows across %d competition(s)",
+        len(matches), len(odds), matches["competition_id"].nunique(),
+    )
+    for column in ("odds_avg", "odds_pinnacle", "odds_bfe"):
+        if column in odds.columns:
+            log.info("  %s: %d row(s)", column, int(odds[column].notna().sum()))
+
+    if args.dry_run:
+        log.info("dry run — nothing written")
+        return 0
+
+    paths.ensure_dirs()
+    matches.to_parquet(paths.matches_file(), index=False)
+    odds.to_parquet(paths.odds_file(), index=False)
+    log.info("wrote %s and %s", paths.matches_file(), paths.odds_file())
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

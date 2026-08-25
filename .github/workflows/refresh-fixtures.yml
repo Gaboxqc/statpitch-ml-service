@@ -65,6 +65,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           STATPITCH_API_FOOTBALL_KEY: ${{ secrets.STATPITCH_API_FOOTBALL_KEY }}
           STATPITCH_FOOTBALL_DATA_ORG_KEY: ${{ secrets.STATPITCH_FOOTBALL_DATA_ORG_KEY }}
+          # The six cups nothing free reaches. /events costs no credits, so this
+          # spends nothing; absent, those competitions simply have no fixtures.
+          STATPITCH_ODDS_API_KEY: ${{ secrets.STATPITCH_ODDS_API_KEY }}
         run: python -m statpitch.ops.jobs refresh_fixtures ${SLOT:+--scheduled-for $SLOT}
 
       - name: Commit what changed
@@ -72,7 +75,12 @@ jobs:
           set -euo pipefail
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          paths="data/processed/fixtures.parquet data/processed/predictions.parquet models/registry.json"
+          # Every artifact the job writes. It used to list three, while
+          # refresh_fixtures wrote seven — so each scheduled run produced a
+          # capture of live odds, a rebuilt card and a fresh club map, and then
+          # threw all three away. live_odds.parquet is append-only and its whole
+          # value is the series, which meant the series could never start.
+          paths="data/processed/fixtures.parquet                  data/processed/predictions.parquet                  data/processed/explanations.parquet                  data/processed/live_odds.parquet                  data/processed/fixture_odds_map.json                  data/processed/fixture_club_elo_map.json                  data/processed/card.parquet                  models/registry.json"
           if git diff --quiet -- $paths; then
             echo "fixtures and predictions unchanged; nothing to commit"
             exit 0

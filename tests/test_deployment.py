@@ -159,7 +159,19 @@ def test_the_flag_can_tighten_but_not_loosen(tmp_path, monkeypatch):
 
 # --- the workflows ------------------------------------------------------------
 
-@pytest.mark.parametrize("name", ["ci.yml", "flag-card.yml", "settle-ledger.yml"])
+#: Every workflow that writes to the repository. The guarantees below are about
+#: not losing work between doing it and pushing it, which is a property of
+#: committing, not of the ledger specifically.
+COMMITTING_WORKFLOWS = [
+    "flag-card.yml", "settle-ledger.yml", "refresh-fixtures.yml", "capture-odds.yml",
+]
+
+
+@pytest.mark.parametrize(
+    "name",
+    ["ci.yml", "flag-card.yml", "settle-ledger.yml", "refresh-fixtures.yml",
+     "capture-odds.yml", "retrain.yml"],
+)
 def test_every_workflow_pins_a_python_version(name):
     assert 'python-version: "3.11"' in _workflow(name)
 
@@ -254,14 +266,16 @@ def test_settlement_is_scheduled_before_flagging():
     assert settle < flag
 
 
-@pytest.mark.parametrize("name", ["flag-card.yml", "settle-ledger.yml"])
+@pytest.mark.parametrize("name", COMMITTING_WORKFLOWS)
 def test_a_committing_workflow_asks_for_write_permission(name):
     assert "contents: write" in _workflow(name)
 
 
-@pytest.mark.parametrize("name", ["flag-card.yml", "settle-ledger.yml"])
+@pytest.mark.parametrize("name", COMMITTING_WORKFLOWS)
 def test_the_push_rebases_rather_than_forces(name):
-    """The ledger's value is that earlier entries are never rewritten."""
+    """The ledger's value is that earlier entries are never rewritten, and
+    `live_odds.parquet` is append-only for the same reason: a price that has
+    moved cannot be re-fetched, so a force push would destroy evidence."""
     text = _workflow(name)
     assert "--rebase" in text
     assert "--force" not in text
@@ -316,3 +330,59 @@ def test_the_cold_start_caveat_is_documented_not_hidden():
     doc = (ROOT / "docs" / "DEPLOYMENT.md").read_text(encoding="utf-8")
     assert "cold start" in doc.lower()
     assert "spin" in doc.lower()
+
+
+# --- the odds capture (Plan §4 Phase E) ---------------------------------------
+
+def test_the_odds_capture_never_cancels_itself():
+    """A run cancelled between the append and the push loses that capture.
+
+    `live_odds.parquet` is append-only and a price that has moved cannot be
+    re-fetched, so the lost capture is unrecoverable rather than merely delayed.
+    """
+    assert "cancel-in-progress: false" in _workflow("capture-odds.yml")
+
+
+def test_the_odds_capture_runs_daily_not_weekly():
+    """A fixture list changes on the scale of days; a price does not.
+
+    The only measurement this project has shown to work is the difference
+    between two prices for the same selection, and the capture used to happen
+    weekly on a Monday inside refresh_fixtures — neither the Friday baseline
+    MODEL_CARD §5 is defined on nor anything near a kickoff.
+    """
+    cron = re.search(r'cron: "(.+?)"', _workflow("capture-odds.yml")).group(1)
+    assert cron.endswith("* * *"), f"not a daily schedule: {cron}"
+
+
+def test_the_capture_lands_before_the_card_is_flagged():
+    """flag-card reads the card this workflow rebuilds."""
+    capture = int(re.search(r'cron: "0 (\d+)', _workflow("capture-odds.yml")).group(1))
+    flag = int(re.search(r'cron: "0 (\d+)', _workflow("flag-card.yml")).group(1))
+    assert capture < flag
+
+
+def test_the_capture_rebuilds_the_card_it_just_repriced():
+    """Otherwise flag-card would size today's bets from yesterday's prices."""
+    text = _workflow("capture-odds.yml")
+    assert text.index("collect_live_odds.py") < text.index("build_card.py")
+
+
+def test_refresh_commits_every_artifact_it_writes():
+    """It listed three while refresh_fixtures wrote seven.
+
+    Each scheduled run produced a capture of live odds, a rebuilt card and a
+    fresh club map, then threw all three away — so the append-only odds series
+    could never start.
+    """
+    text = _workflow("refresh-fixtures.yml")
+    for artifact in (
+        "fixtures.parquet", "predictions.parquet", "explanations.parquet",
+        "live_odds.parquet", "card.parquet", "fixture_odds_map.json",
+    ):
+        assert artifact in text, artifact
+
+
+def test_the_cup_key_reaches_the_fixture_rebuild():
+    """Absent, the six cups it covers silently have no fixtures."""
+    assert "STATPITCH_ODDS_API_KEY" in _workflow("refresh-fixtures.yml")

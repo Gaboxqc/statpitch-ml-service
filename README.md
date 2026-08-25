@@ -9,8 +9,11 @@ references so the code and the spec stay legible together.
 
 > **The headline result is negative, and it is the point.** The market-shrinkage
 > weight `w` fits at **0.000** on both criteria — this model does not beat the
-> closing line. What did survive measurement is closing line value on
-> sharp-reference selections (+0.51%, t=3.47). Read
+> closing line. What survived measurement is closing line value on
+> sharp-reference selections (+0.51%, t=7.53 clustered) — and that rule is
+> defined on **Pinnacle**, which the live price feed does not publish. Every
+> reference the feed does carry was tested and none clears the ≥2-season bar
+> (`data/selection_rule_study.json`). Read
 > **[`docs/MODEL_CARD.md`](docs/MODEL_CARD.md)** before anything else.
 >
 > Advisory only (NFR-11): no bookmaker integration, no wagers, no funds. Staking
@@ -90,7 +93,7 @@ Ingest the archive (downloads are cached; re-runs do not re-hit the origin):
 
 ## Current state
 
-Phases 0–9 complete, plus Plan Phases A–D. **1,168 tests**, all offline.
+Phases 0–9 complete, plus Plan Phases A–E. **1,202 tests**, all offline.
 
 | Layer | Item | Status |
 |---|---|---|
@@ -110,6 +113,7 @@ Phases 0–9 complete, plus Plan Phases A–D. **1,168 tests**, all offline.
 | B | Card built from prices + predictions; slate routes read it | done |
 | C | Sharp-reference study — **no tradeable rule clears the 2-season bar** | done |
 | D | Cup fixtures: keyless OpenLigaDB + Odds API client for the other six | done |
+| E | Daily odds capture on its own schedule; model card corrected | done |
 
 Ingested: **64,795 matches** — 59,079 league (1993/94–), 5,716 cup and
 continental — **417,631 tidy odds rows**, **1,274,186 Club Elo rating intervals**

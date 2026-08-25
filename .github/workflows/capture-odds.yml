@@ -1,0 +1,98 @@
+name: Capture odds
+
+# 05:00 UTC daily.
+#
+# No nominal slot is derived, unlike the ledger workflows: `collect_live_odds`
+# takes no `--scheduled-for` because a capture is stamped with the wall-clock
+# minute it happened (`capture_id`), which is the only time that means anything
+# for a price. Drift does not need reporting when nothing is labelled by cron.
+#
+# Daily, unlike the weekly fixture rebuild, and the difference is the whole
+# point. A fixture list changes on the scale of days; a PRICE changes on the
+# scale of hours, and the only measurement this project has ever shown to work
+# is the difference between two prices for the same selection.
+#
+# Before this workflow existed the only capture happened inside refresh_fixtures
+# — weekly, on a Monday. MODEL_CARD §5's finding is *Friday*-to-close CLV, so a
+# Monday price is neither the baseline that result is defined on nor anything
+# near a kickoff, and a bet flagged on Saturday would have been priced five days
+# stale.
+#
+# 05:00 puts a pre-kickoff price on every fixture that day before flag-card.yml
+# runs at 06:00. The closing half of the pair comes from the archive, published
+# by the same source once the match is played, which is what keeps CLV
+# same-source — `clv_tracker` refuses the comparison otherwise.
+on:
+  schedule:
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# `live_odds.parquet` is append-only, so two runs appending concurrently and
+# racing to push would drop one capture entirely — the one thing this artifact
+# cannot recover, because a price that has moved cannot be re-fetched. Queue.
+concurrency:
+  group: odds
+  cancel-in-progress: false
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # The full stack: building the card runs the market engine and a joint
+      # Kelly solve, which the deployed serving image deliberately excludes.
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e . --no-deps
+
+      # Keyless. football-data.co.uk publishes the fixture prices without a
+      # credential, which is why this can run daily without a budget to protect.
+      - name: Capture pre-match prices
+        run: python scripts/collect_live_odds.py
+
+      # Immediately after, so the card reflects the prices just captured rather
+      # than last week's. flag-card.yml reads this at 06:00.
+      - name: Rebuild the card
+        run: python scripts/build_card.py
+
+      - name: Commit the capture
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          paths="data/processed/live_odds.parquet \
+                 data/processed/fixture_odds_map.json \
+                 data/processed/fixtures.parquet \
+                 data/processed/card.parquet"
+          if git diff --quiet -- $paths; then
+            # Normal outside a matchday window: the feed lists about a week
+            # ahead, and a re-capture of identical prices appends identical rows.
+            echo "no new prices; nothing to commit"
+            exit 0
+          fi
+          git add $paths
+          git commit -m "capture_odds: $(date -u +%Y-%m-%dT%H:%MZ)"
+          # A human or another workflow may have pushed since checkout. Rebase
+          # rather than force: this file is append-only and a force push would
+          # discard whatever landed in between.
+          for attempt in 1 2 3; do
+            if git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push; then
+              exit 0
+            fi
+            echo "push attempt ${attempt} lost a race; retrying"
+            sleep $((attempt * 5))
+          done
+          echo "could not push after 3 attempts" >&2
+          exit 1

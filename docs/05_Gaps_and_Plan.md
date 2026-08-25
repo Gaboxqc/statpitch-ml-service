@@ -423,7 +423,35 @@ The original plan for this phase follows.
   lower-tier entrants must fall through to `entrant_prior`, and
   `neutral_venue`/`format` must reach the matrix.
 
-### Phase E — hardening
+### Phase E — hardening — **done**
+
+Two things this turned up that the plan had not anticipated.
+
+**`refresh_fixtures` was discarding most of what it produced.** Its commit step
+listed three artifacts while the job wrote seven, so every scheduled run captured
+live odds, rebuilt the card and refreshed the club map — and then threw all three
+away. `live_odds.parquet` is append-only and its entire value is the series,
+which meant the series could never start in CI.
+
+**The capture was on the wrong clock.** It happened inside the weekly Monday
+fixture rebuild. MODEL_CARD §5's finding is *Friday*-to-close CLV, so a Monday
+price is neither the baseline that result is defined on nor anything near a
+kickoff, and a bet flagged on Saturday would have been priced five days stale.
+`capture-odds.yml` now runs daily at 05:00, before `flag-card` at 06:00, and
+rebuilds the card against the prices it just captured.
+
+The workflow guarantees that existed only for the two ledger jobs — never cancel
+mid-append, rebase rather than force, ask for write permission — now cover every
+committing workflow. They are properties of committing, not of the ledger.
+
+MODEL_CARD §6's "No live odds… the single largest gap" is struck through and
+superseded rather than deleted: live odds exist, and the finding still cannot be
+traded, for a different and more precise reason. §8 gains the two prediction
+defects only a cup fixture could reach, and the observation that three
+league-shaped guards fired on correct cup behaviour.
+
+The original plan for this phase follows.
+
 
 - Offline test fixtures for both new sources (repo rule: no test touches the
   network). A trimmed `fixtures.csv` and one `/events` + one `/odds` JSON.

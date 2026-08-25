@@ -186,11 +186,40 @@ def precomputed(client):
     return True
 
 
-def test_precomputed_fixtures_say_so(client, precomputed):
-    body = client.get("/fixtures/upcoming?limit=5&include_predictions=true").json()
+def _a_precomputed_fixture(client):
+    """The first fixture that actually has precomputed rates.
+
+    Not simply the first upcoming fixture. Since cup fixtures arrived, the
+    earliest rows can legitimately be ones precompute DECLINED — a tie where
+    neither club has a measured rating is left to the Elo fallback on purpose,
+    because equal priors give the fitted model no rating signal and it answers
+    from noise. Asserting over `limit=5` assumed a world with no cups in it.
+    """
+    known = predictor().artifacts.predicted_rates
+    body = client.get("/fixtures/upcoming?limit=50&include_predictions=true").json()
     for fixture in body["fixtures"]:
-        assert fixture["prediction_source"] == "fitted_goal_model"
-        assert fixture["prediction_model_version"].startswith("goals-")
+        if fixture["fixture_id"] in known:
+            return fixture
+    pytest.skip("no precomputed fixture in the current window")
+
+
+def test_precomputed_fixtures_say_so(client, precomputed):
+    fixture = _a_precomputed_fixture(client)
+    assert fixture["prediction_source"] == "fitted_goal_model"
+    assert fixture["prediction_model_version"].startswith("goals-")
+
+
+def test_a_fixture_precompute_declined_reports_the_fallback(client, precomputed):
+    """Both sides on the pooled prior means no rating signal at all.
+
+    Precompute omits those rather than shipping a confident answer built on
+    noise, and the response must show which path answered.
+    """
+    known = predictor().artifacts.predicted_rates
+    body = client.get("/fixtures/upcoming?limit=200&include_predictions=true").json()
+    declined = [f for f in body["fixtures"] if f["fixture_id"] not in known]
+    for fixture in declined:
+        assert fixture["prediction_source"] == "elo-poisson"
 
 
 def test_a_fixture_without_a_precomputed_rate_falls_back_and_says_so(
@@ -219,17 +248,13 @@ def explained(client, precomputed):
 
 
 def test_precomputed_fixtures_carry_an_explanation(client, explained):
-    body = client.get("/fixtures/upcoming?limit=3&include_predictions=true").json()
-    for fixture in body["fixtures"]:
-        explanation = fixture["explanation"]
-        assert set(explanation) >= {"home", "away", "units"}
-        assert explanation["home"], "no contributions for the home rate"
+    explanation = _a_precomputed_fixture(client)["explanation"]
+    assert set(explanation) >= {"home", "away", "units"}
+    assert explanation["home"], "no contributions for the home rate"
 
 
 def test_contributions_name_their_feature_and_its_value(client, explained):
-    fixture = client.get(
-        "/fixtures/upcoming?limit=1&include_predictions=true"
-    ).json()["fixtures"][0]
+    fixture = _a_precomputed_fixture(client)
     for contribution in fixture["explanation"]["home"]:
         assert contribution["feature"]
         assert "contribution" in contribution
@@ -240,9 +265,7 @@ def test_contributions_name_their_feature_and_its_value(client, explained):
 
 
 def test_the_units_are_stated_rather_than_assumed(client, explained):
-    fixture = client.get(
-        "/fixtures/upcoming?limit=1&include_predictions=true"
-    ).json()["fixtures"][0]
+    fixture = _a_precomputed_fixture(client)
     assert "log goal-rate" in fixture["explanation"]["units"]
 
 

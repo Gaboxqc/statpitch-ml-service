@@ -208,3 +208,47 @@ def test_an_empty_tree_still_serves_a_prediction(tmp_path):
     body = pr.Predictor(artifacts).predict("ENG.PL", "A", "B").as_dict()
     assert body["probabilities"]["home"] > 0
     assert body["fully_rated"] is False
+
+
+# --- two clubs on the same prior (Plan §4 Phase D) ----------------------------
+
+def test_equally_rated_clubs_are_shaped_by_home_advantage_alone():
+    """The case that exposed the precomputed path as worse than its fallback.
+
+    An FA Cup qualifying tie has two clubs Club Elo does not rate, so both take
+    the same pooled prior and the Elo difference is exactly zero. The only thing
+    left to separate them is home advantage, and the answer must look like it:
+    home ahead, but not by much, and the away side not favoured.
+
+    The fitted model, given no rating signal, instead discriminated on form and
+    xG features that do not exist for either club: Milton Keynes Dons came back
+    at 28.8% at home with an eighth-tier opponent favoured at 48.4%. Precompute
+    now omits such fixtures so this path answers them.
+    """
+    from fastapi.testclient import TestClient
+
+    from statpitch.serving.app import app
+
+    with TestClient(app) as client:
+        body = client.get(
+            "/predict/ENG.FA_CUP/Utterly Unknown FC/Equally Unknown FC"
+        ).json()
+
+    probabilities = body["probabilities"]
+    assert body["fully_rated"] is False
+    assert probabilities["home"] > probabilities["away"], "home advantage must apply"
+    assert probabilities["home"] < 0.60, "no rating signal means no strong favourite"
+    assert probabilities["away"] > 0.20
+
+
+def test_an_unrated_pair_is_not_declared_fully_rated():
+    """A prior is an acceptable answer; a prior presented as a measurement is not."""
+    from fastapi.testclient import TestClient
+
+    from statpitch.serving.app import app
+
+    with TestClient(app) as client:
+        body = client.get(
+            "/predict/ENG.FA_CUP/Utterly Unknown FC/Equally Unknown FC"
+        ).json()
+    assert body["fully_rated"] is False

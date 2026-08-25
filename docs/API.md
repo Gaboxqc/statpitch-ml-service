@@ -696,3 +696,16 @@ would actually be taken) — alongside `fair_odds`, `p_model`, `p_used`, the
 **Nothing here is a recommendation.** `stake_fraction` is on every row and says
 so; under the current configuration it is `0.0` everywhere. See `/card/today`
 for the refusal and the measurement behind it.
+
+## Price sources
+
+| source | key | covers | cadence | carries Pinnacle |
+|---|---|---|---|---|
+| football-data.co.uk | none | 5 leagues | one matchday block, then stale | no |
+| The Odds API | required | all 12 | daily, whatever is upcoming | **yes** |
+
+The Odds API is billed per request **per market per region**, not per fixture, so
+twenty fixtures cost what one does. `scripts/collect_odds_api.py` therefore asks
+`/events` first — free — to find which competitions have anything upcoming, then
+fetches 1X2 for those and all three markets only where a fixture kicks off today.
+Roughly 11 credits a day against a 500/month allowance.

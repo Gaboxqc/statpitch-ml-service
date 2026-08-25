@@ -54,6 +54,7 @@ import os
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
+import numpy as np
 import pandas as pd
 
 from statpitch import taxonomy
@@ -94,6 +95,34 @@ UNSOURCED_WITHOUT_A_KEY = (
     "ENG.FA_CUP", "ESP.COPA_DEL_REY", "ITA.COPPA_ITALIA",
     "FRA.COUPE_DE_FRANCE", "UEFA.UCL", "UEFA.UEL",
 )
+
+#: Bookmaker keys worth extracting by name rather than only aggregating.
+#:
+#: `pinnacle` is the one that matters, and its presence here is why this module
+#: grew a price fetcher at all. MODEL_CARD 5's +0.51% CLV (t=+7.53 clustered,
+#: five pre-break seasons) is defined on Pinnacle-referenced selections, and
+#: Phase C's blocker was that football-data.co.uk's fixture feed does not publish
+#: Pinnacle -- so the only rule with multi-season evidence could be measured
+#: backwards and never traded forwards. This source publishes it.
+#:
+#: `betfair_ex_eu` is the post-break candidate Phase C ranked highest but could
+#: not validate on a single season. Carried so that comparison can continue live.
+NAMED_BOOKS: dict[str, str] = {
+    "pinnacle": "odds_pinnacle",
+    "betfair_ex_eu": "odds_bfe",
+}
+
+#: Odds API market key -> the market name used in `live_odds.parquet`.
+MARKET_NAMES: dict[str, str] = {
+    "h2h": "1x2", "totals": "ou", "spreads": "ah",
+}
+
+#: What a daily sweep asks for. One market, so one credit per competition.
+DAILY_MARKETS = ("h2h",)
+
+#: What a competition playing today gets. Three markets, so three credits, spent
+#: only where a fixture actually kicks off, which is where they are worth having.
+MATCHDAY_MARKETS = ("h2h", "totals", "spreads")
 
 #: Events describe the future; a cached copy must expire. One hour rather than
 #: the schedule sources' six, because this is also the path a near-kickoff odds
@@ -172,6 +201,7 @@ def _get(
     *,
     max_age: float | None,
     costs_credits: bool,
+    cost: int = 1,
 ) -> list | dict | None:
     """One request, with the budget observed from the response it returns."""
     if costs_credits and budget.exhausted:
@@ -191,7 +221,10 @@ def _get(
         return None
     budget.observe(headers)
     if costs_credits and headers:
-        budget.spent_this_run += 1
+        # Billed per market per region, not per request. Counting requests said
+        # 7 for a sweep the API charged 11 for — and a local counter that
+        # undercounts is the one direction that empties a monthly budget.
+        budget.spent_this_run += cost
     try:
         return json.loads(body.decode("utf-8"))
     except (json.JSONDecodeError, UnicodeDecodeError) as exc:
@@ -342,6 +375,188 @@ def build_all_schedules(
     if not frames:
         return pd.DataFrame()
     return pd.concat(frames, ignore_index=True)
+
+
+def fetch_odds(
+    competition_id: str,
+    *,
+    markets: tuple[str, ...] = DAILY_MARKETS,
+    regions: str = "eu",
+    session: PoliteSession | None = None,
+    budget: Budget | None = None,
+) -> list[dict] | None:
+    """Priced events for one competition. **Costs `len(markets)` credits.**
+
+    The API bills per request per market per region, not per fixture, so twenty
+    fixtures cost exactly what one does. That is what makes a daily sweep of
+    every competition affordable on the free tier, and what makes adding a
+    second market to every competition every day not affordable.
+    """
+    if not configured():
+        return None
+    sport = SPORT_KEYS.get(competition_id)
+    if sport is None:
+        return None
+    payload = _get(
+        _url(
+            f"sports/{sport}/odds",
+            regions=regions,
+            markets=",".join(markets),
+            oddsFormat="decimal",
+        ),
+        session or PoliteSession(),
+        budget or Budget(),
+        # Never cached: a price is the thing being captured, and serving a cached
+        # body would append a stale quote under a fresh capture_id.
+        max_age=0,
+        costs_credits=True,
+        cost=len(markets) * len(regions.split(",")),
+    )
+    if payload is None:
+        return None
+    if not isinstance(payload, list):
+        log.warning("odds-api: %s - expected a list of priced events", competition_id)
+        return None
+    return payload
+
+
+def _selection_of(outcome: dict, event: dict, market: str) -> tuple[str, float | None]:
+    """Map one Odds API outcome onto (selection, line) in this project's names."""
+    name = str(outcome.get("name") or "").strip()
+    point = outcome.get("point")
+    line = float(point) if point is not None else None
+    if market == "h2h":
+        if name == event.get("home_team"):
+            return "home", None
+        if name == event.get("away_team"):
+            return "away", None
+        if name.lower() == "draw":
+            return "draw", None
+        return "", None
+    if market == "totals":
+        lowered = name.lower()
+        if lowered in ("over", "under"):
+            return lowered, line
+        return "", None
+    if market == "spreads":
+        if name == event.get("home_team"):
+            return "ah_home", line
+        if name == event.get("away_team"):
+            return "ah_away", line
+    return "", None
+
+
+def parse_odds(
+    payload: list[dict],
+    competition_id: str,
+    *,
+    cid: str,
+    captured_at: datetime | None = None,
+) -> pd.DataFrame:
+    """Priced events -> the same tidy shape `live_odds.parquet` already holds.
+
+    One row per fixture x market x selection, with the bookmaker panel collapsed
+    the way FR-16a requires: `odds_avg` is the mean across books and is what fair
+    probability is derived from, `odds_max` is the best quote and is the price
+    that would be taken. Named books keep their own columns so a reference can be
+    selected on without being mistaken for the consensus.
+    """
+    from statpitch.data import football_data_live as live
+
+    stamp = (captured_at or datetime.now(UTC)).astimezone(UTC)
+    rows: list[dict] = []
+
+    for event in payload:
+        home = (event.get("home_team") or "").strip()
+        away = (event.get("away_team") or "").strip()
+        kickoff = pd.to_datetime(event.get("commence_time"), utc=True, errors="coerce")
+        if not (home and away) or pd.isna(kickoff):
+            continue
+        kickoff = kickoff.tz_convert(None)
+
+        quotes: dict[tuple[str, str, float | None], dict[str, float]] = {}
+        for bookmaker in event.get("bookmakers") or []:
+            book = str(bookmaker.get("key") or "")
+            for block in bookmaker.get("markets") or []:
+                market = str(block.get("key") or "")
+                if market not in MARKET_NAMES:
+                    continue
+                for outcome in block.get("outcomes") or []:
+                    selection, line = _selection_of(outcome, event, market)
+                    price = outcome.get("price")
+                    if not selection or price is None:
+                        continue
+                    try:
+                        value = float(price)
+                    except (TypeError, ValueError):
+                        continue
+                    if value <= 1.0:
+                        continue
+                    quotes.setdefault((market, selection, line), {})[book] = value
+
+        for (market, selection, line), prices in quotes.items():
+            values = list(prices.values())
+            our_market = MARKET_NAMES[market]
+            # The away side of a handicap is already quoted at its own line here,
+            # so unlike football-data's single `AHh` there is nothing to negate.
+            key = live.selection_key(our_market, selection, line)
+            if key is None:
+                continue
+            row = {
+                "capture_id": cid,
+                "captured_at": stamp.isoformat(timespec="seconds"),
+                "competition_id": competition_id,
+                "div_code": None,
+                "date": kickoff.normalize(),
+                "kickoff_utc": kickoff,
+                "fd_home": home,
+                "fd_away": away,
+                "snapshot": "preclose",
+                "market": our_market,
+                "selection": selection,
+                "line": line,
+                "selection_key": key,
+                "odds_avg": float(np.mean(values)),
+                "odds_max": float(max(values)),
+                "odds_panel_avg": float(np.mean(values)),
+                "odds_panel_max": float(max(values)),
+                "n_panel_books": len(values),
+                "n_books": len(values),
+                "source": "odds_api",
+            }
+            for book, column in NAMED_BOOKS.items():
+                row[column] = prices.get(book)
+            rows.append(row)
+
+    if not rows:
+        return pd.DataFrame()
+    frame = pd.DataFrame(rows)
+    for column in ("odds_pinnacle", "odds_b365", "odds_bfe"):
+        if column not in frame.columns:
+            frame[column] = None
+    return frame.sort_values(
+        ["date", "fd_home", "selection_key"]
+    ).reset_index(drop=True)
+
+
+def markets_for(
+    competition_id: str, fixtures, *, now: datetime | None = None
+) -> tuple[str, ...]:
+    """Three markets on a matchday, one otherwise.
+
+    A competition with a fixture kicking off today gets totals and handicaps as
+    well as 1X2, because that is the day the extra markets are worth their
+    credits. Every other day it gets 1X2 alone, which keeps a price series
+    running for CLV at one credit per competition.
+    """
+    today = (now or datetime.now(UTC)).astimezone(UTC).date()
+    if fixtures is None or fixtures.empty:
+        return DAILY_MARKETS
+    playing = fixtures[
+        (fixtures["competition_id"] == competition_id)
+        & (fixtures["date"].dt.date == today)
+    ]
+    return MATCHDAY_MARKETS if not playing.empty else DAILY_MARKETS
 
 
 def describe() -> dict:

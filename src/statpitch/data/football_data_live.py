@@ -140,6 +140,11 @@ CLUB_ALIASES: dict[str, dict[str, str]] = {
     "ENG.PL": {
         "Man City": "Manchester City FC",
         "Man United": "Manchester United FC",
+        # The Odds API spells them out. Both still reduce to {manchester},
+        # because "city" and "united" are noise tokens, so both still need
+        # answering by hand.
+        "Manchester City": "Manchester City FC",
+        "Manchester United": "Manchester United FC",
     },
     "ESP.LALIGA": {
         # "Ath" prefixes both Athletic and Atlético; token overlap puts
@@ -149,6 +154,7 @@ CLUB_ALIASES: dict[str, dict[str, str]] = {
         # "Barcelona" is a token of both Barcelona clubs.
         "Barcelona": "FC Barcelona",
         "Espanol": "RCD Espanyol de Barcelona",
+        "Espanyol": "RCD Espanyol de Barcelona",
         "Vallecano": "Rayo Vallecano de Madrid",
         "Alaves": "Deportivo Alavés",
     },
@@ -158,12 +164,19 @@ CLUB_ALIASES: dict[str, dict[str, str]] = {
     },
     "ITA.SERIEA": {
         "Inter": "FC Internazionale Milano",
+        "Inter Milan": "FC Internazionale Milano",
+        # Curated despite matching a fixture name exactly. "AC Milan" reduces to
+        # {milan}, and so does "Inter Milan" once "inter" fails to match
+        # "internazionale" — so the two tie and the resolver refuses both rather
+        # than handing Inter's prices to Milan.
+        "AC Milan": "AC Milan",
     },
     "FRA.LIGUE1": {
         "Brest": "Stade Brestois 29",
         "Lyon": "Olympique Lyonnais",
         "Paris FC": "Paris FC",
         "Paris SG": "Paris Saint-Germain FC",
+        "Paris Saint Germain": "Paris Saint-Germain FC",
         "Rennes": "Stade Rennais FC 1901",
     },
 }

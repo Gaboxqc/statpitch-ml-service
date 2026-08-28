@@ -524,6 +524,10 @@ def test_the_refusal_code_is_unchanged_by_the_clearer_prose(client):
     Only asserted when the route is refusing — it carries bets once a selection
     rule is live.
     """
+    from statpitch import decision_config
+
+    if not decision_config.config().is_placeholder:
+        pytest.skip("the config gate is not what is refusing")
     body = client.get("/card/today").json()
     if "refusal" not in body:
         pytest.skip("a selection rule is live, so /card/today is answering")

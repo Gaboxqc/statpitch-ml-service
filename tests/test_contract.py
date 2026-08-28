@@ -150,14 +150,27 @@ def test_a_conditional_refusal_keeps_its_own_code(client, route, code):
     They now carry bets when a selection rule is live, and pinning "always
     refuses" would have made enabling staking look like a contract break.
     """
+    from statpitch import decision_config
+
     body = client.get(route).json()
     if "refusal" not in body:
         assert body.get("bets") or body.get("value_bets"), (
             f"{route} neither refuses nor recommends"
         )
         return
-    assert body["refusal"]["reason_code"] == str(code)
+
+    emitted = body["refusal"]["reason_code"]
     assert body["refusal"]["available"] is False
+
+    if decision_config.config().is_placeholder:
+        # The config gate is what is stopping it, and each route has emitted its
+        # OWN code for that since v1. Sharing a helper must not unify them.
+        assert emitted == str(code)
+    else:
+        # Staking is on, so an empty slate means nothing cleared the cutoff —
+        # a different cause with its own code, and pinning the config-gate code
+        # here would have made "assessed 42, none qualified" look like a break.
+        assert emitted in {str(code), "NO_QUALIFYING_SELECTION"}
 
 
 @pytest.mark.parametrize("route,_code", REFUSING_ROUTES)
@@ -255,6 +268,10 @@ def test_the_two_slate_routes_keep_their_own_refusal_codes(client):
     config is unfitted — and each route has emitted its own since v1. Which one
     a route returns is as much a part of the contract as its path.
     """
+    from statpitch import decision_config
+
+    if not decision_config.config().is_placeholder:
+        pytest.skip("the config gate is not what is refusing; codes differ by cause")
     card_body = client.get("/card/today").json()
     value_body = client.get("/value-bets/today").json()
     if "refusal" not in card_body or "refusal" not in value_body:

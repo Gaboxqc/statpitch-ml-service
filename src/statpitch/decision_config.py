@@ -124,6 +124,39 @@ class MarketEngine:
 
 
 @dataclass(frozen=True, slots=True)
+class SelectionRule:
+    """Which selections are eligible to be staked at all (FR-16a).
+
+    Separate from grading, and prior to it. Grading asks how much to trust a
+    selection; this asks whether it is the KIND of selection the measured
+    evidence covers.
+
+    `market_families` exists because of MODEL_CARD 4: picking the largest
+    apparent edge ACROSS markets measured -2.12% ROI against +0.13% for
+    committing to one market in advance. Maximum-edge selection finds the
+    model's own largest errors. Restricting the rule to the family the evidence
+    was measured on is what stops a daily pick becoming that failure.
+    """
+
+    status: str = "candidate"
+    reference: str | None = None
+    threshold: float = 0.0
+    market_families: tuple[str, ...] = ()
+    max_per_day: int | None = None
+    evidence: str | None = None
+
+    @property
+    def is_active(self) -> bool:
+        """Whether the rule may select. `candidate` is recorded, not run."""
+        return self.status in ("experimental", "fitted") and bool(self.reference)
+
+    def covers(self, market_family: str) -> bool:
+        if not self.market_families:
+            return True
+        return str(market_family) in self.market_families
+
+
+@dataclass(frozen=True, slots=True)
 class DecisionConfig:
     config_version: str
     status: str
@@ -141,6 +174,7 @@ class DecisionConfig:
     bootstrap_resamples: int
     pinnacle_break_date: str
     allow_pooling_across_regimes: bool
+    selection_rule: SelectionRule
     raw: dict[str, Any]
 
     @property
@@ -273,6 +307,7 @@ def load(path: Path | None = None) -> DecisionConfig:
         guardrails=guardrails,
         staking=staking,
         market_engine=market_engine,
+        selection_rule=_parse_selection_rule(raw.get("selection_rule") or {}),
         clv_label=rep.get("clv_label", "Friday-to-close CLV"),
         min_cell_sample_size=int(rep.get("min_cell_sample_size", 50)),
         bootstrap_resamples=int(rep.get("bootstrap_resamples", 10000)),
@@ -285,6 +320,20 @@ def load(path: Path | None = None) -> DecisionConfig:
 #: Never permitted as a fair-probability source. Max-of-N book prices sit above
 #: consensus by construction, so de-vigging them fabricates edge (FR-16a).
 _FORBIDDEN_BENCHMARK_COLUMNS = frozenset(("odds_max", "odds_panel_max"))
+
+
+def _parse_selection_rule(raw: dict[str, Any]) -> SelectionRule:
+    families = raw.get("market_families") or ()
+    return SelectionRule(
+        status=str(raw.get("status", "candidate")),
+        reference=raw.get("candidate_reference") or raw.get("reference"),
+        threshold=float(raw.get("threshold") or 0.0),
+        market_families=tuple(str(f) for f in families),
+        max_per_day=(
+            int(raw["max_per_day"]) if raw.get("max_per_day") is not None else None
+        ),
+        evidence=raw.get("evidence"),
+    )
 
 
 def _parse_benchmark(raw: dict[str, Any]) -> Benchmark:

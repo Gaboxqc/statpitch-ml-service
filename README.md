@@ -16,8 +16,13 @@ references so the code and the spec stay legible together.
 > (`data/selection_rule_study.json`). Read
 > **[`docs/MODEL_CARD.md`](docs/MODEL_CARD.md)** before anything else.
 >
-> Advisory only (NFR-11): no bookmaker integration, no wagers, no funds. Staking
-> is disabled in code, not by convention.
+> **Staking is now ENABLED**, under an explicitly *experimental* selection rule:
+> back the best available quote when it beats Pinnacle's de-vigged fair value,
+> 1X2 only, three per day. That rule has five seasons of measured CLV; the
+> 25-book price panel it runs on has none, so every selection is emitted with
+> `config_status=experimental`. See MODEL_CARD §11.
+>
+> Advisory only (NFR-11): no bookmaker integration, no wagers, no funds.
 
 ## Layout
 

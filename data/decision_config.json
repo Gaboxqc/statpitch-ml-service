@@ -1,6 +1,6 @@
 {
-  "config_version": "dec-2026.08.0-placeholder",
-  "status": "placeholder",
+  "config_version": "dec-2026.08.1-experimental",
+  "status": "experimental",
   "notes": [
     "NFR-12: every Decision Layer parameter lives here, never in code, so any historical",
     "backtest result can be reproduced exactly from its parameter set.",
@@ -18,12 +18,14 @@
     "no sharp reference available in the live feed clears the >=2-season bar",
     "(selection_rule.blocked_by). status stays 'placeholder' deliberately: the",
     "only rule with a multi-season result is defined on a book the live feed",
-    "does not publish, so enabling staking would size bets on an unvalidated one."
+    "does not publish, so enabling staking would size bets on an unvalidated one.",
+    "",
+    "2026-08-27: status moved placeholder -> experimental so the Pinnacle-referenced rule can run live. NOT 'fitted': the rule has five seasons of evidence, the 25-book panel it now runs on has none, and selection_rule.blocked_by says so on every response."
   ],
   "market_shrinkage": {
-    "w": null,
-    "w_fitted": false,
-    "comment": "p_used = w*p_model + (1-w)*q_fair (Design \u00a76.5). Fitted on validation data to maximise realised log-growth, never assumed. w near zero is a valid and publishable finding (Requirements \u00a78.4). Null until Phase 5 fits it."
+    "w": 0.0,
+    "w_fitted": true,
+    "comment": "Fitted at the Phase 5 checkpoint and the fitted value is 0.000 (data/w_checkpoint.json). w_fitted=true records that the estimate was MADE, not that it was positive; p_used is therefore q_fair and every surviving pound of expected value is price, not model. Requirements 8.4 calls a w near zero a valid and publishable finding, and this is it."
   },
   "benchmark": {
     "primary": "consensus_closing",
@@ -167,40 +169,46 @@
     "comment": "Requirements \u00a77.3. Pinnacle was dropped from Max/Avg on this date. Pooling the two regimes without adjustment is a correctness bug, so the default forbids it."
   },
   "selection_rule": {
-    "status": "candidate",
-    "candidate_reference": "odds_bfe",
-    "reference_book": "Betfair Exchange",
+    "status": "experimental",
+    "candidate_reference": "odds_pinnacle",
+    "reference_book": "Pinnacle",
     "fair_price_column": "odds_avg",
     "available_price_column": "odds_max",
     "scored_on": "avg_to_avg_clv",
-    "threshold": null,
+    "threshold": 0.0,
     "evidence": "data/selection_rule_study.json",
     "comment": [
-      "FR-16a / Requirements line 250. The rule MODEL_CARD \u00a75 measured (+0.51% CLV,",
-      "Pinnacle-referenced) CANNOT be traded: Pinnacle is not published in the live",
-      "fixture feed. scripts/study_selection_rules.py asks which references the feed",
-      "does carry behave the same way.",
+      "ACTIVE, and experimental rather than fitted. The distinction is the point:",
+      "`fitted` would claim the parameters below were estimated to the project's own",
+      "standard, and they are not \u2014 see blocked_by.",
       "",
-      "Pre-break (2019/20-2023/24, holdout excluded, 7,790 matches) only Pinnacle",
-      "works: +0.51% CLV at t=+7.53. B365 shows nothing (-0.07%, t=-1.09) and the",
-      "consensus is actively negative (-0.23%, t=-3.35). Betfair Exchange does not",
-      "exist before 2024/25, and 2024/25 is the NFR-10 holdout.",
+      "reference = Pinnacle. MODEL_CARD 5 measures +0.51% Friday-to-close CLV at",
+      "t=+7.53 clustered over five pre-break seasons and 7,790 matches on",
+      "Pinnacle-referenced selections. Phase C could not run it forward because the",
+      "free fixture feed does not publish Pinnacle; The Odds API does, so it can.",
       "",
-      "Post-break (2025/26 onward, 1,781 matches) Betfair Exchange leads at +2.51%,",
-      "t=+7.86, against an unselected baseline of -0.03%. B365 and Pinnacle are also",
-      "positive there. That is promising and it is NOT sufficient."
+      "market_families = 1x2 ONLY, and this is not a simplification. MODEL_CARD 4",
+      "measured picking the largest apparent edge ACROSS markets at -2.12% ROI",
+      "against +0.13% for committing to one market in advance, because maximum-edge",
+      "selection finds the model's own largest errors. A daily pick ranked across",
+      "all 86 selections would be exactly that failure.",
+      "",
+      "The rule gates STAKING, not only ranking: a selection the evidence does not",
+      "cover is not a bet however well it grades."
     ],
     "blocked_by": {
-      "requirement": "Requirements line 250 \u2014 CLV over >=2 full historical seasons",
-      "seasons_available_post_break": [
-        "2025-2026"
-      ],
-      "reason": "One season. The same consensus-referenced rule has OPPOSITE signs in the two regimes (-0.23% pre-break, +1.17% post-break), which is what a regime-specific artifact looks like, so a single post-break season cannot distinguish a real effect from a transient one.",
-      "unblocks_when": "2026-2027 completes, giving a second post-break season"
+      "what_is_still_unproven": "The +0.51% was measured against football-data.co.uk's Max column over a 7-30 book panel. Live, the best quote comes from a 25-book Odds API panel \u2014 a different estimator, so the rule's calibration is inherited rather than re-measured. Requirements line 250's >=2-season bar is met for the RULE and not for this PANEL.",
+      "consequence": "Every selection is emitted with config_status=experimental and the evidence attached. Treat the output as a live test of a measured rule on a new price panel, not as a validated edge.",
+      "clears_when": "The captured live_odds series reaches two seasons and scripts/study_selection_rules.py reproduces the result on this panel."
     },
     "not_used_and_why": {
       "odds_max_as_reference": "Selecting on the max-vs-consensus spread and then scoring the max price's movement scores a variable on itself. Measured: the spread narrows from +11.64% to +10.23% on selected rows while the consensus moves 0.28% AGAINST the bet. Regression to the mean, not edge.",
       "odds_b365": "No pre-break signal (-0.07%, t=-1.09) despite being in the feed."
-    }
+    },
+    "reference": "odds_pinnacle",
+    "market_families": [
+      "1x2"
+    ],
+    "max_per_day": 3
   }
 }

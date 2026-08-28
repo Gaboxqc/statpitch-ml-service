@@ -152,10 +152,13 @@ def test_the_field_is_present_rather_than_omitted(client):
     assert "bet_recommendation_reason" in body
 
 
-def test_a_league_fixture_reports_the_unfitted_config_instead(client):
+def test_a_league_fixture_reports_the_config_state_in_force(client):
+    """`/predict` never recommends a bet for a single fixture on its own — that
+    is `/bets/today`'s job, under the selection rule. What it must do is say
+    which state the config is in rather than going quiet."""
     body = client.get("/predict/ENG.PL/Arsenal/Chelsea").json()
-    assert body["bet_recommendation"] is None
-    assert "unfitted" in body["bet_recommendation_reason"]
+    assert "bet_recommendation" in body
+    assert body["bet_recommendation_reason"]
 
 
 def test_backtest_is_unavailable_for_cups_with_a_reason(client):
@@ -186,15 +189,29 @@ def test_the_disclaimer_says_no_wagers_are_placed(client):
 
 # --- staking stays disabled while unfitted ------------------------------------
 
-def test_the_card_refuses_while_the_config_is_a_placeholder(client):
+def test_the_card_refuses_only_while_the_config_is_a_placeholder(client):
+    """And carries bets otherwise. Pinning "always refuses" would have made
+    enabling staking look like a contract break rather than the intended change."""
+    from statpitch import decision_config
+
     body = client.get("/card/today").json()
-    assert body["bets"] == []
-    assert body["total_exposure"] == 0.0
-    assert "unfitted" in body["reason"]
+    if decision_config.config().is_placeholder:
+        assert body["bets"] == []
+        assert body["total_exposure"] == 0.0
+        assert "unfitted" in body["reason"]
+    else:
+        assert isinstance(body["bets"], list)
+        assert body["total_exposure"] >= 0.0
 
 
-def test_health_reports_staking_as_disabled(client):
-    assert client.get("/health").json()["staking_enabled"] is False
+def test_health_reports_the_staking_state_that_is_actually_in_force(client):
+    """It used to assert False, which was the committed config's state rather
+    than a property of the code. What must hold is that /health agrees with the
+    config actually loaded — a health check that disagrees is worse than none."""
+    from statpitch import decision_config
+
+    reported = client.get("/health").json()["staking_enabled"]
+    assert reported is (not decision_config.config().is_placeholder)
 
 
 def test_best_bet_returns_nothing_and_explains_why(client):
@@ -299,9 +316,12 @@ def test_card_today_reports_that_it_computed_something(client):
     body = client.get("/card/today").json()
     assert "assessed" in body
     assert "grades" in body
-    assert body["refusal"]["reason_code"] in {
-        "DECISION_CONFIG_UNFITTED", "NO_QUALIFYING_SELECTION", "NO_CARD_SOURCE",
-    }
+    if "refusal" in body:
+        assert body["refusal"]["reason_code"] in {
+            "DECISION_CONFIG_UNFITTED", "NO_QUALIFYING_SELECTION", "NO_CARD_SOURCE",
+        }
+    else:
+        assert body["bets"], "no refusal and no bets is neither answer"
 
 
 def test_card_today_keeps_its_v1_keys(client):
@@ -331,7 +351,7 @@ def test_the_two_slate_routes_agree_on_what_is_recommended(client):
 def test_a_staking_refusal_carries_the_measurement_behind_it(client):
     """The project's rule: a refusal cites the number that caused it."""
     body = client.get("/card/today").json()
-    if body["refusal"]["reason_code"] == "DECISION_CONFIG_UNFITTED":
+    if body.get("refusal", {}).get("reason_code") == "DECISION_CONFIG_UNFITTED":
         measurement = body["refusal"]["measurement"]
         assert measurement["w"] == 0.0
         assert measurement["n_validation_matches"] == 5306
@@ -499,6 +519,105 @@ def test_an_empty_card_does_not_blame_the_staking_gate(client):
 
 
 def test_the_refusal_code_is_unchanged_by_the_clearer_prose(client):
-    """NFR-13: a consumer branches on the code, which has meant this since v1."""
+    """NFR-13: a consumer branches on the code, which has meant this since v1.
+
+    Only asserted when the route is refusing — it carries bets once a selection
+    rule is live.
+    """
     body = client.get("/card/today").json()
+    if "refusal" not in body:
+        pytest.skip("a selection rule is live, so /card/today is answering")
     assert body["refusal"]["reason_code"] == "DECISION_CONFIG_UNFITTED"
+
+
+# --- the daily bet, and the rule behind it ------------------------------------
+
+def test_bets_today_reports_the_rule_it_selected_under(client):
+    """A recommendation without its basis is not checkable."""
+    body = client.get("/bets/today").json()
+    rule = body["selection_rule"]
+    assert rule["reference"], "a rule with no reference cannot select"
+    assert rule["market_families"], "an unrestricted rule is the -2.12% failure"
+    assert "evidence" in rule
+
+
+def test_the_rule_is_restricted_to_the_family_it_was_measured_on(client):
+    """MODEL_CARD §4: max-edge ACROSS markets measured -2.12% ROI against +0.13%
+    for committing to one market. A daily pick ranked over all 86 selections
+    would be exactly that failure."""
+    body = client.get("/bets/today").json()
+    assert body["selection_rule"]["market_families"] == ["1x2"]
+    for bet in body["bets"]:
+        assert bet["market_family"] == "1x2"
+
+
+def test_every_recommendation_cleared_the_rule(client):
+    body = client.get("/bets/today").json()
+    for bet in body["bets"]:
+        assert bet["rule_qualified"] is True
+        assert bet["rule_edge"] is not None
+        assert bet["stake_fraction"] > 0
+
+
+def test_a_recommendation_shows_the_sharp_price_it_beat(client):
+    """The rule is "best quote beats the reference's fair value", so both prices
+    have to be visible or the claim cannot be checked."""
+    body = client.get("/bets/today").json()
+    for bet in body["bets"]:
+        assert bet["reference_odds"] is not None
+        assert bet["odds"] >= bet["reference_odds"]
+
+
+def test_an_experimental_rule_says_so_on_every_response_carrying_a_bet(client):
+    """The rule has five seasons; the panel it runs on has none.
+
+    A consumer storing these rows must store that with them.
+    """
+    body = client.get("/bets/today").json()
+    if body["selection_rule"]["status"] == "fitted":
+        pytest.skip("rule promoted to fitted in this checkout")
+    assert "caveat" in body
+    assert body["refusal"]["reason_code"] == "SELECTION_RULE_EXPERIMENTAL"
+
+
+def test_no_qualifying_price_yields_no_bet_rather_than_the_least_bad(client):
+    """A day with nothing clearing the threshold is a day with no bet."""
+    body = client.get("/bets/today").json()
+    if body["count"] == 0:
+        assert body["bets"] == []
+        assert "reason" in body
+
+
+def test_bets_are_ranked_by_the_rule_edge(client):
+    body = client.get("/bets/today").json()
+    edges = [b["rule_edge"] for b in body["bets"]]
+    assert edges == sorted(edges, reverse=True)
+
+
+# --- matchday odds ------------------------------------------------------------
+
+def test_matchday_groups_prices_by_fixture(client):
+    body = client.get("/odds/matchday").json()
+    for fixture in body["fixtures"]:
+        assert fixture["home_team"] and fixture["away_team"]
+        assert fixture["markets_priced"]
+        for family, selections in fixture["markets"].items():
+            assert selections, family
+
+
+def test_matchday_carries_every_market_that_was_captured(client):
+    """1X2 daily everywhere; totals and handicaps only where a fixture plays."""
+    body = client.get("/odds/matchday").json()
+    if not body["fixtures"]:
+        pytest.skip("no priced fixtures today in this checkout")
+    assert any("1x2" in f["markets_priced"] for f in body["fixtures"])
+
+
+def test_matchday_rejects_an_unparseable_date(client):
+    assert client.get("/odds/matchday?date=nonsense").status_code == 400
+
+
+def test_matchday_can_be_filtered_by_competition(client):
+    body = client.get("/odds/matchday?competition_id=ENG.PL").json()
+    for fixture in body["fixtures"]:
+        assert fixture["competition_id"] == "ENG.PL"

@@ -257,9 +257,28 @@ def grade(
     e_ceiling: float = DEFAULT_E_CEILING,
     cutoffs: dict[str, float] | None = None,
     weights: dict[str, float] | None = None,
+    edge: float | None = None,
     **guardrail_kwargs,
 ) -> GradedBet:
-    """Grade one assessed selection A-F."""
+    """Grade one assessed selection A-F.
+
+    `edge` overrides which quantity drives `c_edge`. It defaults to
+    `assessment.edge_prob` — the model against the consensus — which is the right
+    input when the model has something to say.
+
+    It does not, here. `w` fits at 0.000, so `p_used` IS `q_fair` and `edge_prob`
+    is identically zero: `c_edge` scores 0 for every selection and, carrying
+    weight 0.30, caps the composite at 0.70 before anything else is considered.
+    Measured on a real card that ceiling was 0.3038, against a D cutoff of 0.35 —
+    nothing could grade above F regardless of price.
+
+    So a price-based rule needs its own edge here. Which rule matters: Phase C
+    measured the consensus-referenced version (best quote against the de-vigged
+    consensus) as regression to the mean, and repointing `c_edge` at THAT would
+    encode an artifact. The Pinnacle-referenced rule is a different measurement
+    — +0.51% CLV at t=+7.53 clustered over five pre-break seasons and 7,790
+    matches — and that is what the caller supplies.
+    """
     context = context or GradingContext()
     cutoffs = cutoffs or DEFAULT_CUTOFFS
     weights = weights or DEFAULT_WEIGHTS
@@ -275,11 +294,13 @@ def grade(
         # No composite score is allowed to outvote that.
         return GradedBet(assessment.key, Grade.F, 0.0, None, tuple(reasons))
 
-    if assessment.edge_prob > e_ceiling:
+    scored_edge = assessment.edge_prob if edge is None else float(edge)
+
+    if scored_edge > e_ceiling:
         return GradedBet(
             assessment.key, Grade.F, 0.0, None,
             (
-                f"apparent edge {assessment.edge_prob:.3f} above the ceiling "
+                f"apparent edge {scored_edge:.3f} above the ceiling "
                 f"{e_ceiling:.3f} — model likely blind to something; routed to review",
             ),
             model_likely_blind=True,
@@ -292,7 +313,7 @@ def grade(
         )
 
     sub = SubScores(
-        c_edge=edge_confidence(assessment.edge_prob, e_peak, sigma, e_ceiling),
+        c_edge=edge_confidence(scored_edge, e_peak, sigma, e_ceiling),
         c_robust=robustness(context.p_std),
         c_market=market_quality(context.book_margin, context.n_books),
         c_calib=calibration_confidence(context.calibration_error),
@@ -330,12 +351,18 @@ class ReviewQueue:
 def grade_book(
     assessments: list[ValueAssessment],
     context: GradingContext | None = None,
+    edges: dict[str, float] | None = None,
     **kwargs,
 ) -> tuple[list[GradedBet], ReviewQueue]:
+    """Grade a book. `edges` supplies a per-selection edge for `c_edge`."""
     queue = ReviewQueue()
     graded = []
     for assessment in assessments:
-        bet = grade(assessment, context, **kwargs)
+        bet = grade(
+            assessment, context,
+            edge=(edges or {}).get(assessment.key),
+            **kwargs,
+        )
         queue.add(bet)
         graded.append(bet)
     return graded, queue

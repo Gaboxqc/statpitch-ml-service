@@ -120,6 +120,12 @@ class ReasonCode(StrEnum):
     #: No card artifact is present. `scripts/build_card.py` has not run.
     NO_CARD_SOURCE = "NO_CARD_SOURCE"
 
+    #: Selections ARE being recommended, under a rule whose evidence does not yet
+    #: cover the price panel it runs on. Not a refusal — the payload carries bets
+    #: — but it travels with them so a consumer stores the caveat alongside the
+    #: rows rather than discovering it later.
+    SELECTION_RULE_EXPERIMENTAL = "SELECTION_RULE_EXPERIMENTAL"
+
 
 class OpenModel(BaseModel):
     """Base for every response model.

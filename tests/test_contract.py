@@ -44,11 +44,20 @@ CONSUMED_ROUTES = [
 ]
 
 #: Routes that decline to answer, and the code each must report.
+#: Routes that refuse unconditionally, whatever the config says.
 REFUSING_ROUTES = [
     ("/best-bet/ENG.PL/Arsenal/Chelsea", contract.ReasonCode.MAX_EDGE_SELECTION_HARMFUL),
+    ("/bankroll/simulate", contract.ReasonCode.EMPTY_LEDGER),
+]
+
+#: Routes that refuse only while the decision config is a placeholder. Once a
+#: selection rule is live they carry bets instead, so the code they emit is
+#: asserted only when a refusal is actually present. The pairing still matters:
+#: both codes are true under a placeholder and each route has emitted its own
+#: since v1, so sharing a helper must not unify them.
+CONDITIONALLY_REFUSING_ROUTES = [
     ("/card/today", contract.ReasonCode.DECISION_CONFIG_UNFITTED),
     ("/value-bets/today", contract.ReasonCode.SHRINKAGE_WEIGHT_ZERO),
-    ("/bankroll/simulate", contract.ReasonCode.EMPTY_LEDGER),
 ]
 # `/today` is deliberately absent: once a fixture artifact is built it answers
 # rather than refusing. Its refusal path — artifact missing, which must not be
@@ -133,6 +142,24 @@ def test_refusals_are_machine_readable(client, route, code):
     assert body["refusal"]["available"] is False
 
 
+@pytest.mark.parametrize("route,code", CONDITIONALLY_REFUSING_ROUTES)
+def test_a_conditional_refusal_keeps_its_own_code(client, route, code):
+    """Asserted when a refusal is present, not that one always is.
+
+    These routes refused unconditionally while the config was a placeholder.
+    They now carry bets when a selection rule is live, and pinning "always
+    refuses" would have made enabling staking look like a contract break.
+    """
+    body = client.get(route).json()
+    if "refusal" not in body:
+        assert body.get("bets") or body.get("value_bets"), (
+            f"{route} neither refuses nor recommends"
+        )
+        return
+    assert body["refusal"]["reason_code"] == str(code)
+    assert body["refusal"]["available"] is False
+
+
 @pytest.mark.parametrize("route,_code", REFUSING_ROUTES)
 def test_refusal_prose_is_preserved_alongside_the_structure(client, route, _code):
     """NFR-13: the structure is additive. The sentence consumers already read stays."""
@@ -193,7 +220,12 @@ def test_health_reports_readiness_and_version(client):
     assert body["status"] == "ok"
     assert body["ready"] is True
     assert body["artifacts_loaded"] is True
-    assert body["staking_enabled"] is False
+    # Whatever the config says — a health check that disagrees with the loaded
+    # config is worse than none. It asserted False when that was the committed
+    # state rather than a property of the code.
+    from statpitch import decision_config
+
+    assert body["staking_enabled"] is (not decision_config.config().is_placeholder)
 
 
 def test_health_reports_not_ready_instead_of_raising(client, monkeypatch):
@@ -216,14 +248,31 @@ def test_health_reports_not_ready_instead_of_raising(client, monkeypatch):
 
 
 def test_the_two_slate_routes_keep_their_own_refusal_codes(client):
+    """Only meaningful while both are refusing; skipped once they carry bets."""
     """Sharing a helper must not unify two codes a consumer branches on.
 
     Both are true while the config is a placeholder — `w` is 0.000 *and* the
     config is unfitted — and each route has emitted its own since v1. Which one
     a route returns is as much a part of the contract as its path.
     """
-    card = client.get("/card/today").json()["refusal"]["reason_code"]
-    value = client.get("/value-bets/today").json()["refusal"]["reason_code"]
-    assert card == "DECISION_CONFIG_UNFITTED"
-    assert value == "SHRINKAGE_WEIGHT_ZERO"
-    assert card != value
+    card_body = client.get("/card/today").json()
+    value_body = client.get("/value-bets/today").json()
+    if "refusal" not in card_body or "refusal" not in value_body:
+        pytest.skip("a selection rule is live, so the slate routes are answering")
+    assert card_body["refusal"]["reason_code"] == "DECISION_CONFIG_UNFITTED"
+    assert value_body["refusal"]["reason_code"] == "SHRINKAGE_WEIGHT_ZERO"
+
+
+def test_the_bet_recommendation_fields_survive_every_config_state(client):
+    """NFR-13. `bet_recommendation_reason` was emitted on every response while
+    the config was a placeholder, and dropped out the moment staking was
+    enabled — a consumer reading it would have started seeing KeyError on that
+    exact day. All three keys are now present in every state."""
+    for route in (
+        "/predict/ENG.PL/Arsenal/Chelsea",       # covered, staking on
+        "/predict/ENG.FA_CUP/Arsenal/Chelsea",   # no odds coverage
+    ):
+        body = client.get(route).json()
+        assert "bet_recommendation" in body
+        assert body.get("bet_recommendation_reason"), route
+        assert body.get("bet_recommendation_refusal"), route

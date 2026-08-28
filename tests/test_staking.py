@@ -303,12 +303,15 @@ def test_bigger_lambda_means_deeper_drawdown():
 # --- the gate -----------------------------------------------------------------
 
 def test_the_engine_refuses_to_stake_from_placeholder_config():
-    """A stake sized from unfitted parameters looks exactly like a real one."""
-    from statpitch import decision_config
-    from statpitch.decision_config import DecisionConfigError
+    """Constructed, not read from disk: the shipped config is no longer one."""
+    from dataclasses import replace
 
-    with pytest.raises(DecisionConfigError, match="size stakes"):
-        st.StakingEngine(decision_config.config())
+    from statpitch import decision_config as dc
+
+    placeholder = replace(dc.config(), status="placeholder", w_fitted=False, w=None)
+    with pytest.raises(dc.DecisionConfigError):
+        st.StakingEngine(placeholder)
+
 
 
 def test_the_engine_works_once_the_config_is_fitted(tmp_path, book):

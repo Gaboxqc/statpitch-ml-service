@@ -174,6 +174,14 @@ def test_the_model_still_disagrees_even_though_it_is_not_used(
 def test_nothing_is_staked_while_the_config_is_a_placeholder(
     fixtures, predictions, odds, config
 ):
+    """Including the confidence fallback, which must not route around the gate.
+
+    It is a product requirement layered on top of the rule, not a way past the
+    one check that stops an unfitted config sizing a stake.
+    """
+    from dataclasses import replace
+
+    config = replace(config, status="placeholder", w_fitted=False, w=None)
     card, stats = cb.build_card(fixtures, predictions, odds, config, now=NOW)
     assert (card["stake_fraction"] == 0.0).all()
     assert stats.staked == 0
@@ -357,13 +365,20 @@ def test_a_priced_fixture_with_no_prediction_is_counted_not_carded(
     assert set(card["fixture_id"]) == {FIXTURE}
 
 
-def test_an_empty_odds_log_produces_an_empty_card(fixtures, predictions, config):
+def test_an_empty_odds_log_still_produces_a_priced_card(fixtures, predictions, config):
+    """It used to produce nothing, and that was the wrong way round.
+
+    "No bookmaker has quoted anything" is exactly the case the model-implied
+    fallback exists for, so returning an empty card there skipped the fallback
+    in the one situation it was written to cover.
+    """
     card, stats = cb.build_card(
         fixtures, predictions, pd.DataFrame(columns=["fixture_id"]), config, now=NOW
     )
-    assert card.empty
+    assert not card.empty
     assert list(card.columns) == list(cb.CARD_COLUMNS)
     assert stats.fixtures_priced == 0
+    assert set(card["pricing"]) == {"model"}
 
 
 # --- the selection rule gates staking -----------------------------------------
@@ -418,3 +433,102 @@ def test_a_rule_with_no_reference_stakes_nothing_through_it(
 ):
     """`candidate` is recorded, not run."""
     assert not config.selection_rule.is_active or config.selection_rule.reference
+
+
+# --- the confidence fallback (Part 2) -----------------------------------------
+
+def _ruled(fitted, **kw):
+    """A config whose rule cannot be cleared, so the fallback is what fires."""
+    from dataclasses import replace
+
+    from statpitch.decision_config import SelectionRule
+
+    defaults = dict(
+        status="experimental", reference="odds_pinnacle", threshold=99.0,
+        market_families=("1x2",), max_per_day=3,
+        fallback_enabled=True, fallback_stake=0.0005,
+    )
+    defaults.update(kw)
+    return replace(fitted, selection_rule=SelectionRule(**defaults))
+
+
+def _with_sharp(odds):
+    priced = odds.copy()
+    priced["odds_pinnacle"] = priced["odds_avg"]
+    return priced
+
+
+def test_a_day_the_rule_leaves_empty_still_gets_a_pick(
+    fixtures, predictions, odds, fitted
+):
+    """The product requirement: every day with football answers."""
+    card, stats = cb.build_card(
+        fixtures, predictions, _with_sharp(odds), _ruled(fitted), now=NOW
+    )
+    staked = card[card["stake_fraction"] > 0]
+    assert len(staked) == 1
+    assert staked["selection_basis"].iloc[0] == "confidence"
+    assert stats.confidence_picks == 1
+
+
+def test_the_confidence_pick_is_the_most_likely_outcome(
+    fixtures, predictions, odds, fitted
+):
+    """`p_model`, not edge. That is what makes it a confidence pick rather than
+    a value one, and why it carries no measurement."""
+    card, _ = cb.build_card(
+        fixtures, predictions, _with_sharp(odds), _ruled(fitted), now=NOW
+    )
+    pick = card[card["stake_fraction"] > 0].iloc[0]
+    assert pick["p_model"] == card["p_model"].max()
+
+
+def test_the_fallback_is_flat_staked_not_kelly_sized(
+    fixtures, predictions, odds, fitted
+):
+    """Kelly sizes from an edge. There is none here, so sizing from one would be
+    inventing a number."""
+    card, _ = cb.build_card(
+        fixtures, predictions, _with_sharp(odds), _ruled(fitted), now=NOW
+    )
+    assert card[card["stake_fraction"] > 0]["stake_fraction"].iloc[0] == 0.0005
+
+
+def test_the_fallback_can_be_switched_off(fixtures, predictions, odds, fitted):
+    card, _ = cb.build_card(
+        fixtures, predictions, _with_sharp(odds),
+        _ruled(fitted, fallback_enabled=False), now=NOW,
+    )
+    assert (card["stake_fraction"] == 0.0).all()
+
+
+# --- every fixture carries a price (Part 1) -----------------------------------
+
+def test_an_unquoted_fixture_still_gets_model_implied_odds(
+    fixtures, predictions, config
+):
+    """657 upcoming fixtures, 30 quoted. The other 627 are not a pipeline gap —
+    books open a market about a week out and those prices do not exist yet."""
+    card, stats = cb.build_card(
+        fixtures, predictions, pd.DataFrame(columns=["fixture_id"]), config, now=NOW
+    )
+    assert stats.fixtures_model_priced == 1
+    assert set(card["pricing"]) == {"model"}
+    assert card["model_odds"].notna().all()
+
+
+def test_a_model_priced_row_has_no_market_fields(fixtures, predictions, config):
+    """Null, not zero. A zero would read as "the market says impossible" rather
+    than "no market exists"."""
+    card, _ = cb.build_card(
+        fixtures, predictions, pd.DataFrame(columns=["fixture_id"]), config, now=NOW
+    )
+    for column in ("q_fair", "odds_max", "reference_odds", "rule_edge"):
+        assert card[column].isna().all(), column
+
+
+def test_model_priced_rows_are_never_rule_qualified(fixtures, predictions, config):
+    card, _ = cb.build_card(
+        fixtures, predictions, pd.DataFrame(columns=["fixture_id"]), config, now=NOW
+    )
+    assert not card["rule_qualified"].any()

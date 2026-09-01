@@ -667,6 +667,15 @@ def _card_row(record: dict) -> dict:
         # value, which is what MODEL_CARD 5's finding is defined on. Distinct
         # from `price_edge`, which is measured against the consensus and which
         # Phase C showed to be mean reversion.
+        # Where the price came from, and what it is worth. `market` is a quote
+        # someone is offering; `model` is 1/p_model, this project's own opinion
+        # — a number that can be shown and cannot be taken.
+        "pricing": record.get("pricing"),
+        "model_odds": record.get("model_odds"),
+        # Why this row was picked, when it was. `rule` cleared the measured
+        # Pinnacle threshold; `confidence` is the most likely outcome of a day
+        # where nothing did, and carries no measurement.
+        "selection_basis": record.get("selection_basis"),
         "reference_odds": record.get("reference_odds"),
         "rule_edge": record.get("rule_edge"),
         "rule_qualified": bool(record.get("rule_qualified")),
@@ -883,10 +892,19 @@ def bets_today() -> dict:
     )
     qualified = [r for r in records if r.get("rule_qualified")]
 
+    by_basis: dict[str, int] = {}
+    for record in staked:
+        basis = str(record.get("selection_basis") or "unknown")
+        by_basis[basis] = by_basis.get(basis, 0) + 1
+
     body = {
         "date": date,
         "bets": [_card_row(r) for r in staked],
         "count": len(staked),
+        # A caller that wants only measured selections filters on this. The two
+        # tiers answer different questions and must never be summed into one
+        # "picks" number without saying so.
+        "by_basis": by_basis,
         "total_exposure": round(
             sum(float(r.get("stake_fraction") or 0.0) for r in staked), 6
         ),
@@ -899,10 +917,21 @@ def bets_today() -> dict:
             "market_families": list(rule.market_families),
             "max_per_day": rule.max_per_day,
             "evidence": rule.evidence,
+            "fallback_enabled": rule.fallback_enabled,
         },
         "config_status": config.status,
         "disclaimer": DISCLAIMER,
     }
+
+    if by_basis.get("confidence"):
+        body["confidence_caveat"] = (
+            f"{by_basis['confidence']} of these are CONFIDENCE picks, surfaced "
+            "because nothing cleared the selection rule today. They are the "
+            "most likely outcome, not a mispriced one — a heavy favourite at a "
+            "fair price is highly confident and worth nothing. MODEL_CARD §4 "
+            "measured selection of this shape at -2.12% ROI. Filter on "
+            "selection_basis to separate them."
+        )
 
     if rule.status != "fitted":
         # Loud, on every response that carries a bet. `experimental` means the

@@ -139,6 +139,11 @@ class SelectionRule:
     """
 
     status: str = "candidate"
+    #: Surface the most confident selection when nothing clears the threshold.
+    #: A product requirement rather than a measured one; `selection_basis` keeps
+    #: the two apart on every row it produces.
+    fallback_enabled: bool = False
+    fallback_stake: float = 0.0
     reference: str | None = None
     threshold: float = 0.0
     market_families: tuple[str, ...] = ()
@@ -324,8 +329,11 @@ _FORBIDDEN_BENCHMARK_COLUMNS = frozenset(("odds_max", "odds_panel_max"))
 
 def _parse_selection_rule(raw: dict[str, Any]) -> SelectionRule:
     families = raw.get("market_families") or ()
+    fallback = raw.get("fallback") or {}
     return SelectionRule(
         status=str(raw.get("status", "candidate")),
+        fallback_enabled=bool(fallback.get("enabled", False)),
+        fallback_stake=float(fallback.get("stake_fraction") or 0.0),
         reference=raw.get("candidate_reference") or raw.get("reference"),
         threshold=float(raw.get("threshold") or 0.0),
         market_families=tuple(str(f) for f in families),

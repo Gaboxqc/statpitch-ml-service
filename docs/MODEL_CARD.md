@@ -658,6 +658,52 @@ measured rule on a new price panel.
 
 ---
 
+## 12. The confidence tier, and why it is separate
+
+*Added 2026-09-01.*
+
+§11's rule is a threshold, and most days nothing clears it: over 48 upcoming
+days, 11 carried a price at all and one produced a bet. A daily product cannot
+be blank five days in six, so a second tier was added — and the whole design
+effort went into keeping it distinguishable from the first.
+
+    tier          basis           fires when            sized by
+    1  rule        Pinnacle edge   price beats fair      Kelly, capped 3/day
+    2  confidence  p_model         tier 1 empty          flat 0.05% stake
+
+**Tier 2 has no measurement behind it.** It surfaces the outcome the model is
+most certain about, which is a different question from the one §5 answered. The
+rule asks whether a PRICE is wrong; this asks which outcome is most LIKELY, and
+a heavy favourite at a fair price is extremely likely and worth nothing. §4
+measured selection of this shape at -2.12% ROI against +0.13%.
+
+Three things keep the tiers apart rather than merging into one "picks" number:
+
+* `selection_basis` on every row, in the API, and in the ledger.
+* A flat stake rather than Kelly — Kelly sizes from an edge, and inventing one
+  here would be the exact failure §11 was careful to avoid.
+* `/bets/today` carries a `confidence_caveat` naming the -2.12% whenever a
+  tier-2 row is present.
+
+**It also buys an experiment.** Because the tiers are tagged, `clv_tracker` can
+measure them separately, and in a few months there will be a real answer to
+whether confidence picks carry value. That question is currently open; tagging
+is what makes it answerable rather than permanently unknown.
+
+## 13. Every fixture carries a price
+
+*Added 2026-09-01.* 657 upcoming fixtures carry a prediction; 30 carry a
+bookmaker quote. The other 627 are not a gap in this pipeline — books open a
+market roughly a week before kick-off, and 21 of them are eleven days out. No
+amount of fetching creates a quote nobody has published.
+
+They are therefore emitted at `1 / p_model` and marked `pricing="model"`, beside
+`pricing="market"` for the quoted ones. A model-implied price is a real number
+and is not an offer: it can be displayed, and it cannot be taken. The field is
+what keeps a fixture list complete without implying that every row is bettable.
+
+---
+
 ## 9. Intended use
 
 **Appropriate.** Probability estimates and score distributions for the 12

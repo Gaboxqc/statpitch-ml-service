@@ -209,6 +209,33 @@
     "market_families": [
       "1x2"
     ],
-    "max_per_day": 3
+    "max_per_day": 3,
+    "fallback": {
+      "enabled": true,
+      "basis": "confidence",
+      "ranked_by": "p_model",
+      "stake_fraction": 0.0005,
+      "prefer_market_priced": true,
+      "comment": [
+        "A PRODUCT requirement, not a measured one, and the two must never be",
+        "confused in the output. When no selection clears the Pinnacle rule on a",
+        "day that has football, the single highest-confidence selection is",
+        "surfaced so the day is never blank.",
+        "",
+        "'Confidence' is p_model: the selection this project's own model is most",
+        "certain about. That is NOT the rule's quantity. The rule asks whether a",
+        "price is wrong; this asks which outcome is most likely, and a heavy",
+        "favourite at a fair price is highly confident and worth nothing.",
+        "",
+        "MODEL_CARD 4 measured selection of this shape at -2.12% ROI against",
+        "+0.13% for committing to one market. Every such row therefore carries",
+        "selection_basis='confidence', is sized at a FLAT stake rather than by",
+        "Kelly -- Kelly sizes from an edge and there is no measured edge here, so",
+        "sizing from one would be inventing a number -- and is recorded",
+        "separately in the ledger so its CLV can be measured apart from the",
+        "rule's. That separation is what turns this from a guess into an",
+        "experiment that answers itself in a few months."
+      ]
+    }
   }
 }

@@ -154,9 +154,12 @@ def test_a_conditional_refusal_keeps_its_own_code(client, route, code):
 
     body = client.get(route).json()
     if "refusal" not in body:
-        assert body.get("bets") or body.get("value_bets"), (
-            f"{route} neither refuses nor recommends"
-        )
+        # Three ways to have no refusal: bets, or an empty slate that names its
+        # own cause. A day whose only fixture no bookmaker quotes is the latter.
+        assert (
+            body.get("bets") or body.get("value_bets")
+            or body.get("binding_constraint")
+        ), f"{route} neither refuses, recommends, nor explains"
         return
 
     emitted = body["refusal"]["reason_code"]

@@ -776,12 +776,22 @@ def _card_response(*, key: str, placeholder_code: ReasonCode) -> dict:
             positive_expected_value=positive_ev,
             grades=grades,
         )
+    elif not records:
+        # Staking is on and there is simply nothing to stake: today's fixtures
+        # carry no price. Not a refusal — no gate is closed — but the cause has
+        # to be named, or `binding_constraint: null` beside an empty slate reads
+        # as "no reason given".
+        #
+        # It happens for real. On 2026-09-01 the only fixture was Hamburg
+        # Eimsbütteler BC, a fifth-tier side, against Borussia Dortmund, and no
+        # bookmaker in the panel quoted it.
+        detail = _why_the_card_is_empty(predictor().artifacts.card)
+        binding = detail["cause"]
+        reason = f"No fixtures priced for today: {detail.get('note') or binding}."
+        structured = {}
     else:
         binding = None
-        reason = (
-            "No fixtures priced for today." if not records
-            else f"{len(staked)} selection(s) recommended."
-        )
+        reason = f"{len(staked)} selection(s) recommended."
         structured = {}
 
     body_extra: dict[str, Any] = {"binding_constraint": binding}

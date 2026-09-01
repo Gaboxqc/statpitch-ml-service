@@ -320,8 +320,13 @@ def test_card_today_reports_that_it_computed_something(client):
         assert body["refusal"]["reason_code"] in {
             "DECISION_CONFIG_UNFITTED", "NO_QUALIFYING_SELECTION", "NO_CARD_SOURCE",
         }
+    elif body["bets"]:
+        pass
     else:
-        assert body["bets"], "no refusal and no bets is neither answer"
+        # Staking on, nothing priced today. Not a refusal — no gate is closed —
+        # but it must still name the cause rather than going quiet.
+        assert body["binding_constraint"], "empty slate with no reason given"
+        assert body["empty_because"]["cause"]
 
 
 def test_card_today_keeps_its_v1_keys(client):
@@ -515,7 +520,7 @@ def test_an_empty_card_does_not_blame_the_staking_gate(client):
     if body["assessed"]:
         pytest.skip("something is assessed for today in this checkout")
     assert body["binding_constraint"] != "decision_config_unfitted"
-    assert body["reason"].startswith("Nothing to assess")
+    assert body["reason"].startswith(("Nothing to assess", "No fixtures priced"))
 
 
 def test_the_refusal_code_is_unchanged_by_the_clearer_prose(client):

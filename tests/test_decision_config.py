@@ -19,11 +19,46 @@ def cfg():
     return load()
 
 
-def test_shipped_config_is_a_placeholder_and_refuses_to_stake(cfg):
-    assert cfg.is_placeholder
-    assert cfg.w is None
+def test_a_placeholder_config_refuses_to_stake(cfg):
+    """The invariant, asserted on a constructed placeholder.
+
+    This used to assert the SHIPPED config was one. That was a fact about the
+    committed file rather than a property of the code, and the file moved to
+    `experimental` when the Pinnacle-referenced rule went live. The guarantee
+    that an unfitted config cannot size a stake did not move with it.
+    """
+    from dataclasses import replace
+
+    placeholder = replace(cfg, status="placeholder", w_fitted=False, w=None)
+    assert placeholder.is_placeholder
     with pytest.raises(DecisionConfigError, match="placeholder"):
-        cfg.require_fitted()
+        placeholder.require_fitted()
+
+
+def test_an_unfitted_w_alone_is_enough_to_refuse(cfg):
+    """Both halves of `is_placeholder` are load-bearing.
+
+    A config could be marked fitted while `w` had never been estimated; that is
+    still a placeholder for staking purposes.
+    """
+    from dataclasses import replace
+
+    assert replace(cfg, status="fitted", w_fitted=False).is_placeholder
+
+
+def test_the_shipped_config_records_which_state_it_is_in(cfg):
+    """Whatever state it is in, it must be a known one and name itself."""
+    assert cfg.status in {"placeholder", "experimental", "fitted"}
+    assert cfg.config_version.endswith(cfg.status)
+
+
+def test_a_shipped_config_that_stakes_must_carry_a_selection_rule(cfg):
+    """Staking without a rule would size whatever graded highest, which is the
+    max-edge selection MODEL_CARD §4 measured at -2.12% ROI."""
+    if cfg.is_placeholder:
+        return
+    assert cfg.selection_rule.is_active
+    assert cfg.selection_rule.market_families
 
 
 def test_config_version_is_present(cfg):

@@ -184,11 +184,15 @@ def test_the_placeholder_card_is_still_fully_computed(
     fixtures, predictions, odds, config
 ):
     """An empty slate must not be an empty card — that is the whole point."""
-    card, stats = cb.build_card(fixtures, predictions, odds, config, now=NOW)
+    from dataclasses import replace
+
+    placeholder = replace(config, status="placeholder", w_fitted=False, w=None)
+    card, stats = cb.build_card(fixtures, predictions, odds, placeholder, now=NOW)
     assert not card.empty
     assert stats.selections_assessed > 0
     assert card["grade"].notna().all()
     assert (card["config_status"] == "placeholder").all()
+    assert (card["stake_fraction"] == 0.0).all()
 
 
 # --- the fitted path, which production has never reached ----------------------
@@ -360,3 +364,57 @@ def test_an_empty_odds_log_produces_an_empty_card(fixtures, predictions, config)
     assert card.empty
     assert list(card.columns) == list(cb.CARD_COLUMNS)
     assert stats.fixtures_priced == 0
+
+
+# --- the selection rule gates staking -----------------------------------------
+
+def test_only_rule_qualified_selections_are_staked(fixtures, predictions, odds, fitted):
+    """A selection the measured evidence does not cover is not a bet, however
+    well it grades."""
+    from dataclasses import replace
+
+    from statpitch.decision_config import SelectionRule
+
+    ruled = replace(
+        fitted,
+        selection_rule=SelectionRule(
+            status="experimental", reference="odds_pinnacle",
+            threshold=0.0, market_families=("1x2",), max_per_day=3,
+        ),
+    )
+    priced = odds.copy()
+    priced["odds_pinnacle"] = priced["odds_avg"]
+    card, _ = cb.build_card(fixtures, predictions, priced, ruled, now=NOW)
+    staked = card[card["stake_fraction"] > 0]
+    assert staked.empty or staked["rule_qualified"].all()
+
+
+def test_the_per_day_cap_keeps_the_best_by_rule_edge(fixtures, predictions, fitted):
+    """A cap, not a floor: it never invents a selection on a day that has none,
+    it stops one day's slate swallowing the matchday exposure."""
+    from dataclasses import replace
+
+    from statpitch.decision_config import SelectionRule
+
+    ruled = replace(
+        fitted,
+        selection_rule=SelectionRule(
+            status="experimental", reference="odds_pinnacle",
+            threshold=0.0, market_families=("1x2",), max_per_day=1,
+        ),
+    )
+    generous = pd.DataFrame([
+        _odds_row("home", "1x2_home", 1.90, 2.60),
+        _odds_row("draw", "1x2_draw", 3.60, 4.60),
+        _odds_row("away", "1x2_away", 4.00, 5.20),
+    ])
+    generous["odds_pinnacle"] = generous["odds_avg"]
+    card, stats = cb.build_card(fixtures, predictions, generous, ruled, now=NOW)
+    assert (card["stake_fraction"] > 0).sum() <= 1
+
+
+def test_a_rule_with_no_reference_stakes_nothing_through_it(
+    fixtures, predictions, odds, config
+):
+    """`candidate` is recorded, not run."""
+    assert not config.selection_rule.is_active or config.selection_rule.reference

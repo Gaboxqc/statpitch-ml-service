@@ -70,6 +70,7 @@ CARD_COLUMNS = (
     "p_model", "q_fair", "p_used", "odds_avg", "fair_odds", "odds_max",
     "edge_prob", "expected_value", "price_edge", "model_edge",
     "grade", "composite", "reasons", "stake_fraction",
+    "rule_edge", "rule_qualified", "reference_odds",
     "book_margin", "max_book_sum", "n_books", "capture_id",
     "w", "config_version", "config_status", "model_version", "generated_at",
 )
@@ -88,6 +89,7 @@ class CardStats:
     total_exposure: float = 0.0
     skipped_no_prediction: int = 0
     skipped_no_devigable_market: int = 0
+    capped: int = 0
     arbitrage_fixtures: list[str] = field(default_factory=list)
     grades: dict[str, int] = field(default_factory=dict)
 
@@ -102,6 +104,7 @@ class CardStats:
             "total_exposure": round(self.total_exposure, 6),
             "skipped_no_prediction": self.skipped_no_prediction,
             "skipped_no_devigable_market": self.skipped_no_devigable_market,
+            "capped_per_day": self.capped,
             "arbitrage_fixtures": len(self.arbitrage_fixtures),
             "grades": dict(sorted(self.grades.items())),
         }
@@ -123,8 +126,11 @@ def latest_capture(odds: pd.DataFrame) -> pd.DataFrame:
 
 
 def fair_book(
-    rows: pd.DataFrame, method: str
-) -> tuple[dict[str, float], dict[str, float], dict[str, float], float | None, float | None]:
+    rows: pd.DataFrame, method: str, reference: str | None = None
+) -> tuple[
+    dict[str, float], dict[str, float], dict[str, float],
+    dict[str, float], dict[str, float], float | None, float | None,
+]:
     """De-vig every complete market quoted for one fixture.
 
     Returns (fair probabilities, available prices, consensus prices, mean
@@ -145,6 +151,8 @@ def fair_book(
     fair: dict[str, float] = {}
     available: dict[str, float] = {}
     consensus_price: dict[str, float] = {}
+    reference_price: dict[str, float] = {}
+    reference_fair: dict[str, float] = {}
     margins: list[float] = []
     max_sums: list[float] = []
 
@@ -163,6 +171,18 @@ def fair_book(
         result = devig.devig([float(p) for p in consensus], method)
         margins.append(result.margin)
 
+        # The sharp reference, de-vigged as its own complete book. This is the
+        # quantity MODEL_CARD 5's finding is defined on, and it only became
+        # obtainable live when a source carrying Pinnacle was added.
+        if reference:
+            quotes = [by_selection[name].get(reference) for name in members]
+            if not any(price is None or pd.isna(price) for price in quotes):
+                sharp = devig.devig([float(p) for p in quotes], method)
+                for name, probability in zip(members, sharp.probabilities, strict=True):
+                    key = str(by_selection[name]["selection_key"])
+                    reference_fair[key] = float(probability)
+                    reference_price[key] = float(by_selection[name][reference])
+
         best = [by_selection[name]["odds_max"] for name in members]
         if not any(pd.isna(price) for price in best):
             max_sums.append(float(sum(1.0 / float(p) for p in best)))
@@ -180,6 +200,8 @@ def fair_book(
         fair,
         available,
         consensus_price,
+        reference_fair,
+        reference_price,
         float(np.mean(margins)) if margins else None,
         min(max_sums) if max_sums else None,
     )
@@ -248,8 +270,10 @@ def build_card(
         meta = fixture_meta.loc[fixture_id]
         competition_id = str(rows["competition_id"].iloc[0])
 
-        fair, available, consensus, margin, max_sum = fair_book(
-            rows, config.devig_method(competition_id)
+        rule = config.selection_rule
+        fair, available, consensus, sharp_fair, sharp_price, margin, max_sum = fair_book(
+            rows, config.devig_method(competition_id),
+            reference=rule.reference if rule.is_active else None,
         )
         if not fair or not available:
             stats.skipped_no_devigable_market += 1
@@ -292,7 +316,18 @@ def build_card(
             n_books=int(rows["n_books"].iloc[0]) if pd.notna(rows["n_books"].iloc[0]) else None,
             odds_coverage=bool(meta.get("odds_coverage", True)),
         )
-        graded, _ = bet_grader.grade_book(assessments, context, **_grade_kwargs(config))
+        # "Back it when the best quote beats the sharp book's fair value."
+        # Computed against the REFERENCE, never against the consensus: Phase C
+        # measured the consensus-referenced version as regression to the mean,
+        # and grading on it would encode an artifact as a signal.
+        rule_edge = {
+            key: float(available[key] * sharp_fair[key] - 1.0)
+            for key in available
+            if key in sharp_fair
+        }
+        graded, _ = bet_grader.grade_book(
+            assessments, context, edges=rule_edge, **_grade_kwargs(config)
+        )
         grades = {g.key: g for g in graded}
 
         stats.fixtures_carded += 1
@@ -306,6 +341,13 @@ def build_card(
                 stats.stakeable += 1
 
             selection = by_key[assessment.key]
+            edge = rule_edge.get(assessment.key)
+            qualified = bool(
+                rule.is_active
+                and edge is not None
+                and edge > rule.threshold
+                and rule.covers(str(selection.family))
+            )
             records.append(
                 {
                     "fixture_id": fixture_id,
@@ -330,6 +372,9 @@ def build_card(
                     "expected_value": assessment.expected_value,
                     "price_edge": assessment.price_edge,
                     "model_edge": assessment.model_edge,
+                    "rule_edge": edge,
+                    "rule_qualified": qualified,
+                    "reference_odds": sharp_price.get(assessment.key),
                     "grade": bet.grade.value,
                     "composite": bet.composite,
                     "reasons": "; ".join(bet.reasons),
@@ -346,7 +391,11 @@ def build_card(
                 }
             )
 
-            if bet.is_stakeable and not config.is_placeholder:
+            # The rule gates staking, not just ranking. A selection the measured
+            # evidence does not cover is not a bet however well it grades.
+            if bet.is_stakeable and not config.is_placeholder and (
+                qualified or not rule.is_active
+            ):
                 slate_index[assessment.key + "@" + fixture_id] = len(records) - 1
                 slate.append(
                     staking.SlateBet(
@@ -365,9 +414,55 @@ def build_card(
         return card, stats
 
     if slate:
+        slate, slate_index = _cap_per_day(card, slate, slate_index, config, stats)
+    if slate:
         _size_the_slate(card, slate, slate_index, config, stats)
 
     return card.reset_index(drop=True), stats
+
+
+def _cap_per_day(
+    card: pd.DataFrame,
+    slate: list[staking.SlateBet],
+    slate_index: dict[str, int],
+    config,
+    stats: CardStats,
+) -> tuple[list[staking.SlateBet], dict[str, int]]:
+    """Keep only the best `max_per_day` candidates on each match date.
+
+    Ranked by the rule edge — the sharp book's disagreement with the best
+    available quote — because that is the quantity the rule was measured on.
+
+    A cap rather than a floor, and it does not manufacture a selection on a day
+    that has none: a day where nothing clears the threshold correctly produces
+    nothing. What it prevents is the opposite failure, a single day's slate
+    swallowing the matchday exposure cap and crowding out the days after it.
+    """
+    limit = config.selection_rule.max_per_day
+    if limit is None:
+        return slate, slate_index
+
+    ranked: dict[object, list[tuple[float, staking.SlateBet]]] = {}
+    for bet in slate:
+        row = card.iloc[slate_index[bet.key]]
+        edge = row["rule_edge"]
+        ranked.setdefault(row["date"], []).append(
+            (float(edge) if pd.notna(edge) else 0.0, bet)
+        )
+
+    kept: list[staking.SlateBet] = []
+    for day in sorted(ranked):
+        best = sorted(ranked[day], key=lambda pair: -pair[0])[:limit]
+        kept.extend(bet for _, bet in best)
+        dropped = len(ranked[day]) - len(best)
+        if dropped:
+            log.info(
+                "%s: %d candidate(s) beyond the %d/day cap, keeping the best by "
+                "rule edge", pd.Timestamp(day).date(), dropped, limit,
+            )
+
+    stats.capped = sum(len(v) for v in ranked.values()) - len(kept)
+    return kept, {bet.key: slate_index[bet.key] for bet in kept}
 
 
 def _size_the_slate(

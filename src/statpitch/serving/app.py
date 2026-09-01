@@ -221,7 +221,38 @@ def _bet_recommendation(competition) -> dict[str, Any]:
             ),
             "disclaimer": DISCLAIMER,
         }
-    return {"bet_recommendation": None, "disclaimer": DISCLAIMER}
+    # Staking is enabled, and this route still recommends nothing — deliberately.
+    # A bet is chosen by the selection rule across the whole slate, with a
+    # per-day cap, so a single fixture asked about in isolation has no
+    # recommendation to give: MODEL_CARD §4 measured picking per-fixture at
+    # -2.12% ROI. `/bets/today` is where selections come from.
+    #
+    # `bet_recommendation_reason` is emitted here rather than omitted. It was
+    # present on every response while the config was a placeholder, and dropping
+    # a field once the config changed would be exactly the removal NFR-13
+    # forbids — a consumer reading it would start seeing KeyError on the day
+    # staking was enabled.
+    rule = config.selection_rule
+    reason = (
+        "Per-fixture bet recommendations are not issued. Selections are made "
+        f"across the slate by the '{rule.reference}' rule (status={rule.status}, "
+        f"markets={','.join(rule.market_families) or 'all'}, "
+        f"max {rule.max_per_day} per day) — see /bets/today. Ranking a single "
+        "fixture's markets in isolation measured -2.12% ROI against +0.13% for "
+        "committing to one market (MODEL_CARD §4)."
+    )
+    return {
+        "bet_recommendation": None,
+        "bet_recommendation_reason": reason,
+        "bet_recommendation_refusal": contract.refusal_object(
+            ReasonCode.MAX_EDGE_SELECTION_HARMFUL,
+            reason,
+            selection_rule_status=rule.status,
+            see="/bets/today",
+            **contract.MAX_EDGE_MEASUREMENT,
+        ),
+        "disclaimer": DISCLAIMER,
+    }
 
 
 # --- v1 routes (NFR-13: paths and fields must not change) ---------------------
@@ -632,6 +663,13 @@ def _card_row(record: dict) -> dict:
         "expected_value": record.get("expected_value"),
         "price_edge": record.get("price_edge"),
         "model_edge": record.get("model_edge"),
+        # The rule's own quantity: the best quote against the SHARP book's fair
+        # value, which is what MODEL_CARD 5's finding is defined on. Distinct
+        # from `price_edge`, which is measured against the consensus and which
+        # Phase C showed to be mean reversion.
+        "reference_odds": record.get("reference_odds"),
+        "rule_edge": record.get("rule_edge"),
+        "rule_qualified": bool(record.get("rule_qualified")),
         "grade": record.get("grade"),
         "composite": record.get("composite"),
         "stake_fraction": record.get("stake_fraction"),
@@ -738,12 +776,22 @@ def _card_response(*, key: str, placeholder_code: ReasonCode) -> dict:
             positive_expected_value=positive_ev,
             grades=grades,
         )
+    elif not records:
+        # Staking is on and there is simply nothing to stake: today's fixtures
+        # carry no price. Not a refusal — no gate is closed — but the cause has
+        # to be named, or `binding_constraint: null` beside an empty slate reads
+        # as "no reason given".
+        #
+        # It happens for real. On 2026-09-01 the only fixture was Hamburg
+        # Eimsbütteler BC, a fifth-tier side, against Borussia Dortmund, and no
+        # bookmaker in the panel quoted it.
+        detail = _why_the_card_is_empty(predictor().artifacts.card)
+        binding = detail["cause"]
+        reason = f"No fixtures priced for today: {detail.get('note') or binding}."
+        structured = {}
     else:
         binding = None
-        reason = (
-            "No fixtures priced for today." if not records
-            else f"{len(staked)} selection(s) recommended."
-        )
+        reason = f"{len(staked)} selection(s) recommended."
         structured = {}
 
     body_extra: dict[str, Any] = {"binding_constraint": binding}
@@ -786,6 +834,192 @@ def card_today() -> dict:
     return _card_response(
         key="bets", placeholder_code=ReasonCode.DECISION_CONFIG_UNFITTED
     )
+
+
+@app.get("/bets/today")
+def bets_today() -> dict:
+    """Today's recommendations, and why each one was selected.
+
+    A selection reaches this route only by clearing the rule in
+    `decision_config.selection_rule` — the best available quote beating a sharp
+    book's de-vigged fair value — and then surviving grading and sizing.
+
+    Two things about that rule are worth stating on the route that serves it.
+
+    **It is measured, not chosen.** MODEL_CARD 5: +0.51% Friday-to-close CLV at
+    t=+7.53 clustered, over five pre-break seasons and 7,790 matches. Until The
+    Odds API was wired in there was no live source publishing the reference book
+    it is defined on, so it could be measured backwards and never run forwards.
+
+    **It is restricted to 1X2 on purpose.** MODEL_CARD 4 measured picking the
+    largest apparent edge ACROSS markets at -2.12% ROI against +0.13% for
+    committing to one market in advance, because maximum-edge selection finds
+    the model's own largest errors. Ranking a daily pick over all 86 selections
+    would be exactly that.
+
+    Empty is a valid answer. If nothing clears the threshold today, this returns
+    nothing rather than promoting the least-bad selection — a day with no
+    qualifying price is a day with no bet.
+    """
+    config = decision_config.config()
+    rows, date = _card_today()
+    rule = config.selection_rule
+
+    if rows is None:
+        return {
+            "date": date, "bets": [], "count": 0, "total_exposure": 0.0,
+            "reason": NO_CARD_REASON,
+            **refusal(
+                ReasonCode.NO_CARD_SOURCE, NO_CARD_REASON,
+                artifact="data/processed/card.parquet", loaded=False,
+            ),
+            "disclaimer": DISCLAIMER, **provenance(),
+        }
+
+    records = rows.to_dict("records")
+    staked = sorted(
+        (r for r in records if float(r.get("stake_fraction") or 0.0) > 0.0),
+        key=lambda r: -float(r.get("rule_edge") or 0.0),
+    )
+    qualified = [r for r in records if r.get("rule_qualified")]
+
+    body = {
+        "date": date,
+        "bets": [_card_row(r) for r in staked],
+        "count": len(staked),
+        "total_exposure": round(
+            sum(float(r.get("stake_fraction") or 0.0) for r in staked), 6
+        ),
+        "assessed": len(records),
+        "qualified_by_rule": len(qualified),
+        "selection_rule": {
+            "status": rule.status,
+            "reference": rule.reference,
+            "threshold": rule.threshold,
+            "market_families": list(rule.market_families),
+            "max_per_day": rule.max_per_day,
+            "evidence": rule.evidence,
+        },
+        "config_status": config.status,
+        "disclaimer": DISCLAIMER,
+    }
+
+    if rule.status != "fitted":
+        # Loud, on every response that carries a bet. `experimental` means the
+        # rule has multi-season evidence and the price panel it now runs on does
+        # not, and a consumer storing these rows needs that stored with them.
+        body["caveat"] = (
+            f"selection_rule.status={rule.status}. The rule has five seasons of "
+            "measured CLV; the 25-book panel it now runs on has none, so its "
+            "calibration is inherited rather than re-measured. Treat these as a "
+            "live test of a measured rule on a new panel, not a validated edge."
+        )
+        body["refusal"] = contract.refusal_object(
+            ReasonCode.SELECTION_RULE_EXPERIMENTAL,
+            body["caveat"],
+            **contract.SELECTION_RULE_MEASUREMENT,
+        )
+
+    if not staked:
+        body["reason"] = (
+            f"No selection cleared the rule today. {len(records)} assessed, "
+            f"{len(qualified)} qualified, none sized."
+            if records else
+            f"Nothing to assess: {_why_the_card_is_empty(rows)['cause']}."
+        )
+        body["empty_because"] = _why_the_card_is_empty(
+            predictor().artifacts.card
+        )
+    else:
+        body["reason"] = f"{len(staked)} selection(s) recommended."
+
+    body.update(provenance())
+    return body
+
+
+@app.get("/odds/matchday")
+def odds_matchday(
+    date: str | None = Query(None, description="ISO date. Defaults to today."),
+    competition_id: str | None = None,
+) -> dict:
+    """Every priced market for a day's fixtures, grouped by fixture.
+
+    `/card/assessments` returns a flat list of selections; this is the same
+    prices arranged the way a matchday is actually read — one entry per fixture,
+    each carrying its 1X2, totals and handicap quotes together.
+
+    Which markets are present is a function of what was captured. The daily sweep
+    asks for 1X2 across every competition, and adds totals and handicaps only for
+    competitions playing that day, because the price API bills per market per
+    competition and asking for all three everywhere every day does not fit inside
+    the free allowance.
+    """
+    artifacts = predictor().artifacts
+    when = datetime.now(UTC).date()
+    if date is not None:
+        try:
+            when = pd.Timestamp(date).date()
+        except ValueError:
+            raise HTTPException(
+                status_code=400, detail=f"unparseable date '{date}'"
+            ) from None
+
+    if artifacts.card is None:
+        return {
+            "date": when.isoformat(), "fixtures": [], "count": 0,
+            "reason": NO_CARD_REASON,
+            **refusal(
+                ReasonCode.NO_CARD_SOURCE, NO_CARD_REASON,
+                artifact="data/processed/card.parquet", loaded=False,
+            ),
+            "disclaimer": DISCLAIMER, **provenance(),
+        }
+
+    frame = artifacts.card
+    frame = frame[frame["date"].dt.date == when] if not frame.empty else frame
+    if competition_id is not None:
+        _competition_or_404(competition_id)
+        frame = frame[frame["competition_id"] == competition_id]
+
+    fixtures = []
+    for fixture_id, group in frame.groupby("fixture_id", sort=False):
+        first = group.iloc[0]
+        markets: dict[str, list[dict]] = {}
+        for record in group.to_dict("records"):
+            markets.setdefault(str(record.get("market_family")), []).append(
+                _card_row(record)
+            )
+        fixtures.append({
+            "fixture_id": fixture_id,
+            "competition_id": first["competition_id"],
+            "home_team": first["home_team"],
+            "away_team": first["away_team"],
+            "kickoff_utc": (
+                None if pd.isna(first.get("kickoff_utc"))
+                else str(first["kickoff_utc"])
+            ),
+            "markets": markets,
+            "markets_priced": sorted(markets),
+            "recommended": [
+                _card_row(r) for r in group.to_dict("records")
+                if float(r.get("stake_fraction") or 0.0) > 0.0
+            ],
+        })
+
+    return {
+        "date": when.isoformat(),
+        "fixtures": fixtures,
+        "count": len(fixtures),
+        "selections": int(len(frame)),
+        "note": (
+            "1X2 is captured for every competition daily; totals and handicaps "
+            "only for competitions playing that day, because the price API bills "
+            "per market per competition."
+        ),
+        "card_generated_at": artifacts.card_generated_at,
+        "disclaimer": DISCLAIMER,
+        **provenance(),
+    }
 
 
 @app.get("/card/upcoming")

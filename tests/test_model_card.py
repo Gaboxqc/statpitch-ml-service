@@ -97,17 +97,45 @@ def test_the_odds_coverage_gap_is_stated_at_its_true_size(card):
     assert f"{covered} of {total} competitions" in card
 
 
-def test_the_card_reports_the_config_as_unfitted(card):
+def test_the_card_reports_the_config_it_actually_runs(card):
+    """The version in the card must be the version in use.
+
+    It previously asserted the config was a placeholder. That was true when
+    written and is now false, which is exactly the drift this test exists to
+    catch — the card is the honesty artifact, so a claim in it going stale is a
+    defect in the card, not in the test.
+    """
     config = decision_config.config()
-    assert config.is_placeholder
     assert config.config_version in card
 
 
-def test_staking_really_is_disabled(card):
-    """The card says the engine refuses; assert it actually does."""
-    assert "the engine refuses" in card
+def test_the_card_describes_the_staking_state_it_is_actually_in(card):
+    """Whatever the card claims about staking has to be true when it is read.
+
+    It used to claim, correctly, that the engine refuses. Staking is now enabled
+    under an explicitly experimental selection rule, so the card has to say that
+    instead — and this asserts the two agree rather than asserting either one.
+    """
+    from dataclasses import replace
+
+    config = decision_config.config()
+    if config.is_placeholder:
+        assert "the engine refuses" in card
+        with pytest.raises(decision_config.DecisionConfigError):
+            staking.StakingEngine(config)
+        return
+
+    # Staking is on. The card must say so, and name the rule it runs under.
+    assert "experimental" in card.lower(), (
+        "staking is enabled and the model card does not say so"
+    )
+    assert config.selection_rule.reference is not None
+    staking.StakingEngine(config)      # must not raise
+
+    # And the refusal guarantee still holds for a config that IS unfitted.
+    placeholder = replace(config, status="placeholder", w_fitted=False, w=None)
     with pytest.raises(decision_config.DecisionConfigError):
-        staking.StakingEngine(decision_config.config())
+        staking.StakingEngine(placeholder)
 
 
 def test_the_card_carries_the_advisory_only_designation(card):

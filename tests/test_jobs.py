@@ -46,9 +46,24 @@ def _entry(fixture_id="ENG.PL-2026-08-06-ARS-CHE", selection="1x2_home", **kw):
 
 # --- doing nothing, out loud --------------------------------------------------
 
+def _placeholder_config():
+    """A config that has never been fitted, built rather than read.
+
+    The shipped one is `experimental` now, and these two tests are about what a
+    job does when it CANNOT stake.
+    """
+    from dataclasses import replace
+
+    from statpitch import decision_config
+
+    return replace(
+        decision_config.config(), status="placeholder", w_fitted=False, w=None
+    )
+
+
 def test_flag_card_runs_and_reports_why_it_flagged_nothing():
     """An empty result must be distinguishable from a broken job."""
-    result = jobs.flag_card(now=NOON)
+    result = jobs.flag_card(now=NOON, config=_placeholder_config())
     assert result.ok
     assert result.counts["flagged"] == 0
     assert "unfitted" in result.reason
@@ -56,7 +71,7 @@ def test_flag_card_runs_and_reports_why_it_flagged_nothing():
 
 
 def test_flag_card_names_the_config_it_refused_on():
-    result = jobs.flag_card(now=NOON)
+    result = jobs.flag_card(now=NOON, config=_placeholder_config())
     assert "placeholder" in result.reason
 
 

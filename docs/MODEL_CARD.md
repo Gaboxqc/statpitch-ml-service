@@ -1,7 +1,8 @@
 # StatPitch v2 — Model Card
 
-**Status:** research complete, staking disabled.
-**Version:** `dec-2026.08.0-placeholder` (the decision config has never been fitted; see §7).
+**Status:** staking ENABLED under an explicitly **experimental** selection rule.
+**Version:** `dec-2026.08.1-experimental` (see §7 and §11 for exactly what
+"experimental" is claiming and what it is not).
 **Scope:** 12 European club competitions — 5 leagues, 5 domestic cups, 2 continental.
 
 > **Advisory only (NFR-11).** This system does not integrate with any bookmaker,
@@ -604,6 +605,59 @@ matches the fixture list has already dropped as played), and a test asserting
 every fixture club carries a measured rating. Each was scoped to the population
 it was actually written about. Worth expecting a fourth.
 
+## 11. Staking, and what enabling it does and does not claim
+
+*Added 2026-08-27. This section exists because §1 through §8 were written while
+staking was off, and turning it on changes what several of them mean.*
+
+**What changed.** `decision_config.status` moved `placeholder` -> `experimental`,
+and a selection rule went live:
+
+    reference        Pinnacle, de-vigged as its own book
+    rule             back it when the best available quote beats that fair value
+    market_families  1x2 only
+    max_per_day      3
+    threshold        0.0
+
+**Why it became possible.** §5's finding — +0.51% Friday-to-close CLV, t=+7.53
+clustered, five pre-break seasons, 7,790 matches — is defined on
+*Pinnacle-referenced* selections. §6 recorded the blocker: no free live feed
+publishes Pinnacle, so the one rule with multi-season evidence could be measured
+backwards and never run forwards. The Odds API publishes Pinnacle. The blocker
+was a data-availability limit and it is gone.
+
+**Why 1X2 only, and why that is not a simplification.** §4 measured picking the
+largest apparent edge *across* markets at **-2.12% ROI against +0.13%** for
+committing to one market in advance, because maximum-edge selection finds the
+model's own largest errors. A daily pick ranked over all 86 selections would be
+precisely that failure, so the rule is confined to the family its evidence was
+measured on and the confinement is enforced in the config rather than by
+convention.
+
+**What `experimental` is claiming.** That a rule with five seasons of measured
+CLV is being run live, and that its output is worth recording.
+
+**What it is not claiming.** That the rule has been validated *on this price
+panel*. The +0.51% was measured against football-data.co.uk's `Max` column over a
+7-30 book panel. The live best quote now comes from a 25-book Odds API panel —
+a different estimator, so the calibration is inherited rather than re-measured.
+Requirements line 250's two-season bar is met for the **rule** and not for the
+**panel**. Every selection is emitted with `config_status=experimental` and
+`selection_rule.blocked_by` attached, and `/bets/today` carries a
+`SELECTION_RULE_EXPERIMENTAL` marker beside the bets themselves.
+
+**What still holds, unchanged.** `w` = 0.000. The model does not beat the closing
+line and contributes nothing to any of these selections: `p_used` is `q_fair`,
+`model_edge` is exactly zero on every row, and every surviving pound of expected
+value is price. Nothing in this section revises §1.
+
+**What would move it to `fitted`.** The captured `live_odds` series reaching two
+seasons, and `scripts/study_selection_rules.py` reproducing the result on this
+panel. Until then the honest description of the output is a live test of a
+measured rule on a new price panel.
+
+---
+
 ## 9. Intended use
 
 **Appropriate.** Probability estimates and score distributions for the 12
@@ -611,7 +665,9 @@ competitions; bracket and tie simulation; market comparison and calibration
 analysis; measuring closing line value on a recorded ledger; as a worked example
 of validating a betting model honestly enough to conclude it has no edge.
 
-**Not appropriate.** Placing bets. Sizing stakes (the engine refuses).
+**Not appropriate.** Placing bets. Treating the stakes this now sizes as a
+validated edge — see §11: the rule has five seasons of evidence, the price panel
+it runs on has none.
 Deriving fair probabilities from best-available prices — max-of-N sits above
 consensus by construction, and de-vigging it fabricates edge (FR-16a). Treating
 the cup competitions as bettable. Treating the CLV result as a live-tradeable

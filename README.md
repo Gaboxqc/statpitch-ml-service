@@ -9,15 +9,22 @@ references so the code and the spec stay legible together.
 
 > **The headline result is negative, and it is the point.** The market-shrinkage
 > weight `w` fits at **0.000** on both criteria — this model does not beat the
-> closing line. What survived measurement is closing line value on
-> sharp-reference selections (+0.51%, t=7.53 clustered) — and that rule is
-> defined on **Pinnacle**, which the live price feed does not publish. Every
-> reference the feed does carry was tested and none clears the ≥2-season bar
-> (`data/selection_rule_study.json`). Read
+> closing line, and contributes nothing to any selection it makes: `p_used` is
+> the market's own probability and `model_edge` is exactly zero on every row.
+> What survived measurement is closing line value on **Pinnacle**-referenced
+> selections (+0.51%, t=7.53 clustered, five seasons). That is what is now being
+> run live — every reference the *keyless* feed carries was tested and none
+> clears the ≥2-season bar (`data/selection_rule_study.json`); The Odds API
+> publishes Pinnacle itself. Read
 > **[`docs/MODEL_CARD.md`](docs/MODEL_CARD.md)** before anything else.
 >
-> Advisory only (NFR-11): no bookmaker integration, no wagers, no funds. Staking
-> is disabled in code, not by convention.
+> **Staking is now ENABLED**, under an explicitly *experimental* selection rule:
+> back the best available quote when it beats Pinnacle's de-vigged fair value,
+> 1X2 only, three per day. That rule has five seasons of measured CLV; the
+> 25-book price panel it runs on has none, so every selection is emitted with
+> `config_status=experimental`. See MODEL_CARD §11.
+>
+> Advisory only (NFR-11): no bookmaker integration, no wagers, no funds.
 
 ## Layout
 
@@ -61,7 +68,7 @@ src/statpitch/
     jobs.py            flag_card and settle_ledger, idempotent and clock-honest
 data/
   competitions.json    12 competitions, incl. the odds_coverage gate
-  decision_config.json Placeholder parameters — nothing here has seen data yet
+  decision_config.json Experimental: the Pinnacle rule, and what it does not claim
   processed/           matches_clean, closing_odds, features, elo_ratings_all, …
   processed/live_odds.parquet  Append-only capture log of pre-match prices
   processed/card.parquet       Graded selections; empty slate, computed reason
@@ -97,7 +104,7 @@ is picked up — `odds_bfe` was added that way.
 
 ## Current state
 
-Phases 0–9 complete, plus Plan Phases A–E. **1,209 tests**, all offline.
+Phases 0–9 complete, plus Plan Phases A–F. **1,248 tests**, all offline.
 
 | Layer | Item | Status |
 |---|---|---|
@@ -118,6 +125,7 @@ Phases 0–9 complete, plus Plan Phases A–E. **1,209 tests**, all offline.
 | C | Sharp-reference study — **no tradeable rule clears the 2-season bar** | done |
 | D | Cup fixtures: keyless OpenLigaDB + Odds API client for the other six | done |
 | E | Daily odds capture on its own schedule; model card corrected | done |
+| F | Pinnacle prices live; daily bets under an **experimental** rule | done |
 
 Ingested: **64,795 matches** — 59,079 league (1993/94–), 5,716 cup and
 continental — **417,631 tidy odds rows**, **1,274,186 Club Elo rating intervals**

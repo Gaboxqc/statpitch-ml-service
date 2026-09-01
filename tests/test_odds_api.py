@@ -10,6 +10,8 @@ allowance, so the guards matter more.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 import json
 
 import pandas as pd
@@ -243,3 +245,62 @@ def test_describe_reports_capability_without_needing_a_key(keyless):
     assert report["configured"] is False
     assert report["events_cost_credits"] is False
     assert report["monthly_credits"] == 500
+
+
+# --- the pricing horizon ------------------------------------------------------
+#
+# The budget is 500 credits a month and billing is per request per market per
+# competition. `/events` is free, so both questions that decide whether to spend
+# — is it played, is it played soon — are answered at no cost.
+
+NOW = datetime(2026, 9, 1, 12, 0, tzinfo=UTC)
+
+
+def _at(*iso: str) -> list[dict]:
+    return [{"commence_time": stamp} for stamp in iso]
+
+
+def test_a_fixture_inside_the_horizon_is_worth_a_credit():
+    assert odds_api.worth_a_credit(_at("2026-09-02T18:00:00Z"), now=NOW)
+
+
+def test_a_fixture_beyond_the_horizon_is_not():
+    """Not because it does not matter — because no bookmaker has opened a market
+    on it yet, so the credit buys an empty board and would be spent again
+    tomorrow."""
+    assert not odds_api.worth_a_credit(_at("2026-09-30T18:00:00Z"), now=NOW)
+
+
+def test_the_soonest_fixture_decides_it():
+    """A competition is paid for on its nearest kickoff, not its furthest. Asking
+    the other way round would skip a cup playing tonight because its next round
+    is a month out."""
+    events = _at("2026-09-30T18:00:00Z", "2026-09-02T18:00:00Z")
+    assert odds_api.worth_a_credit(events, now=NOW)
+
+
+def test_a_competition_with_no_events_is_never_paid_for():
+    """Out of season. Five of twelve were, when the horizon was written."""
+    assert not odds_api.worth_a_credit([], now=NOW)
+    assert not odds_api.worth_a_credit(None, now=NOW)
+
+
+def test_an_unparseable_kickoff_does_not_buy_a_credit():
+    """An unreadable timestamp is not evidence a market exists. Spending on it
+    would make a malformed feed the most expensive kind."""
+    assert not odds_api.worth_a_credit(_at("not-a-date"), now=NOW)
+    assert odds_api.next_kickoff(_at("not-a-date")) is None
+
+
+def test_a_kickoff_already_in_progress_is_still_inside_the_horizon():
+    """A negative delta is under the bound. A live fixture is the last moment a
+    closing price can be captured, and CLV needs that half of the pair."""
+    assert odds_api.worth_a_credit(_at("2026-09-01T11:00:00Z"), now=NOW)
+
+
+def test_next_kickoff_normalises_a_naive_timestamp_to_utc():
+    """The API stamps UTC. A naive value read as local time would shift the
+    horizon by the runner's timezone and silently change what gets bought."""
+    assert odds_api.next_kickoff(_at("2026-09-02T18:00:00")) == datetime(
+        2026, 9, 2, 18, 0, tzinfo=UTC
+    )

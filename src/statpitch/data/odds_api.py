@@ -52,7 +52,7 @@ import json
 import logging
 import os
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import numpy as np
 import pandas as pd
@@ -123,6 +123,22 @@ DAILY_MARKETS = ("h2h",)
 #: What a competition playing today gets. Three markets, so three credits, spent
 #: only where a fixture actually kicks off, which is where they are worth having.
 MATCHDAY_MARKETS = ("h2h", "totals", "spreads")
+
+#: How near a kickoff has to be before a credit is spent on it.
+#:
+#: `/events` is free and reports every fixture the API knows about, which runs
+#: well over a week ahead. Paying for all of them is the single largest waste
+#: available here: a bookmaker opens a market roughly a week out, so a request
+#: for a fixture beyond that returns an empty or near-empty board and is charged
+#: in full — and it would be charged again tomorrow, and the day after.
+#:
+#: Three days is chosen from what the price is *for* rather than from the
+#: budget. MODEL_CARD §5's finding is Friday-to-close CLV, so the baseline it is
+#: defined on sits about two days out; three keeps that reachable with a day in
+#: hand for a run that fails and retries. Fixtures further out are not left
+#: blank — `build_card` prices them at `1/p_model` and marks them
+#: `pricing="model"`, which is the honest label for a price nobody is offering.
+PRICING_HORIZON_DAYS = 3
 
 #: Events describe the future; a cached copy must expire. One hour rather than
 #: the schedule sources' six, because this is also the path a near-kickoff odds
@@ -557,6 +573,48 @@ def markets_for(
         & (fixtures["date"].dt.date == today)
     ]
     return MATCHDAY_MARKETS if not playing.empty else DAILY_MARKETS
+
+
+def next_kickoff(events: list[dict] | None) -> datetime | None:
+    """Earliest `commence_time` in a free `/events` payload."""
+    soonest: datetime | None = None
+    for event in events or []:
+        raw = event.get("commence_time")
+        if not raw:
+            continue
+        try:
+            kickoff = pd.Timestamp(raw).to_pydatetime()
+        except (TypeError, ValueError):
+            continue
+        if kickoff.tzinfo is None:
+            kickoff = kickoff.replace(tzinfo=UTC)
+        kickoff = kickoff.astimezone(UTC)
+        if soonest is None or kickoff < soonest:
+            soonest = kickoff
+    return soonest
+
+
+def worth_a_credit(
+    events: list[dict] | None,
+    *,
+    horizon_days: int = PRICING_HORIZON_DAYS,
+    now: datetime | None = None,
+) -> bool:
+    """Whether this competition's next fixture is near enough to pay for.
+
+    Decided from the FREE events feed, which is the point: the question "is
+    anyone quoting this yet" is answerable at no cost, and asking it first is
+    what keeps a daily sweep of twelve competitions inside a monthly budget.
+
+    A competition whose next fixture is eleven days out is not skipped because
+    it does not matter. It is skipped because the market does not exist yet, and
+    a credit spent on it buys an empty board.
+    """
+    kickoff = next_kickoff(events)
+    if kickoff is None:
+        return False
+    reference = (now or datetime.now(UTC)).astimezone(UTC)
+    return (kickoff - reference) <= timedelta(days=horizon_days)
 
 
 def describe() -> dict:

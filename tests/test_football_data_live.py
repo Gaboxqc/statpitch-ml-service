@@ -396,6 +396,83 @@ def test_reappending_the_same_capture_is_a_no_op(tmp_path, parsed, fixtures):
     assert len(pd.read_parquet(destination)) == len(frame)
 
 
+def test_a_second_source_in_the_same_minute_is_not_treated_as_a_repeat(
+    tmp_path, parsed, fixtures
+):
+    """The regression this granularity exists for.
+
+    `capture_id` is the UTC minute, and `collect_odds_api.py` runs straight after
+    `collect_live_odds.py` in one workflow step, so the two routinely share one.
+    A capture-level check read the second as a re-run and dropped every row of
+    it — which meant discarding every Pinnacle price, the keyless feed carrying
+    none and the paid one being the only source of the reference the selection
+    rule is defined on.
+    """
+    destination = tmp_path / "live_odds.parquet"
+    mapping = {
+        competition: resolution.mapping
+        for competition, resolution in live.resolve_all(parsed, fixtures).items()
+    }
+    free, _ = live.attach_fixture_ids(parsed, fixtures, mapping)
+    live.append_snapshot(free, destination)
+
+    # Same minute, different selections — as measured, the two sources overlap
+    # on nothing: the free feed publishes one league block, the paid one reaches
+    # the cups and midweek.
+    paid = free.copy()
+    paid["selection_key"] = paid["selection_key"] + "_paid"
+    paid["odds_pinnacle"] = 1.91
+    _, appended = live.append_snapshot(paid, destination)
+
+    stored = pd.read_parquet(destination)
+    assert appended == len(paid)
+    assert stored["odds_pinnacle"].notna().sum() == len(paid)
+
+
+def test_a_duplicate_row_keeps_the_one_carrying_prices(tmp_path, parsed, fixtures):
+    """A feed can list one match twice — once at a confirmed kickoff, once at a
+    placeholder date — and both key to the same fixture, a fixture id being
+    deliberately date-independent. Keeping the *first* would decide that on the
+    API's row order.
+    """
+    destination = tmp_path / "live_odds.parquet"
+    mapping = {
+        competition: resolution.mapping
+        for competition, resolution in live.resolve_all(parsed, fixtures).items()
+    }
+    frame, _ = live.attach_fixture_ids(parsed, fixtures, mapping)
+
+    blank = frame.head(3).copy()
+    for column in blank.columns:
+        if column.startswith("odds_"):
+            blank[column] = pd.NA
+    # The empty copy first, which is the ordering the naive version got wrong.
+    _, appended = live.append_snapshot(
+        pd.concat([blank, frame.head(3)], ignore_index=True), destination
+    )
+
+    stored = pd.read_parquet(destination)
+    assert appended == 3
+    assert stored["odds_avg"].notna().all()
+
+
+def test_a_row_already_on_file_is_not_appended_twice(tmp_path, parsed, fixtures):
+    """Re-run safety survives the finer key: identity moved from the capture to
+    the row, it did not go away."""
+    destination = tmp_path / "live_odds.parquet"
+    mapping = {
+        competition: resolution.mapping
+        for competition, resolution in live.resolve_all(parsed, fixtures).items()
+    }
+    frame, _ = live.attach_fixture_ids(parsed, fixtures, mapping)
+    live.append_snapshot(frame, destination)
+
+    half = frame.head(3).copy()
+    half["odds_avg"] = half["odds_avg"] + 5.0  # a changed price is still the same row
+    _, appended = live.append_snapshot(half, destination)
+    assert appended == 0
+
+
 # --- capture identity ---------------------------------------------------------
 
 def test_capture_id_is_filename_safe_and_utc():

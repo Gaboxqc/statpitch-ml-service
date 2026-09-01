@@ -68,10 +68,22 @@ jobs:
       # publishes one matchday block at a time and holds it, already played,
       # until the next goes up.
       #
-      # 1X2 everywhere, all three markets only where a fixture kicks off today.
-      # Billing is per market per competition, so that split is what keeps a
-      # daily sweep inside 500 credits a month (~330). Without a key this exits
-      # 1 and the step is skipped rather than failing the run.
+      # Runs AFTER the keyless capture, deliberately: every price
+      # football-data.co.uk publishes free is one this step does not have to pay
+      # for. It is not made redundant by it, because the free feed does not carry
+      # Pinnacle and the selection rule is defined on Pinnacle.
+      #
+      # Two free questions decide the spend before a credit moves. /events costs
+      # nothing and answers both: is this competition being played, and is it
+      # being played within PRICING_HORIZON_DAYS. A bookmaker opens a market
+      # about a week out, so a request beyond that is charged in full for an
+      # empty board — and charged again tomorrow. Fixtures outside the horizon
+      # are not left blank: build_card prices them at 1/p_model.
+      #
+      # Then 1X2 everywhere inside it, all three markets only where a fixture
+      # kicks off today. Measured at ~8 credits a run, ~210 a month against a
+      # 500 budget. Without a key this exits 1 and the step is skipped rather
+      # than failing the run.
       - name: Capture prices from The Odds API
         continue-on-error: true
         env:

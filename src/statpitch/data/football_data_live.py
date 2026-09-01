@@ -605,21 +605,72 @@ def attach_fixture_ids(
     return joined[columns].reset_index(drop=True), stats
 
 
+def _richest_of_each(frame: pd.DataFrame, key: list[str]) -> pd.DataFrame:
+    """One row per key, choosing the one that carries the most prices.
+
+    A feed can list the same match twice — the observed case is a fixture
+    published at both a confirmed kickoff and a placeholder date, which key to
+    the same `fixture_id` because a fixture id is deliberately date-independent.
+    One copy carries a full board and the other is empty.
+
+    Keeping the *first* of each would decide that on row order, and row order
+    here is whatever the API happened to return. On the capture this was written
+    against the priced copy came first, so the naive version looked correct while
+    being one reordering away from discarding Pinnacle prices and keeping nulls.
+    Rank instead by how many price columns are populated; ties keep their
+    original order, and the frame's row order is preserved in the output.
+    """
+    priced = [
+        c for c in frame.columns
+        if c.startswith("odds_") or c in {"n_books", "n_panel_books"}
+    ]
+    if not priced:
+        return frame.drop_duplicates(subset=key)
+    rank = frame[priced].notna().sum(axis=1)
+    order = rank.sort_values(ascending=False, kind="mergesort").index
+    return frame.loc[order].drop_duplicates(subset=key).sort_index()
+
+
 def append_snapshot(frame: pd.DataFrame, path: Path | None = None) -> tuple[Path, int]:
     """Append one capture to the live-odds artifact, never overwriting a prior one.
 
-    Re-running the same capture is a no-op rather than a duplicate: rows carrying
-    a `capture_id` already present are dropped before the write. That makes the
-    collector safe to re-run after a partial failure, which an append-only file
-    otherwise makes unrecoverable.
+    Re-running is a no-op rather than a duplicate: a row whose
+    `(capture_id, fixture_id, selection_key)` is already on file is dropped
+    before the write. That makes the collector safe to re-run after a partial
+    failure, which an append-only file otherwise makes unrecoverable.
+
+    The identity is the ROW, not the capture, and that distinction is load-
+    bearing now that two collectors write here. `capture_id` is the UTC minute,
+    so `collect_odds_api.py` running straight after `collect_live_odds.py` in the
+    same workflow step usually lands in the same minute — and under a
+    capture-level check its rows all looked like a repeat and were discarded in
+    full. What that silently threw away was every Pinnacle price, since the
+    keyless feed does not carry Pinnacle and the paid one is the only source of
+    the reference MODEL_CARD §5's finding is defined on.
+
+    The two sources price disjoint selections in practice (measured at the time
+    of writing: 336 free rows, 191 paid, zero shared keys), because the free feed
+    publishes one league matchday block at a time and the paid one is what
+    reaches the cups and midweek. Where they ever do collide the row already on
+    file wins, which preserves the re-run semantics this check exists for.
     """
     destination = path or paths.live_odds_file()
     destination.parent.mkdir(parents=True, exist_ok=True)
+    key = ["capture_id", "fixture_id", "selection_key"]
+
+    incoming = _richest_of_each(frame, key)
+    if len(incoming) < len(frame):
+        log.warning(
+            "live odds: %d row(s) in this capture share a key with another row "
+            "in it; keeping the one carrying more prices",
+            len(frame) - len(incoming),
+        )
 
     if destination.exists():
         existing = pd.read_parquet(destination)
-        seen = set(existing["capture_id"].unique())
-        incoming = frame[~frame["capture_id"].isin(seen)]
+        seen = set(map(tuple, existing.reindex(columns=key).to_numpy()))
+        keep = [tuple(row) not in seen for row in incoming.reindex(columns=key).to_numpy()]
+        incoming = incoming[keep]
         if incoming.empty:
             log.info(
                 "live odds: capture %s already recorded — nothing appended",
@@ -628,8 +679,7 @@ def append_snapshot(frame: pd.DataFrame, path: Path | None = None) -> tuple[Path
             return destination, 0
         combined = pd.concat([existing, incoming], ignore_index=True)
     else:
-        incoming = frame
-        combined = frame
+        combined = incoming
 
     combined.to_parquet(destination, index=False)
     return destination, int(len(incoming))

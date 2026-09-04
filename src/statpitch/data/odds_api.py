@@ -1,6 +1,6 @@
 """The Odds API — cup fixtures and prices behind one key (Plan §4 Phase D).
 
-The only source found that covers all twelve competitions in the taxonomy,
+The only source found that covers every competition in the taxonomy,
 including the six cups that have no keyless option: openfootball stopped
 publishing them, and OpenLigaDB covers Germany alone.
 
@@ -379,7 +379,7 @@ def build_all_schedules(
 ) -> pd.DataFrame:
     """Fixtures for the competitions nothing else can reach. Costs no credits.
 
-    Defaults to the six with no keyless alternative rather than to all twelve:
+    Defaults to those with no keyless alternative rather than to every one:
     the five leagues come from openfootball and the DFB-Pokal from OpenLigaDB,
     both of which supply a round label that this source cannot.
     """
@@ -623,7 +623,7 @@ def worth_a_credit(
 
     Decided from the FREE events feed, which is the point: the question "is
     anyone quoting this yet" is answerable at no cost, and asking it first is
-    what keeps a daily sweep of twelve competitions inside a monthly budget.
+    what keeps a daily sweep of every competition inside a monthly budget.
 
     A competition whose next fixture is eleven days out is not skipped because
     it does not matter. It is skipped because the market does not exist yet, and

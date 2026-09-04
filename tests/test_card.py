@@ -570,3 +570,92 @@ def test_a_competition_outside_the_rules_scope_is_never_staked(
         "the in-scope control did not qualify either, so this test would pass "
         "for the wrong reason"
     )
+
+
+# --- why the rule declined, not just that it did --------------------------------
+
+def test_rule_declined_names_the_competition_when_that_is_the_reason(
+    fixtures, predictions, odds, fitted
+):
+    """`rule_qualified: false` conflates four different falses.
+
+    Since the rule became competition-scoped, one of them is permanent — the
+    Eredivisie is outside the measured evidence and always will be until it is
+    re-measured — while the others are about today. A consumer that cannot tell
+    them apart reads a structural exclusion as a quiet day.
+    """
+    from dataclasses import replace
+
+    from statpitch.decision_config import SelectionRule
+
+    ruled = replace(fitted, selection_rule=SelectionRule(
+        status="experimental", reference="odds_pinnacle", threshold=-1.0,
+        market_families=("1x2",), max_per_day=3, competitions=("ITA.SERIEA",),
+    ))
+    card, _ = cb.build_card(fixtures, predictions, _with_sharp(odds), ruled, now=NOW)
+    priced = card[card["pricing"] != "model"]
+    assert not priced.empty
+    assert set(priced["rule_declined"]) == {cb.RULE_DECLINED_COMPETITION}
+    assert not priced["rule_qualified"].any()
+
+
+def test_a_qualifying_selection_declines_for_nothing(
+    fixtures, predictions, odds, fitted
+):
+    from dataclasses import replace
+
+    from statpitch.decision_config import SelectionRule
+
+    ruled = replace(fitted, selection_rule=SelectionRule(
+        status="experimental", reference="odds_pinnacle", threshold=-1.0,
+        market_families=("1x2",), max_per_day=3, competitions=("ENG.PL",),
+    ))
+    card, _ = cb.build_card(fixtures, predictions, _with_sharp(odds), ruled, now=NOW)
+    qualified = card[card["rule_qualified"]]
+    assert not qualified.empty
+    assert qualified["rule_declined"].isna().all()
+
+
+def test_the_market_family_reason_is_distinct_from_the_competition_one(
+    fixtures, predictions, odds, fitted
+):
+    """Both are 'out of scope', and a consumer acts on them differently."""
+    from dataclasses import replace
+
+    from statpitch.decision_config import SelectionRule
+
+    ruled = replace(fitted, selection_rule=SelectionRule(
+        status="experimental", reference="odds_pinnacle", threshold=-1.0,
+        market_families=("ou",), max_per_day=3, competitions=("ENG.PL",),
+    ))
+    card, _ = cb.build_card(fixtures, predictions, _with_sharp(odds), ruled, now=NOW)
+    declined = set(card[card["pricing"] != "model"]["rule_declined"])
+    assert cb.RULE_DECLINED_MARKET in declined
+    assert cb.RULE_DECLINED_COMPETITION not in declined
+
+
+def test_the_permanent_reason_wins_over_the_transient_one():
+    """A fixture in an out-of-scope competition is out of scope whether or not
+    it also lacks a price today. Reporting the transient reason would hide the
+    structural one, which is the whole point of the field."""
+    from statpitch.decision_config import SelectionRule
+
+    rule = SelectionRule(
+        status="experimental", reference="odds_pinnacle", threshold=0.0,
+        market_families=("1x2",), competitions=("ENG.PL",),
+    )
+    assert cb._why_the_rule_declined(rule, None, "1x2", "NED.EREDIVISIE") == \
+        cb.RULE_DECLINED_COMPETITION
+    assert cb._why_the_rule_declined(rule, None, "1x2", "ENG.PL") == \
+        cb.RULE_DECLINED_NO_REFERENCE
+    assert cb._why_the_rule_declined(rule, -0.5, "1x2", "ENG.PL") == \
+        cb.RULE_DECLINED_BELOW_THRESHOLD
+    assert cb._why_the_rule_declined(rule, 0.1, "1x2", "ENG.PL") is None
+
+
+def test_an_inactive_rule_says_so_rather_than_blaming_the_competition():
+    from statpitch.decision_config import SelectionRule
+
+    rule = SelectionRule(status="candidate", reference=None, competitions=("ENG.PL",))
+    assert cb._why_the_rule_declined(rule, 0.1, "1x2", "NED.EREDIVISIE") == \
+        cb.RULE_DECLINED_INACTIVE

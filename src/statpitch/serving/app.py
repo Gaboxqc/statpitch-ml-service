@@ -679,6 +679,11 @@ def _card_row(record: dict) -> dict:
         "reference_odds": record.get("reference_odds"),
         "rule_edge": record.get("rule_edge"),
         "rule_qualified": bool(record.get("rule_qualified")),
+        # Why the rule declined, or null when it qualified. `rule_qualified`
+        # alone conflates four different falses, and since the rule became
+        # competition-scoped one of them is permanent: a consumer needs to tell
+        # "this league is outside the measured evidence" from "no edge today".
+        "rule_declined": record.get("rule_declined"),
         "grade": record.get("grade"),
         "composite": record.get("composite"),
         "stake_fraction": record.get("stake_fraction"),
@@ -1557,7 +1562,10 @@ def today() -> dict:
         "note": (
             f"{len(todays)} fixture(s) in scope today."
             if len(todays)
-            else "No fixtures scheduled today in the twelve competitions in scope."
+            else (
+                f"No fixtures scheduled today in the "
+                f"{len(taxonomy.registry())} competitions in scope."
+            )
         ),
         "generated_at_source": artifacts.fixtures_generated_at,
         **provenance(),

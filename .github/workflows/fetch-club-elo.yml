@@ -56,18 +56,48 @@ jobs:
         id: probe
         run: |
           set -uo pipefail
-          up=true
-          for url in "http://api.clubelo.com/Benfica" "http://api.clubelo.com/2026-03-15"; do
-            code=""
-            # Three attempts: one timeout is not an outage.
+
+          # Timing here is not incidental: this step runs twelve times a day and
+          # spends all of it waiting on a host that is, by hypothesis, broken.
+          #
+          # The first version used --max-time 25, three attempts, on both
+          # endpoints unconditionally, and measured 104s on one outage run and
+          # 157s on another. The backoff was never the cost — a failing origin
+          # holds the connection open, so the timeout IS the run. Two things fix
+          # that, and neither weakens the check: a healthy Club Elo answers in
+          # about a second, so 15s is already generous; and there is no reason to
+          # probe the second endpoint once the first has failed, because the
+          # fetch cannot run either way. Worst case falls from ~150s to ~55s.
+          probe() {
+            local url="$1" code=""
             for attempt in 1 2 3; do
-              code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 25 "$url" || echo 000)
+              code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$url" || echo 000)
               [ "$code" = "200" ] && break
-              sleep 5
+              # No backoff before giving up; sleeping after the last attempt
+              # buys nothing but runner time.
+              [ "$attempt" -lt 3 ] && sleep 5
             done
-            echo "$url -> $code"
-            [ "$code" = "200" ] || up=false
-          done
+            echo "$url -> $code" >&2
+            # A 5xx or a timeout is the origin failing, which is what this waits
+            # out. Anything else is a different animal and is called out: during
+            # this outage a 403 from an egress allowlist was briefly mistaken for
+            # Club Elo refusing the request, and that misreading is the reason
+            # this workflow exists rather than a cloud routine.
+            case "$code" in
+              200) return 0 ;;
+              5*|000) return 1 ;;
+              *) echo "  unexpected status $code — not an origin failure" >&2; return 1 ;;
+            esac
+          }
+
+          up=false
+          # The per-club endpoint first, deliberately: it is the one
+          # fetch_league_club_elo.py actually calls, so if it is down the run has
+          # nothing to do and the second probe is pure cost.
+          if probe "http://api.clubelo.com/Benfica"; then
+            # build_roster needs this one, so both have to be healthy.
+            probe "http://api.clubelo.com/2026-03-15" && up=true
+          fi
           echo "up=$up" >> "$GITHUB_OUTPUT"
           if [ "$up" != "true" ]; then
             echo "Club Elo API still unavailable; skipping the fetch."

@@ -71,6 +71,7 @@ CARD_COLUMNS = (
     "edge_prob", "expected_value", "price_edge", "model_edge",
     "grade", "composite", "reasons", "stake_fraction",
     "rule_edge", "rule_qualified", "reference_odds",
+    "pricing", "model_odds", "selection_basis",
     "book_margin", "max_book_sum", "n_books", "capture_id",
     "w", "config_version", "config_status", "model_version", "generated_at",
 )
@@ -90,6 +91,12 @@ class CardStats:
     skipped_no_prediction: int = 0
     skipped_no_devigable_market: int = 0
     capped: int = 0
+    #: Upcoming fixtures no bookmaker has quoted, carried at model-implied odds
+    #: so a fixture list is never missing a price (Part 1).
+    fixtures_model_priced: int = 0
+    #: Days where nothing cleared the selection rule and the highest-confidence
+    #: selection was surfaced instead (Part 2).
+    confidence_picks: int = 0
     arbitrage_fixtures: list[str] = field(default_factory=list)
     grades: dict[str, int] = field(default_factory=dict)
 
@@ -103,6 +110,8 @@ class CardStats:
             "staked": self.staked,
             "total_exposure": round(self.total_exposure, 6),
             "skipped_no_prediction": self.skipped_no_prediction,
+            "fixtures_model_priced": self.fixtures_model_priced,
+            "confidence_picks": self.confidence_picks,
             "skipped_no_devigable_market": self.skipped_no_devigable_market,
             "capped_per_day": self.capped,
             "arbitrage_fixtures": len(self.arbitrage_fixtures),
@@ -248,10 +257,14 @@ def build_card(
     w = float(config.w or 0.0)
 
     priced = latest_capture(odds)
-    if priced.empty:
-        return pd.DataFrame(columns=list(CARD_COLUMNS)), stats
-
-    by_fixture = {str(f): g for f, g in priced.groupby("fixture_id")}
+    # No early return on an empty capture. "Nothing is quoted" is precisely when
+    # the model-implied fallback below matters most — a fixture list with no
+    # prices at all should still carry a price for every match, and returning
+    # here made the one case the fallback exists for the one case it skipped.
+    by_fixture = (
+        {str(f): g for f, g in priced.groupby("fixture_id")}
+        if not priced.empty else {}
+    )
     stats.fixtures_priced = len(by_fixture)
 
     fixture_meta = fixtures.set_index("fixture_id")
@@ -347,6 +360,7 @@ def build_card(
                 and edge is not None
                 and edge > rule.threshold
                 and rule.covers(str(selection.family))
+                and rule.covers_competition(competition_id)
             )
             records.append(
                 {
@@ -375,6 +389,12 @@ def build_card(
                     "rule_edge": edge,
                     "rule_qualified": qualified,
                     "reference_odds": sharp_price.get(assessment.key),
+                    "pricing": "market",
+                    "model_odds": (
+                        float(1.0 / selection.probability)
+                        if selection.probability > 0 else None
+                    ),
+                    "selection_basis": None,
                     "grade": bet.grade.value,
                     "composite": bet.composite,
                     "reasons": "; ".join(bet.reasons),
@@ -409,6 +429,11 @@ def build_card(
                     )
                 )
 
+    records += _model_priced_rows(
+        fixtures, prediction_meta, set(by_fixture), engine_config, config,
+        stamp, model_version, w, stats,
+    )
+
     card = pd.DataFrame.from_records(records, columns=list(CARD_COLUMNS))
     if card.empty:
         return card, stats
@@ -418,7 +443,92 @@ def build_card(
     if slate:
         _size_the_slate(card, slate, slate_index, config, stats)
 
+    _fill_empty_days(card, config, stats)
+
     return card.reset_index(drop=True), stats
+
+
+def _model_priced_rows(
+    fixtures: pd.DataFrame,
+    prediction_meta: pd.DataFrame,
+    priced: set[str],
+    engine_config,
+    config,
+    stamp: str,
+    model_version: str,
+    w: float,
+    stats: CardStats,
+) -> list[dict]:
+    """Every upcoming fixture no bookmaker has quoted, at model-implied odds.
+
+    657 upcoming fixtures currently carry a prediction and 30 carry a price. The
+    other 627 are not a gap in this pipeline — the prices do not exist anywhere
+    yet, because books open a market roughly a week before kick-off and 21 of
+    them are eleven days out. No amount of fetching creates a quote a bookmaker
+    has not published.
+
+    So they are emitted at `1 / p_model` and marked `pricing="model"`. That is a
+    real number and it is not a market price: nothing can be BET at it, because
+    it is this project's own opinion rather than an offer from anyone. The field
+    is what keeps the two apart — a consumer rendering a fixture list gets a
+    price for every match, and a consumer looking for a bet can filter to
+    `pricing == "market"` and get only what is actually obtainable.
+
+    Restricted to 1X2. The full 86-selection engine over 627 fixtures would put
+    54,000 rows in the card to say the same thing three times over, and 1X2 is
+    the only family the selection rule can act on anyway.
+    """
+    rows: list[dict] = []
+    for fixture_id, meta in fixtures.set_index("fixture_id").iterrows():
+        key = str(fixture_id)
+        if key in priced or key not in prediction_meta.index:
+            continue
+        prediction = prediction_meta.loc[key]
+        matrix = score_matrix(
+            float(prediction["lambda_home"]),
+            float(prediction["lambda_away"]),
+            rho=float(prediction.get("rho", 0.0) or 0.0),
+            max_goals=engine_config.matrix_max_goals,
+        )
+        stats.fixtures_model_priced += 1
+        for selection in market_engine.derive(matrix)[:3]:      # 1x2 home/draw/away
+            probability = float(selection.probability)
+            rows.append({
+                "fixture_id": key,
+                "competition_id": meta["competition_id"],
+                "date": meta["date"],
+                "kickoff_utc": pd.NaT,
+                "home_team": meta["home_team"],
+                "away_team": meta["away_team"],
+                "selection_key": selection.key,
+                "market_family": str(selection.family),
+                "line": selection.line,
+                "description": selection.description,
+                "p_model": probability,
+                # No market, so no consensus to de-vig and nothing to compare
+                # against. Leaving these null is the point: a zero would read as
+                # "the market says impossible" rather than "no market exists".
+                "q_fair": None, "p_used": None,
+                "odds_avg": None, "fair_odds": None, "odds_max": None,
+                "edge_prob": None, "expected_value": None,
+                "price_edge": None, "model_edge": None,
+                "rule_edge": None, "rule_qualified": False,
+                "reference_odds": None,
+                "pricing": "model",
+                "model_odds": float(1.0 / probability) if probability > 0 else None,
+                "selection_basis": None,
+                "grade": None, "composite": None,
+                "reasons": "no bookmaker has quoted this fixture yet",
+                "stake_fraction": 0.0,
+                "book_margin": None, "max_book_sum": None,
+                "n_books": 0, "capture_id": None,
+                "w": w,
+                "config_version": config.config_version,
+                "config_status": config.status,
+                "model_version": model_version,
+                "generated_at": stamp,
+            })
+    return rows
 
 
 def _cap_per_day(
@@ -465,6 +575,64 @@ def _cap_per_day(
     return kept, {bet.key: slate_index[bet.key] for bet in kept}
 
 
+def _fill_empty_days(card: pd.DataFrame, config, stats: CardStats) -> None:
+    """Give every day with football a pick, even one the rule did not choose.
+
+    A product requirement. The rule is a threshold and most days nothing clears
+    it — measured over 48 upcoming days, 11 carried a price at all and one
+    produced a bet — so without this the daily view is blank far more often
+    than not.
+
+    What is surfaced is the highest `p_model` selection of the day: the outcome
+    the model is most certain about. That is a different question from the one
+    the rule asks. The rule asks whether a PRICE is wrong; this asks which
+    outcome is most LIKELY, and a heavy favourite at a fair price is extremely
+    likely and worth nothing to back.
+
+    Three things keep it from being mistaken for the rule's output:
+
+    * `selection_basis="confidence"` on the row, carried into the API and the
+      ledger, so a consumer can filter it out and a track record can be kept
+      apart. MODEL_CARD §4 measured selection of this shape at -2.12% ROI.
+    * A FLAT stake from config, not Kelly. Kelly sizes from an edge; there is no
+      measured edge here, so sizing from one would be inventing a number.
+    * Market-priced selections are preferred over model-priced ones, because a
+      pick at `1/p_model` is a price nobody is offering — it can be shown, but
+      it cannot be taken.
+    """
+    rule = config.selection_rule
+    if not rule.fallback_enabled or config.is_placeholder or card.empty:
+        return
+
+    staked_days = set(card.loc[card["stake_fraction"] > 0, "date"])
+    for day, group in card.groupby("date"):
+        if day in staked_days:
+            continue
+        eligible = group[group["p_model"].notna()]
+        if rule.market_families:
+            eligible = eligible[eligible["market_family"].isin(rule.market_families)]
+        if eligible.empty:
+            continue
+        # A takeable price first; a model-implied one only if nothing is quoted.
+        preferred = eligible[eligible["pricing"] == "market"]
+        if preferred.empty and not rule.fallback_stake:
+            continue
+        pool = preferred if not preferred.empty else eligible
+        pick = pool["p_model"].idxmax()
+
+        card.at[pick, "stake_fraction"] = float(rule.fallback_stake)
+        card.at[pick, "selection_basis"] = "confidence"
+        card.at[pick, "reasons"] = (
+            "highest-confidence selection of the day; nothing cleared the "
+            "selection rule, so this is a confidence pick and not a value one"
+        )
+        stats.confidence_picks += 1
+
+    staked = card["stake_fraction"] > 0
+    stats.staked = int(staked.sum())
+    stats.total_exposure = float(card.loc[staked, "stake_fraction"].sum())
+
+
 def _size_the_slate(
     card: pd.DataFrame,
     slate: list[staking.SlateBet],
@@ -498,6 +666,8 @@ def _size_the_slate(
         if index is None:
             continue
         card.at[index, "stake_fraction"] = scaled
+        if scaled > 0:
+            card.at[index, "selection_basis"] = "rule"
 
     staked = card["stake_fraction"] > 0
     stats.staked = int(staked.sum())

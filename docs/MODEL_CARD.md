@@ -3,7 +3,12 @@
 **Status:** staking ENABLED under an explicitly **experimental** selection rule.
 **Version:** `dec-2026.08.1-experimental` (see §7 and §11 for exactly what
 "experimental" is claiming and what it is not).
-**Scope:** 12 European club competitions — 5 leagues, 5 domestic cups, 2 continental.
+**Scope:** 15 European club competitions — 8 leagues, 5 domestic cups, 2 continental.
+The Primeira Liga, Eredivisie and Süper Lig were added on 2026-09-04. Their
+market side is measured (§5, §6); the **model** has not been retrained, so every
+model figure in this card comes from the original five leagues. Of the three,
+only the Süper Lig may be staked — the selection rule does not clear in the other
+two, and §5 gives the numbers.
 
 > **Advisory only (NFR-11).** This system does not integrate with any bookmaker,
 > place wagers, or hold funds. Every output is a simulation or an analysis. It is
@@ -390,6 +395,39 @@ priced bets resolved it clearly (t=3.47). Stripping the outcome out and asking
 only whether the price moved the right way converges on roughly an eighth of the
 sample. Requirements §8.3 makes CLV the headline metric for this reason.
 
+### It does not hold everywhere, and pooling was hiding that
+
+Re-measured 2026-09-04 on the eight-league archive, the pooled figure got
+*better*: Pinnacle-referenced CLV at threshold 0 is **+0.43%, t=+7.19 over 10,832
+matches**, up from 7,790. Broken out per competition, on the same window with the
+holdout excluded:
+
+| competition | CLV | clustered t | n | verdict |
+|---|---|---|---|---|
+| ENG.PL | +0.32% | +2.31 | 2,421 | clears |
+| ESP.LALIGA | +0.49% | +3.61 | 2,207 | clears |
+| FRA.LIGUE1 | +0.66% | +4.03 | 1,946 | clears |
+| GER.BUNDESLIGA | +0.61% | +3.50 | 1,860 | clears |
+| ITA.SERIEA | +0.50% | +3.47 | 2,423 | clears |
+| TUR.SUPERLIG | +0.47% | +2.63 | 1,521 | clears |
+| POR.PRIMEIRA | +0.27% | +1.07 | 974 | **does not clear** |
+| NED.EREDIVISIE | **−0.22%** | **−0.82** | 1,098 | **does not clear** |
+
+The Eredivisie's own estimate is **negative**, and the five Big-5 leagues were
+carrying it to a comfortable pooled result. That is the failure mode an average
+is built to produce, and it was invisible until there were enough competitions
+for one of them to disagree.
+
+`decision_config.selection_rule.competitions` now lists the six that clear, and
+`SelectionRule.covers_competition` gates staking on it exactly as
+`market_families` gates it by market. The two exclusions are not the same kind:
+the Eredivisie is **disproven** at this sample size, while the Primeira Liga at
+t=1.07 is **unproven** — a positive point estimate that ~974 selections cannot
+resolve. Both stay out; only one of them is expected to stay out forever.
+
+Note this cuts against the project's own convenience. The pooled number is the
+better headline and it is the one that would have shipped.
+
 **What this result is not.** It is not a demonstration that the *model* has edge —
 the model is not what selects these bets; a sharper book's price is. It is
 evidence that a stale price at a soft book, identified by reference to a sharp
@@ -406,10 +444,41 @@ early bettor could capture. Valid signal, accurate name.
 
 ## 6. Limitations
 
-**Odds coverage is 5 of 12 competitions.** Free odds exist for the five leagues.
-They do not exist for the domestic cups or for UCL/UEL. Those competitions get
-predictions, brackets and simulations; they never get a bet recommendation, and
-the API says so per request with a stated reason rather than omitting the field.
+**Odds coverage is 8 of 15 competitions.** Free odds exist for the eight
+leagues. They do not exist for the domestic cups or for UCL/UEL. Those
+competitions get predictions, brackets and simulations; they never get a bet
+recommendation, and the API says so per request with a stated reason rather than
+omitting the field.
+
+*Extended 2026-09-04.* The Primeira Liga, Eredivisie and Süper Lig were added.
+football-data.co.uk publishes `P1`/`N1`/`T1` on the identical modern-era schema
+(`AvgC*`, `PSC*`, `AHCh`, kickoff times) back to 1994/95, and The Odds API
+publishes all three with Pinnacle on the board — so they clear both halves of
+`odds_coverage` on the same evidence the original five did.
+
+Saudi Arabia was evaluated at the same time and **excluded**. Its live prices
+exist, but football-data.co.uk carries no Saudi division in either the main
+archive or the extra-leagues workbook, so `benchmark_coverage` is false and
+nothing could validate a price. Club Elo does not rate non-UEFA clubs either,
+which would null the strongest single feature on every fixture. See the notes in
+`data/competitions.json`.
+
+**The three new leagues are declared and market-measured, but not yet trained.**
+This section describes the taxonomy gate, which is what the API reads. The
+shipped model has not seen a Portuguese, Dutch or Turkish match.
+
+Their *market* side has now been measured, and it did not come out uniformly.
+De-vig methods were re-fitted across all eight leagues, and the Primeira Liga and
+Süper Lig are the only two competitions in the project where the choice of method
+is statistically significant — `power` over `shin` at p=0.004 and p=0.009. Both
+carry a fatter book margin than the Big 5 (5.9% and 6.3% against England's 4.5%),
+and the three methods only diverge materially when there is more vig to remove.
+
+The selection rule was measured per competition rather than pooled, and two of
+the eight do not clear the bar — see §5. The Süper Lig does. Until the archive
+ingest, retrain and per-competition study land, treat a card entry in these three
+as an unbacked prediction — the same standing the cups have, arrived at from the
+opposite direction.
 
 *Refined 2026-08-24.* `odds_coverage` is now the conjunction of two flags that
 were always distinct: `live_odds_coverage` (a price can be obtained) and
@@ -658,6 +727,52 @@ measured rule on a new price panel.
 
 ---
 
+## 12. The confidence tier, and why it is separate
+
+*Added 2026-09-01.*
+
+§11's rule is a threshold, and most days nothing clears it: over 48 upcoming
+days, 11 carried a price at all and one produced a bet. A daily product cannot
+be blank five days in six, so a second tier was added — and the whole design
+effort went into keeping it distinguishable from the first.
+
+    tier          basis           fires when            sized by
+    1  rule        Pinnacle edge   price beats fair      Kelly, capped 3/day
+    2  confidence  p_model         tier 1 empty          flat 0.05% stake
+
+**Tier 2 has no measurement behind it.** It surfaces the outcome the model is
+most certain about, which is a different question from the one §5 answered. The
+rule asks whether a PRICE is wrong; this asks which outcome is most LIKELY, and
+a heavy favourite at a fair price is extremely likely and worth nothing. §4
+measured selection of this shape at -2.12% ROI against +0.13%.
+
+Three things keep the tiers apart rather than merging into one "picks" number:
+
+* `selection_basis` on every row, in the API, and in the ledger.
+* A flat stake rather than Kelly — Kelly sizes from an edge, and inventing one
+  here would be the exact failure §11 was careful to avoid.
+* `/bets/today` carries a `confidence_caveat` naming the -2.12% whenever a
+  tier-2 row is present.
+
+**It also buys an experiment.** Because the tiers are tagged, `clv_tracker` can
+measure them separately, and in a few months there will be a real answer to
+whether confidence picks carry value. That question is currently open; tagging
+is what makes it answerable rather than permanently unknown.
+
+## 13. Every fixture carries a price
+
+*Added 2026-09-01.* 657 upcoming fixtures carry a prediction; 30 carry a
+bookmaker quote. The other 627 are not a gap in this pipeline — books open a
+market roughly a week before kick-off, and 21 of them are eleven days out. No
+amount of fetching creates a quote nobody has published.
+
+They are therefore emitted at `1 / p_model` and marked `pricing="model"`, beside
+`pricing="market"` for the quoted ones. A model-implied price is a real number
+and is not an offer: it can be displayed, and it cannot be taken. The field is
+what keeps a fixture list complete without implying that every row is bettable.
+
+---
+
 ## 9. Intended use
 
 **Appropriate.** Probability estimates and score distributions for the 12
@@ -699,4 +814,7 @@ of those near-misses are instructive:
   vector and correlated and independent slates allocated identically — silently
   defeating the entire purpose of allocating jointly.
 
-**793 tests**, all offline; no test touches the network.
+**1,297 tests** (1,292 passing, 5 skipped), all offline; no test touches the
+network. The figure here read 793 for some time while the suite grew past it —
+corrected 2026-09-04 against `pytest --collect-only`, which is what it should
+have been counting all along.

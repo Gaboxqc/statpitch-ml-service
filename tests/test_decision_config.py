@@ -282,3 +282,78 @@ def test_lambda_out_of_range_is_rejected(tmp_path, cfg):
 def test_reset_cache_reloads(cfg):
     decision_config.reset_cache()
     assert decision_config.config().config_version == cfg.config_version
+
+
+# --- the rule is scoped by competition as well as by market family -------------
+
+def _rule(**kw):
+    return decision_config.SelectionRule(
+        status=kw.pop("status", "experimental"),
+        reference=kw.pop("reference", "odds_pinnacle"),
+        **kw,
+    )
+
+
+def test_an_unscoped_rule_covers_every_competition():
+    """Empty means unscoped, so a config written before the field still works."""
+    rule = _rule()
+    assert rule.competitions == ()
+    assert rule.covers_competition("NED.EREDIVISIE")
+    assert rule.covers_competition("ANYTHING.AT.ALL")
+
+
+def test_a_scoped_rule_refuses_a_competition_it_was_not_measured_in():
+    """The Eredivisie's own CLV is -0.22%, t=-0.82 over five seasons.
+
+    Pooled with the Big 5 it disappears into +0.43% at t=+7.19. Scoping the rule
+    per competition is what stops that average authorising a bet in the one
+    league whose own estimate is negative.
+    """
+    rule = _rule(competitions=("ENG.PL", "TUR.SUPERLIG"))
+    assert rule.covers_competition("ENG.PL")
+    assert rule.covers_competition("TUR.SUPERLIG")
+    assert not rule.covers_competition("NED.EREDIVISIE")
+    assert not rule.covers_competition("POR.PRIMEIRA")
+
+
+def test_competition_scope_is_parsed_from_the_config_file():
+    parsed = decision_config._parse_selection_rule(
+        {"status": "experimental", "reference": "odds_pinnacle",
+         "competitions": ["ENG.PL", "ITA.SERIEA"]}
+    )
+    assert parsed.competitions == ("ENG.PL", "ITA.SERIEA")
+
+
+def test_the_shipped_scope_matches_the_study_that_justifies_it():
+    """The config may not claim a competition the evidence file does not.
+
+    Widening the scope by hand, without re-running the study, is exactly the
+    edit this pins — the list is a claim about measurement, so it has to agree
+    with the measurement.
+    """
+    import json
+
+    from statpitch import paths
+
+    study_path = paths.data_root() / "selection_rule_study.json"
+    if not study_path.exists():
+        pytest.skip("selection rule study not present in this checkout")
+    study = json.loads(study_path.read_text(encoding="utf-8"))
+    block = study.get("per_competition")
+    if not block:
+        pytest.skip("study predates the per-competition breakdown")
+
+    scoped = set(decision_config.config().selection_rule.competitions)
+    assert scoped == set(block["clears"]), (
+        "decision_config.selection_rule.competitions disagrees with "
+        "selection_rule_study.json — re-run scripts/study_selection_rules.py"
+    )
+    assert not scoped & set(block["does_not_clear"])
+
+
+def test_every_scoped_competition_actually_exists():
+    from statpitch import taxonomy
+
+    known = {c.competition_id for c in taxonomy.registry()}
+    scoped = set(decision_config.config().selection_rule.competitions)
+    assert scoped <= known

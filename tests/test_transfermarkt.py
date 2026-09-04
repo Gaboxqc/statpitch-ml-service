@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import pytest
 
+from statpitch import taxonomy
 from statpitch.data import transfermarkt as tm
 
 PAGE = """
@@ -65,10 +66,16 @@ def test_a_layout_change_raises_rather_than_returning_nothing():
         tm.parse_season("<html><body>no table here</body></html>")
 
 
-def test_only_the_odds_covered_leagues_are_mapped():
-    assert set(tm.COMPETITIONS) == {
-        "ENG.PL", "ESP.LALIGA", "GER.BUNDESLIGA", "ITA.SERIEA", "FRA.LIGUE1"
-    }
+def test_every_odds_covered_league_is_mapped_and_no_cup_is():
+    """Derived from the taxonomy, not restated.
+
+    A literal set here means adding a league passes every other test and fails
+    this one for the wrong reason — it reports "the list changed", not "a league
+    lost its squad values". Transfermarkt codes every top division, so the real
+    invariant is that the two sets agree exactly.
+    """
+    covered = {c.competition_id for c in taxonomy.registry().with_odds_coverage()}
+    assert set(tm.COMPETITIONS) == covered
 
 
 def test_an_unmapped_competition_is_refused():

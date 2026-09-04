@@ -32,7 +32,7 @@ Every match in the system is tagged with:
 | `tier` | integer, 1 = top flight (used for lower-division cup-entrant priors, FR-9) |
 | `leg_number` | `null` \| `1` \| `2` (two-legged ties only) |
 | `neutral_venue` | boolean (finals are usually neutral) |
-| 🆕 `odds_coverage` | boolean — whether free closing-odds data exists for this competition. **Gates the entire Decision Layer.** True for the 5 leagues, false for all cups and continental competitions in the first release |
+| 🆕 `odds_coverage` | boolean — whether free closing-odds data exists for this competition. **Gates the entire Decision Layer.** True for the 8 leagues, false for all cups and continental competitions |
 
 This is the key structural upgrade over v1, which only ever had one format (single group-then-knockout tournament). The v2 model layer reads `format` and branches its inference logic (§5.3) instead of needing a separate bespoke system per competition — this is what lets NFR-6 (scale to 20+ competitions without a redesign) hold.
 
@@ -84,7 +84,13 @@ price_avail(t) = Max*           →  the price actually obtainable              
 
 Rules enforced in `live_fetcher.py`: no polling loops, one lineup attempt per fixture, a local cache keyed by fixture ID with no re-fetch inside 24h, and a hard daily counter that stops issuing calls at 90 and falls back to pre-match estimates (NFR-7). The fallback path is a quota-protection mechanism, not only a robustness one.
 
-**Odds coverage note**: football-data.co.uk covers league divisions only. Domestic cups and UCL/UEL rely on results-only data from openfootball. No free odds source with cup coverage exists — the-odds-api was evaluated and rejected (Requirements §7.2). The closing-line benchmark and Decision Layer are therefore scoped to league matches in the first release via the `odds_coverage` flag.
+**Odds coverage note**: football-data.co.uk covers league divisions only. Domestic cups and UCL/UEL rely on results-only data from openfootball. No free odds source with cup coverage exists — the-odds-api was evaluated and rejected (Requirements §7.2). The closing-line benchmark and Decision Layer are therefore scoped to league matches via the `odds_coverage` flag.
+
+**Extended 2026-09-04** to the Primeira Liga, Eredivisie and Süper Lig, taking the gate from 5 leagues of 12 competitions to 8 of 15. The constraint above is unchanged — it is still "league divisions football-data.co.uk publishes" — and these three qualify on exactly the evidence the original five did: `P1`/`N1`/`T1` carry the modern-era schema (`AvgC*`, `PSC*`, `AHCh`, kickoff times) back to 1994/95, and consensus closing odds are present for all three across the eight seasons from 2019/20.
+
+Saudi Arabia was assessed at the same time and **excluded**, which is the case that shows the flag doing its job rather than being a formality: The Odds API prices it and Pinnacle quotes it, so `live_odds_coverage` would be true, but no free source carries its results or closing odds, so `benchmark_coverage` is false and the conjunction is false. It would be predicted and served and never staked. See the notes in `data/competitions.json`.
+
+**A `competition_id` prefix is a Club Elo ISO-3 country code**, not a free-form label: `map_fixture_clubs` derives the country constraint from it and `club_elo.resolve_cup_clubs` refuses to match across borders, so an unrecognised prefix constrains every club to an empty candidate set and drops the lot to the pooled entrant prior with nothing raised. Hence POR/NED/TUR. Pinned by a test.
 
 ---
 

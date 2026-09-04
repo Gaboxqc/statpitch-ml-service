@@ -67,7 +67,7 @@ src/statpitch/
   ops/
     jobs.py            flag_card and settle_ledger, idempotent and clock-honest
 data/
-  competitions.json    12 competitions, incl. the odds_coverage gate
+  competitions.json    15 competitions, incl. the odds_coverage gate
   decision_config.json Experimental: the Pinnacle rule, and what it does not claim
   processed/           matches_clean, closing_odds, features, elo_ratings_all, …
   processed/live_odds.parquet  Append-only capture log of pre-match prices
@@ -104,11 +104,17 @@ is picked up — `odds_bfe` was added that way.
 
 ## Current state
 
-Phases 0–9 complete, plus Plan Phases A–F. **1,248 tests**, all offline.
+Phases 0–9 complete, plus Plan Phases A–F. **1,297 tests**, all offline.
+
+Covers the Premier League, LaLiga, Bundesliga, Serie A, Ligue 1 and — since
+2026-09 — the Primeira Liga, Eredivisie and Süper Lig, plus five domestic cups
+and UCL/UEL. The eight leagues are the ones with free closing odds and so the
+only ones the Decision Layer may operate on; see `odds_coverage` in
+`data/competitions.json`.
 
 | Layer | Item | Status |
 |---|---|---|
-| 0 | Taxonomy for 12 competitions, format resolved by stage and season | done |
+| 0 | Taxonomy for 15 competitions, format resolved by stage and season | done |
 | 0 | `decision_config.json`, versioned, refuses to stake while placeholder | done |
 | 0 | API-Football quota guard, before any real API call exists | done |
 | 1 | football-data.co.uk, Club Elo, openfootball cups, Understat xG | done |

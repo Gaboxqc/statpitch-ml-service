@@ -44,14 +44,17 @@ log = logging.getLogger(__name__)
 
 BASE = "https://www.transfermarkt.com"
 
-#: competition_id -> Transfermarkt's competition code. Only the five leagues:
-#: cup squads are the same clubs, and Transfermarkt has no per-cup valuation.
+#: competition_id -> Transfermarkt's competition code. Leagues only: cup squads
+#: are the same clubs, and Transfermarkt has no per-cup valuation.
 COMPETITIONS: dict[str, str] = {
     "ENG.PL": "GB1",
     "ESP.LALIGA": "ES1",
     "GER.BUNDESLIGA": "L1",
     "ITA.SERIEA": "IT1",
     "FRA.LIGUE1": "FR1",
+    "POR.PRIMEIRA": "PO1",
+    "NED.EREDIVISIE": "NL1",
+    "TUR.SUPERLIG": "TR1",
 }
 
 #: Transfermarkt writes amounts as "€1.46bn", "€955.65m", "€500k".

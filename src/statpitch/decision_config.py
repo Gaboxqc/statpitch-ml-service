@@ -139,9 +139,27 @@ class SelectionRule:
     """
 
     status: str = "candidate"
+    #: Surface the most confident selection when nothing clears the threshold.
+    #: A product requirement rather than a measured one; `selection_basis` keeps
+    #: the two apart on every row it produces.
+    fallback_enabled: bool = False
+    fallback_stake: float = 0.0
     reference: str | None = None
     threshold: float = 0.0
     market_families: tuple[str, ...] = ()
+    #: Competitions the rule has been measured to earn in, per competition.
+    #:
+    #: The same argument as `market_families`, along the other axis. The pooled
+    #: CLV figure is an average over competitions, and an average is exactly what
+    #: hides one that does not work: measured separately on the eight-league
+    #: archive, five leagues sit at t>2 while the Eredivisie is at **-0.22%,
+    #: t=-0.82** — a negative point estimate, carried to a comfortable aggregate
+    #: by the others.
+    #:
+    #: Empty means "not scoped", which is how an older config keeps working. It
+    #: is not a way to opt out: the enforcement below reads this field, so
+    #: narrowing it is a deliberate edit with the study to justify it.
+    competitions: tuple[str, ...] = ()
     max_per_day: int | None = None
     evidence: str | None = None
 
@@ -154,6 +172,12 @@ class SelectionRule:
         if not self.market_families:
             return True
         return str(market_family) in self.market_families
+
+    def covers_competition(self, competition_id: str) -> bool:
+        """Whether the rule's evidence extends to this competition."""
+        if not self.competitions:
+            return True
+        return str(competition_id) in self.competitions
 
 
 @dataclass(frozen=True, slots=True)
@@ -324,11 +348,15 @@ _FORBIDDEN_BENCHMARK_COLUMNS = frozenset(("odds_max", "odds_panel_max"))
 
 def _parse_selection_rule(raw: dict[str, Any]) -> SelectionRule:
     families = raw.get("market_families") or ()
+    fallback = raw.get("fallback") or {}
     return SelectionRule(
         status=str(raw.get("status", "candidate")),
+        fallback_enabled=bool(fallback.get("enabled", False)),
+        fallback_stake=float(fallback.get("stake_fraction") or 0.0),
         reference=raw.get("candidate_reference") or raw.get("reference"),
         threshold=float(raw.get("threshold") or 0.0),
         market_families=tuple(str(f) for f in families),
+        competitions=tuple(str(c) for c in (raw.get("competitions") or ())),
         max_per_day=(
             int(raw["max_per_day"]) if raw.get("max_per_day") is not None else None
         ),

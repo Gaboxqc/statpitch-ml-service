@@ -57,9 +57,12 @@
       "ESP.LALIGA": "shin",
       "GER.BUNDESLIGA": "shin",
       "ITA.SERIEA": "shin",
-      "FRA.LIGUE1": "shin"
+      "FRA.LIGUE1": "shin",
+      "POR.PRIMEIRA": "power",
+      "NED.EREDIVISIE": "shin",
+      "TUR.SUPERLIG": "power"
     },
-    "comment": "FR-28. Selected per competition in Notebook 12 by log-loss and calibration error against realised outcomes. Default is Shin rather than proportional because proportional de-vig systematically overstates longshot fair probability and would manufacture phantom value on draws and away underdogs (Design \u00a76.2)."
+    "comment": "FR-28. Selected per competition by log-loss and calibration error against realised outcomes, and rewritten by scripts/select_devig_method.py. A competition keeps the Shin default unless another method wins SIGNIFICANTLY on a paired per-match test; a merely higher-ranked method is not enough. Default is Shin rather than proportional because proportional de-vig systematically overstates longshot fair probability and would manufacture phantom value on draws and away underdogs (Design \u00a76.2). Re-fitted 2026-09-04 across eight leagues: POR.PRIMEIRA and TUR.SUPERLIG are the ONLY two competitions where the choice is significant (power over shin, p=0.004 and p=0.009). That is consistent rather than surprising \u2014 both carry a fatter book margin (5.9% and 6.3% against England's 4.5%), and the three methods only diverge materially when there is more vig to remove."
   },
   "grading": {
     "e_peak": 0.04,
@@ -209,6 +212,42 @@
     "market_families": [
       "1x2"
     ],
-    "max_per_day": 3
+    "max_per_day": 3,
+    "fallback": {
+      "enabled": true,
+      "basis": "confidence",
+      "ranked_by": "p_model",
+      "stake_fraction": 0.0005,
+      "prefer_market_priced": true,
+      "comment": [
+        "A PRODUCT requirement, not a measured one, and the two must never be",
+        "confused in the output. When no selection clears the Pinnacle rule on a",
+        "day that has football, the single highest-confidence selection is",
+        "surfaced so the day is never blank.",
+        "",
+        "'Confidence' is p_model: the selection this project's own model is most",
+        "certain about. That is NOT the rule's quantity. The rule asks whether a",
+        "price is wrong; this asks which outcome is most likely, and a heavy",
+        "favourite at a fair price is highly confident and worth nothing.",
+        "",
+        "MODEL_CARD 4 measured selection of this shape at -2.12% ROI against",
+        "+0.13% for committing to one market. Every such row therefore carries",
+        "selection_basis='confidence', is sized at a FLAT stake rather than by",
+        "Kelly -- Kelly sizes from an edge and there is no measured edge here, so",
+        "sizing from one would be inventing a number -- and is recorded",
+        "separately in the ledger so its CLV can be measured apart from the",
+        "rule's. That separation is what turns this from a guess into an",
+        "experiment that answers itself in a few months."
+      ]
+    },
+    "competitions": [
+      "ENG.PL",
+      "ESP.LALIGA",
+      "FRA.LIGUE1",
+      "GER.BUNDESLIGA",
+      "ITA.SERIEA",
+      "TUR.SUPERLIG"
+    ],
+    "competitions_comment": "The competitions where the rule has been MEASURED to earn, not the competitions that have odds. Same argument as market_families, along the other axis: the pooled CLV figure is an average, and an average is what hides a competition the rule does not work in. Measured per competition on the pre-break window with the holdout excluded (data/selection_rule_study.json -> per_competition); a competition is listed only if it has >=2 seasons, positive mean CLV and clustered t > 2. EXCLUDED and why: NED.EREDIVISIE at -0.22% CLV, t=-0.82 over 5 seasons \u2014 a NEGATIVE point estimate, which the five Big-5 leagues were carrying to a comfortable pooled +0.43%. POR.PRIMEIRA at +0.27%, t=1.07 \u2014 positive but not resolvable at ~974 selections, so it is unproven rather than disproven, and it stays out until it is one or the other. TUR.SUPERLIG is IN at +0.47%, t=2.63. An empty list means unscoped and everything is eligible, which is how a config written before this field keeps working."
   }
 }

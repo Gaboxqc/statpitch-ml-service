@@ -96,13 +96,20 @@ QUALIFIER_SOURCES: dict[str, tuple[str, str]] = {
 #: two club-naming conventions and two match_id schemes.
 #:
 #: Note France sits in the consolidated `europe` repo under a different layout,
-#: the same exception `SOURCES` already documents for the Coupe de France.
+#: the same exception `SOURCES` already documents for the Coupe de France — and
+#: Portugal, the Netherlands and Turkey sit there too, under the identical
+#: `<country>/{season}_<code>.txt` shape. There is no openfootball/portugal,
+#: openfootball/netherlands or openfootball/turkey repo; the org publishes only
+#: england, espana, deutschland, italy and the consolidated europe.
 LEAGUE_SCHEDULE_SOURCES: dict[str, tuple[str, str]] = {
     "ENG.PL": ("england", "{season}/1-premierleague.txt"),
     "ESP.LALIGA": ("espana", "{season}/1-liga.txt"),
     "GER.BUNDESLIGA": ("deutschland", "{season}/1-bundesliga.txt"),
     "ITA.SERIEA": ("italy", "{season}/1-seriea.txt"),
     "FRA.LIGUE1": ("europe", "france/{season}_fr1.txt"),
+    "POR.PRIMEIRA": ("europe", "portugal/{season}_pt1.txt"),
+    "NED.EREDIVISIE": ("europe", "netherlands/{season}_nl1.txt"),
+    "TUR.SUPERLIG": ("europe", "turkey/{season}_tr1.txt"),
 }
 
 #: Everything a fixture list can be built from. Cups reuse their results files —

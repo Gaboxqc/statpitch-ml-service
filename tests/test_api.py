@@ -560,21 +560,56 @@ def test_the_rule_is_restricted_to_the_family_it_was_measured_on(client):
         assert bet["market_family"] == "1x2"
 
 
-def test_every_recommendation_cleared_the_rule(client):
+def test_every_rule_recommendation_cleared_the_rule(client):
+    """Scoped to the rule tier. A confidence pick is surfaced BECAUSE nothing
+    cleared the rule, so asserting that it did would contradict its own reason."""
     body = client.get("/bets/today").json()
     for bet in body["bets"]:
-        assert bet["rule_qualified"] is True
-        assert bet["rule_edge"] is not None
         assert bet["stake_fraction"] > 0
+        assert bet["selection_basis"] in {"rule", "confidence"}
+        if bet["selection_basis"] == "rule":
+            assert bet["rule_qualified"] is True
+            assert bet["rule_edge"] is not None
 
 
-def test_a_recommendation_shows_the_sharp_price_it_beat(client):
-    """The rule is "best quote beats the reference's fair value", so both prices
-    have to be visible or the claim cannot be checked."""
+def test_the_two_tiers_never_appear_on_the_same_day(client):
+    """The fallback fires only when the rule leaves the day empty, so a day
+    carrying both would mean it ran when it should not have."""
+    body = client.get("/bets/today").json()
+    bases = {b["selection_basis"] for b in body["bets"]}
+    assert bases != {"rule", "confidence"}
+
+
+def test_a_confidence_pick_says_what_it_is(client):
+    """It is the most LIKELY outcome, not a mispriced one. A consumer rendering
+    it as a value bet has been misled by the payload."""
+    body = client.get("/bets/today").json()
+    if not body.get("by_basis", {}).get("confidence"):
+        pytest.skip("no confidence pick today")
+    assert "confidence_caveat" in body
+    assert "-2.12%" in body["confidence_caveat"]
+    for bet in body["bets"]:
+        if bet["selection_basis"] == "confidence":
+            assert bet["rule_qualified"] is False
+
+
+def test_a_rule_recommendation_shows_the_sharp_price_it_beat(client):
+    """Only the rule tier makes that claim — a confidence pick beat nothing."""
     body = client.get("/bets/today").json()
     for bet in body["bets"]:
+        if bet["selection_basis"] != "rule":
+            continue
         assert bet["reference_odds"] is not None
         assert bet["odds"] >= bet["reference_odds"]
+
+
+def test_every_pick_carries_a_price_of_one_kind_or_the_other(client):
+    """Market where a book quotes it, model-implied where none does. A pick with
+    neither would be a recommendation with no number attached."""
+    body = client.get("/bets/today").json()
+    for bet in body["bets"]:
+        assert bet["pricing"] in {"market", "model"}
+        assert bet["odds"] or bet["model_odds"], bet["fixture_id"]
 
 
 def test_an_experimental_rule_says_so_on_every_response_carrying_a_bet(client):

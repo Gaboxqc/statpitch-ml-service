@@ -331,6 +331,32 @@ def test_rows_tagged_for_another_division_are_dropped(tmp_path, caplog):
     assert any("other divisions" in r.message for r in caplog.records)
 
 
+WHOLLY_FOREIGN_CSV = """Div,Date,HomeTeam,AwayTeam,FTHG,FTAG,FTR,B365H,B365D,B365A,MaxH,MaxD,MaxA,AvgH,AvgD,AvgA
+SP1,04/09/1993,Barcelona,Real Madrid,2,1,H,1.90,3.40,4.00,2.00,3.50,4.20,1.95,3.45,4.10
+SP1,05/09/1993,Osasuna,Celta,0,0,D,2.30,3.10,3.20,2.40,3.20,3.30,2.35,3.15,3.25
+"""
+
+
+def test_a_file_where_EVERY_row_is_foreign_yields_nothing(tmp_path, caplog):
+    """`mmz4281/9394/P1.csv` is not Portugal. It is LaLiga, tagged SP1.
+
+    This is the whole-file case, not the stray-rows case above, and it is worth
+    pinning separately because the obvious "improvement" to the guard — if every
+    row disagrees with the filename, trust the filename — is exactly wrong here.
+    It would file 380 Spanish matches as Portuguese, under match_ids that do not
+    collide with the real LaLiga rows, and hand Portugal's goal environment a
+    season of Barcelona and Real Madrid.
+
+    The correct outcome is an empty parse: Portugal's archive starts 1994/95.
+    """
+    sf = _season_file(
+        tmp_path, "P1.csv", WHOLLY_FOREIGN_CSV, 1993,
+        competition_id="POR.PRIMEIRA", div_code="P1",
+    )
+    assert fd.parse_matches(sf).empty
+    assert any("other divisions" in r.message for r in caplog.records)
+
+
 def test_odds_from_a_foreign_division_row_are_dropped_too(tmp_path):
     sf = _season_file(
         tmp_path, "SP1.csv", MIXED_DIV_CSV, 2026,

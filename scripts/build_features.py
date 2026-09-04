@@ -69,25 +69,37 @@ def load_aliases() -> dict[str, str]:
 def build_elo_lookup(
     log_frame: pd.DataFrame, aliases: dict[str, str]
 ) -> dict[tuple[str, pd.Timestamp], float]:
-    """(club, date) -> rating strictly before that date, for the whole log."""
+    """(club, date) -> rating strictly before that date, for the whole log.
+
+    Alias resolution is season-aware (`club_elo.resolve_alias`) because the match
+    log reuses some names across eras: "Erzurumspor" is the 1967 club in 1999/00
+    and its 2016 successor in 2026/27, and Club Elo rates those separately. Keyed
+    on the string alone, the recent fixtures would silently collect a rating a
+    decade out of date.
+    """
     elo_table = pd.read_parquet(paths.processed_dir() / "elo_ratings_all.parquet")
 
-    pairs: list[tuple[str, pd.Timestamp]] = []
-    for date, home, away in zip(
-        log_frame["date"], log_frame["home_team"], log_frame["away_team"], strict=True
-    ):
-        for club in (home, away):
-            pairs.append((aliases.get(str(club), str(club)), date))
+    def target(club: object, season: object) -> str:
+        return ce.resolve_alias(str(club), season, aliases=aliases)
 
+    rows = list(zip(
+        log_frame["date"], log_frame["season"],
+        log_frame["home_team"], log_frame["away_team"], strict=True,
+    ))
+
+    pairs: list[tuple[str, pd.Timestamp]] = [
+        (target(club, season), date)
+        for date, season, home, away in rows
+        for club in (home, away)
+    ]
     resolved = ce.build_lookup(elo_table, pairs)
 
-    # Re-key onto the names the feature builder will see.
+    # Re-key onto the names the feature builder will see. The alias is applied
+    # again rather than cached from above so the two loops cannot drift.
     lookup: dict[tuple[str, pd.Timestamp], float] = {}
-    for date, home, away in zip(
-        log_frame["date"], log_frame["home_team"], log_frame["away_team"], strict=True
-    ):
+    for date, season, home, away in rows:
         for club in (home, away):
-            rating = resolved.get((aliases.get(str(club), str(club)), date))
+            rating = resolved.get((target(club, season), date))
             if rating is not None:
                 lookup[(str(club), date)] = rating
     return lookup

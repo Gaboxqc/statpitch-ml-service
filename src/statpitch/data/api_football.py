@@ -60,7 +60,7 @@ BASE_URL = "https://v3.football.api-sports.io"
 
 ENV_KEY = "STATPITCH_API_FOOTBALL_KEY"
 
-#: competition_id -> API-Football league id, for the five leagues whose schedules
+#: competition_id -> API-Football league id, for the leagues whose schedules
 #: openfootball publishes provisionally. The cups are absent because their draws
 #: are not published far enough ahead for a date to need correcting.
 LEAGUE_IDS: dict[str, int] = {
@@ -69,6 +69,9 @@ LEAGUE_IDS: dict[str, int] = {
     "GER.BUNDESLIGA": 78,
     "ITA.SERIEA": 135,
     "FRA.LIGUE1": 61,
+    "POR.PRIMEIRA": 94,
+    "NED.EREDIVISIE": 88,
+    "TUR.SUPERLIG": 203,
 }
 
 TIMEOUT = 30

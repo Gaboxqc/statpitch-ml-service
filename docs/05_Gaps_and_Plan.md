@@ -107,13 +107,13 @@ Three properties that matter:
    exact label it was measured with.
 2. **`Avg*` and `Max*` in one row** — the FR-16a separation (fair from
    consensus, price from best-of-N) is available directly, no reconstruction.
-3. **Confirmed kickoff times and referee, keylessly**, for the five leagues.
+3. **Confirmed kickoff times and referee, keylessly**, for the eight leagues.
    This is a better date-correction source than football-data.org and needs no
    credential at all.
 
 Covers leagues only. No cups.
 
-### The Odds API — key required, covers all 12 competitions
+### The Odds API — key required, covers all 15 competitions
 
 Confirmed sport keys exist for every competition in the taxonomy:
 

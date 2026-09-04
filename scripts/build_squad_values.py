@@ -44,6 +44,13 @@ from statpitch.data import transfermarkt as tm
 log = logging.getLogger("squad_values")
 
 #: Below this share of club-seasons resolved, the join is not worth making.
+#:
+#: Enforced PER COMPETITION as well as overall, and the per-competition half is
+#: the one that does the work. A pooled average is dominated by whichever
+#: competitions are already clean: on the first eight-league run the Süper Lig
+#: resolved 88.2% — under this floor — and the run passed at 97.4% overall
+#: because five leagues sat at 100%. The league whose feature was most degraded
+#: was precisely the one the guard could not see.
 MIN_COVERAGE = 0.90
 
 #: Transfermarkt name -> match-log name, for the cases normalisation cannot
@@ -99,6 +106,31 @@ ALIASES: dict[str, str] = {
     "Chievo Verona": "Chievo",
     "AC Ajaccio": "Ajaccio",
     "GFC Ajaccio": "Ajaccio GFCO",
+    # Netherlands. The match log renamed this club mid-archive: "Roda JC" up to
+    # 2009/10, "Roda" from 2010/11. Only the later spelling falls inside the
+    # 2010-2025 valuation window, and the seven unresolved club-seasons matched
+    # its seven log seasons exactly.
+    "Roda JC Kerkrade": "Roda",
+    # Portugal
+    "Sporting CP": "Sp Lisbon",
+    "CF União Madeira (-2021)": "Uniao Madeira",
+    # Belenenses SAD, the entity that played the top flight 2018-2024 after the
+    # split from CF Os Belenenses. The match log calls it "Belenenses"
+    # throughout, so this is a mapping onto the log's spelling rather than a
+    # claim that the two are one club. Four unresolved club-seasons, and the log
+    # carries exactly four (2018/19-2021/22).
+    "B SAD (2018-2024)": "Belenenses",
+    # Turkey. Three Transfermarkt spellings for İstanbul Başakşehir across its
+    # renames, all one club in the log.
+    "Basaksehir FK": "Buyuksehyr",
+    "Istanbul Büyüksehir Belediyespor": "Buyuksehyr",
+    "Büyüksehir Belediyespor": "Buyuksehyr",
+    "Göztepe": "Goztep",
+    "Adana Demirspor": "Ad. Demirspor",       # NOT Adanaspor
+    "Kayseri Erciyesspor (1966-2018)": "Erciyesspor",  # NOT Kayserispor
+    "Mersin Idmanyurdu": "Mersin Idman Yurdu",
+    "Akhisarspor": "Akhisar Belediyespor",
+    "Bodrum FK": "Bodrumspor",
 }
 
 
@@ -219,11 +251,22 @@ def main() -> int:
             competition, len(group), 100 * group["club_resolved"].notna().mean(),
         )
 
-    if coverage < MIN_COVERAGE:
+    thin = {
+        str(competition): group["club_resolved"].notna().mean()
+        for competition, group in values.groupby("competition_id")
+        if group["club_resolved"].notna().mean() < MIN_COVERAGE
+    }
+    if coverage < MIN_COVERAGE or thin:
+        if thin:
+            log.error(
+                "below the %.0f%% floor per competition: %s",
+                100 * MIN_COVERAGE,
+                ", ".join(f"{c} {100 * v:.1f}%" for c, v in sorted(thin.items())),
+            )
+        if coverage < MIN_COVERAGE:
+            log.error("overall coverage %.1f%% is below the floor", 100 * coverage)
         log.error(
-            "coverage %.1f%% is below the %.0f%% floor; add the missing clubs to "
-            "ALIASES rather than shipping this mapping", 100 * coverage,
-            100 * MIN_COVERAGE,
+            "add the missing clubs to ALIASES rather than shipping this mapping"
         )
         return 1
 

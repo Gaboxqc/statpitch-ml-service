@@ -11,6 +11,7 @@ allowance, so the guards matter more.
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 
 import pandas as pd
 import pytest
@@ -229,7 +230,16 @@ def test_every_taxonomy_competition_has_a_sport_key():
         assert competition.competition_id in odds_api.SPORT_KEYS
 
 
-def test_the_unsourced_six_are_exactly_the_cups_nothing_free_reaches():
+def test_nothing_keyless_reaches_the_competitions_this_key_is_spent_on():
+    """Each entry is mapped to a keyless source that does not currently answer.
+
+    `in of.SCHEDULE_SOURCES` is the mapped-but-404 state: the path is right and
+    upstream has not published the file. That is true of the six cups
+    permanently — openfootball stopped publishing cup files — and of
+    TUR.SUPERLIG for as long as `turkey/{season}_tr1.txt` is missing. Spending a
+    (free) /events call on a competition another source already answers would
+    double-list it, which is what `build_fixtures` now collapses.
+    """
     from statpitch.data import openfootball as of
     from statpitch.data import openligadb as old
 
@@ -238,8 +248,146 @@ def test_the_unsourced_six_are_exactly_the_cups_nothing_free_reaches():
         assert competition_id in of.SCHEDULE_SOURCES  # mapped, but 404 upstream
 
 
+def test_an_odds_covered_league_here_is_a_deliberate_exception():
+    """The default set is cups plus whatever league is temporarily unsourced.
+
+    A league landing in this tuple by accident would quietly move its fixtures
+    off openfootball's formal club names and round labels onto the Odds API's,
+    which `map_fixture_clubs` has no aliases for. Turkey is the one deliberate
+    case; anything else joining it should have to edit this test.
+    """
+    from statpitch import taxonomy
+
+    leagues = {
+        c.competition_id
+        for c in taxonomy.registry().of_type("league")
+        if c.competition_id in odds_api.UNSOURCED_WITHOUT_A_KEY
+    }
+    assert leagues == {"TUR.SUPERLIG"}
+
+
 def test_describe_reports_capability_without_needing_a_key(keyless):
     report = odds_api.describe()
     assert report["configured"] is False
     assert report["events_cost_credits"] is False
     assert report["monthly_credits"] == 500
+
+
+# --- the pricing horizon ------------------------------------------------------
+#
+# The budget is 500 credits a month and billing is per request per market per
+# competition. `/events` is free, so both questions that decide whether to spend
+# — is it played, is it played soon — are answered at no cost.
+
+NOW = datetime(2026, 9, 1, 12, 0, tzinfo=UTC)
+
+
+def _at(*iso: str) -> list[dict]:
+    return [{"commence_time": stamp} for stamp in iso]
+
+
+def test_a_fixture_inside_the_horizon_is_worth_a_credit():
+    assert odds_api.worth_a_credit(_at("2026-09-02T18:00:00Z"), now=NOW)
+
+
+def test_a_fixture_beyond_the_horizon_is_not():
+    """Not because it does not matter — because no bookmaker has opened a market
+    on it yet, so the credit buys an empty board and would be spent again
+    tomorrow."""
+    assert not odds_api.worth_a_credit(_at("2026-09-30T18:00:00Z"), now=NOW)
+
+
+def test_the_soonest_fixture_decides_it():
+    """A competition is paid for on its nearest kickoff, not its furthest. Asking
+    the other way round would skip a cup playing tonight because its next round
+    is a month out."""
+    events = _at("2026-09-30T18:00:00Z", "2026-09-02T18:00:00Z")
+    assert odds_api.worth_a_credit(events, now=NOW)
+
+
+def test_a_competition_with_no_events_is_never_paid_for():
+    """Out of season. Five of twelve were, when the horizon was written."""
+    assert not odds_api.worth_a_credit([], now=NOW)
+    assert not odds_api.worth_a_credit(None, now=NOW)
+
+
+def test_an_unparseable_kickoff_does_not_buy_a_credit():
+    """An unreadable timestamp is not evidence a market exists. Spending on it
+    would make a malformed feed the most expensive kind."""
+    assert not odds_api.worth_a_credit(_at("not-a-date"), now=NOW)
+    assert odds_api.next_kickoff(_at("not-a-date")) is None
+
+
+def test_a_kickoff_already_in_progress_is_still_inside_the_horizon():
+    """A negative delta is under the bound. A live fixture is the last moment a
+    closing price can be captured, and CLV needs that half of the pair."""
+    assert odds_api.worth_a_credit(_at("2026-09-01T11:00:00Z"), now=NOW)
+
+
+def test_next_kickoff_normalises_a_naive_timestamp_to_utc():
+    """The API stamps UTC. A naive value read as local time would shift the
+    horizon by the runner's timezone and silently change what gets bought."""
+    assert odds_api.next_kickoff(_at("2026-09-02T18:00:00")) == datetime(
+        2026, 9, 2, 18, 0, tzinfo=UTC
+    )
+
+# --- the monthly budget, which is what caps how many competitions can be added -
+
+#: What a month would cost if every competition were charged every day.
+#:
+#: Deliberately the UNGATED figure. The point of the test below is that this
+#: number is already over budget at the shipped competition count, so the
+#: horizon gate is not a saving — it is the only reason the sweep fits at all.
+def worst_case_monthly_credits(n_competitions: int) -> int:
+    daily = n_competitions * len(odds_api.DAILY_MARKETS) * 30
+    matchday_extra = (
+        n_competitions
+        * (len(odds_api.MATCHDAY_MARKETS) - len(odds_api.DAILY_MARKETS))
+        * 30
+    )
+    return daily + matchday_extra
+
+
+def usable_credits() -> int:
+    return odds_api.MONTHLY_CREDITS - odds_api.DEFAULT_RESERVE
+
+
+def test_the_horizon_gate_is_load_bearing_not_an_optimisation():
+    """Without it the shipped competition count does not fit in the free tier.
+
+    Asking every mapped competition for one market every day, and three on the
+    days it plays, costs far more than the 450 usable credits a month. The sweep
+    only fits because `worth_a_credit` declines competitions with no fixture
+    inside `PRICING_HORIZON_DAYS` — out of season, or simply not playing soon.
+
+    Pinned because the gate reads like a tuning knob and is not one. Widening
+    the horizon far enough, or dropping the check, silently overruns a budget
+    that resets monthly: spend it on the 3rd and there is nothing until the 1st.
+    """
+    from statpitch import taxonomy
+
+    n = sum(1 for c in taxonomy.registry() if c.competition_id in odds_api.SPORT_KEYS)
+    assert worst_case_monthly_credits(n) > usable_credits(), (
+        "the ungated cost now fits in the budget, which means either the tier "
+        "changed or the sweep narrowed — re-derive what actually guards spending "
+        "before trusting this"
+    )
+
+
+def test_a_competition_out_of_horizon_costs_nothing(keyed):
+    """The other half of the same property, at the level that does the work."""
+    far = _at("2026-09-30T15:00:00Z")   # well beyond PRICING_HORIZON_DAYS
+    assert not odds_api.worth_a_credit(far, now=NOW)
+
+
+def test_every_mapped_competition_is_one_a_sweep_could_pay_for():
+    """`SPORT_KEYS` is the spend surface, so it should not outrun the taxonomy.
+
+    An entry here for a competition the taxonomy does not carry would be a
+    competition nothing else in the project knows about, quietly eligible for
+    credits on every sweep.
+    """
+    from statpitch import taxonomy
+
+    known = {c.competition_id for c in taxonomy.registry()}
+    assert set(odds_api.SPORT_KEYS) <= known

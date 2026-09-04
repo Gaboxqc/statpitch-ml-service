@@ -26,14 +26,35 @@ The budget, which is the whole design constraint
 fixture — so twenty fixtures cost exactly what one does, and the cost is driven
 entirely by how many competitions x markets are asked for.
 
-    daily 1X2 sweep, competitions with fixtures      ~7 credits   ~210/month
+    daily 1X2 sweep, competitions playing within 3d  ~4 credits   ~120/month
     + totals and handicaps, matchday competitions    ~2-6 extra   ~90/month
-                                                                  ~300/month
+                                                                  ~210/month
 
-`/events` is free, so the sweep asks which competitions have anything upcoming
-before spending a credit on any of them. Five of twelve had nothing when this was
-written; asking about them anyway would have burned 150 credits a month to learn
-that a cup is not being played.
+Two free questions are asked before any credit is spent, and between them they
+are what makes a daily sweep affordable at all:
+
+**Is it being played?** `/events` costs nothing. Five of twelve competitions had
+no upcoming fixture when this was written; asking about them anyway would have
+burned 150 credits a month to learn that a cup is out of season.
+
+**Is it being played soon?** The same free payload carries kickoff times. A
+bookmaker opens a market roughly a week out, so a request for a fixture beyond
+that is charged in full and returns a board nobody has priced — and would be
+charged again tomorrow. `PRICING_HORIZON_DAYS` cuts those, and fixtures outside
+it are not left blank: `build_card` prices them at `1/p_model` and marks them
+`pricing="model"`.
+
+The keyless source runs first
+============================
+
+`capture-odds.yml` runs `collect_live_odds.py` before this. That is deliberate
+ordering rather than habit: football-data.co.uk is free and unmetered, so every
+price it publishes is one this script does not have to justify.
+
+It does NOT make this script redundant for the leagues it covers, and the reason
+is Pinnacle. It is the reference MODEL_CARD §5's finding is defined on and the
+free feed does not carry it, so dropping a league here because the free source
+priced it would silently disable the only tier with measurement behind it.
 """
 
 from __future__ import annotations
@@ -63,6 +84,14 @@ def main() -> int:
         "--competitions", nargs="+", default=None,
         help="Limit to these competition ids.",
     )
+    parser.add_argument(
+        "--horizon-days", type=int, default=odds_api.PRICING_HORIZON_DAYS,
+        help=(
+            "Only pay for competitions playing within this many days. "
+            "-1 asks for everything upcoming, which is what the budget cannot "
+            "afford daily."
+        ),
+    )
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     load_dotenv()
@@ -86,16 +115,34 @@ def main() -> int:
     # anything. Asking a cup that is not being played costs a credit and learns
     # nothing.
     with_events: list[str] = []
+    too_far: dict[str, str] = {}
     for competition_id in wanted:
         events = odds_api.fetch_events(competition_id, budget=budget)
-        if events:
-            with_events.append(competition_id)
+        if not events:
+            continue
+        if args.horizon_days >= 0 and not odds_api.worth_a_credit(
+            events, horizon_days=args.horizon_days
+        ):
+            kickoff = odds_api.next_kickoff(events)
+            too_far[competition_id] = kickoff.isoformat() if kickoff else "?"
+            continue
+        with_events.append(competition_id)
+
+    if too_far:
+        # Not a failure. A bookmaker opens a market about a week out, so these
+        # have no board to buy — and `build_card` prices their fixtures at
+        # 1/p_model in the meantime, marked `pricing="model"`.
+        log.info(
+            "%d competition(s) beyond the %d-day pricing horizon, skipped before "
+            "spending: %s",
+            len(too_far), args.horizon_days, json.dumps(too_far),
+        )
     log.info(
-        "%d/%d competition(s) have upcoming events (free to ask): %s",
+        "%d/%d competition(s) are within the horizon (asking cost nothing): %s",
         len(with_events), len(wanted), ", ".join(with_events) or "none",
     )
     if not with_events:
-        log.info("nothing upcoming anywhere; no credits spent")
+        log.info("nothing playing soon anywhere; no credits spent")
         return 0
 
     frames: list[pd.DataFrame] = []

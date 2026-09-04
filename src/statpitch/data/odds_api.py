@@ -52,7 +52,7 @@ import json
 import logging
 import os
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import numpy as np
 import pandas as pd
@@ -81,6 +81,9 @@ SPORT_KEYS: dict[str, str] = {
     "GER.BUNDESLIGA": "soccer_germany_bundesliga",
     "ITA.SERIEA": "soccer_italy_serie_a",
     "FRA.LIGUE1": "soccer_france_ligue_one",
+    "POR.PRIMEIRA": "soccer_portugal_primeira_liga",
+    "NED.EREDIVISIE": "soccer_netherlands_eredivisie",
+    "TUR.SUPERLIG": "soccer_turkey_super_league",
     "ENG.FA_CUP": "soccer_fa_cup",
     "ESP.COPA_DEL_REY": "soccer_spain_copa_del_rey",
     "GER.DFB_POKAL": "soccer_germany_dfb_pokal",
@@ -91,9 +94,25 @@ SPORT_KEYS: dict[str, str] = {
 }
 
 #: Competitions with no free alternative, which is what this key buys.
+#:
+#: TUR.SUPERLIG is here for a different reason than the six cups, and the
+#: difference is worth keeping visible. The cups are structurally unsourced —
+#: openfootball stopped publishing cup files. Turkey is unsourced *this season*:
+#: `openfootball/europe` carries `turkey/2025-26_tr1.txt` but has not published
+#: `turkey/2026-27_tr1.txt` (verified 2026-09-04, 404), and its 2025-26 file
+#: still marks 207 matches unplayed, so openfootball does not maintain Turkish
+#: results either. Left out, the Süper Lig is declared in the taxonomy with
+#: `odds_coverage: true` and then produces no fixtures at all — a league that
+#: exists everywhere except the artifact.
+#:
+#: If openfootball later publishes the file, both sources will describe the same
+#: fixtures under different club spellings. `build_fixtures` collapses that by
+#: source priority per competition rather than by fixture_id, because the ids
+#: would not collide — see the note there.
 UNSOURCED_WITHOUT_A_KEY = (
     "ENG.FA_CUP", "ESP.COPA_DEL_REY", "ITA.COPPA_ITALIA",
     "FRA.COUPE_DE_FRANCE", "UEFA.UCL", "UEFA.UEL",
+    "TUR.SUPERLIG",
 )
 
 #: Bookmaker keys worth extracting by name rather than only aggregating.
@@ -123,6 +142,22 @@ DAILY_MARKETS = ("h2h",)
 #: What a competition playing today gets. Three markets, so three credits, spent
 #: only where a fixture actually kicks off, which is where they are worth having.
 MATCHDAY_MARKETS = ("h2h", "totals", "spreads")
+
+#: How near a kickoff has to be before a credit is spent on it.
+#:
+#: `/events` is free and reports every fixture the API knows about, which runs
+#: well over a week ahead. Paying for all of them is the single largest waste
+#: available here: a bookmaker opens a market roughly a week out, so a request
+#: for a fixture beyond that returns an empty or near-empty board and is charged
+#: in full — and it would be charged again tomorrow, and the day after.
+#:
+#: Three days is chosen from what the price is *for* rather than from the
+#: budget. MODEL_CARD §5's finding is Friday-to-close CLV, so the baseline it is
+#: defined on sits about two days out; three keeps that reachable with a day in
+#: hand for a run that fails and retries. Fixtures further out are not left
+#: blank — `build_card` prices them at `1/p_model` and marks them
+#: `pricing="model"`, which is the honest label for a price nobody is offering.
+PRICING_HORIZON_DAYS = 3
 
 #: Events describe the future; a cached copy must expire. One hour rather than
 #: the schedule sources' six, because this is also the path a near-kickoff odds
@@ -557,6 +592,48 @@ def markets_for(
         & (fixtures["date"].dt.date == today)
     ]
     return MATCHDAY_MARKETS if not playing.empty else DAILY_MARKETS
+
+
+def next_kickoff(events: list[dict] | None) -> datetime | None:
+    """Earliest `commence_time` in a free `/events` payload."""
+    soonest: datetime | None = None
+    for event in events or []:
+        raw = event.get("commence_time")
+        if not raw:
+            continue
+        try:
+            kickoff = pd.Timestamp(raw).to_pydatetime()
+        except (TypeError, ValueError):
+            continue
+        if kickoff.tzinfo is None:
+            kickoff = kickoff.replace(tzinfo=UTC)
+        kickoff = kickoff.astimezone(UTC)
+        if soonest is None or kickoff < soonest:
+            soonest = kickoff
+    return soonest
+
+
+def worth_a_credit(
+    events: list[dict] | None,
+    *,
+    horizon_days: int = PRICING_HORIZON_DAYS,
+    now: datetime | None = None,
+) -> bool:
+    """Whether this competition's next fixture is near enough to pay for.
+
+    Decided from the FREE events feed, which is the point: the question "is
+    anyone quoting this yet" is answerable at no cost, and asking it first is
+    what keeps a daily sweep of twelve competitions inside a monthly budget.
+
+    A competition whose next fixture is eleven days out is not skipped because
+    it does not matter. It is skipped because the market does not exist yet, and
+    a credit spent on it buys an empty board.
+    """
+    kickoff = next_kickoff(events)
+    if kickoff is None:
+        return False
+    reference = (now or datetime.now(UTC)).astimezone(UTC)
+    return (kickoff - reference) <= timedelta(days=horizon_days)
 
 
 def describe() -> dict:

@@ -1,0 +1,159 @@
+name: Fetch Club Elo
+
+# Every two hours, until it succeeds once.
+#
+# This exists because of an outage, and it is worth recording what the outage
+# actually was. On 2026-09-04 `api.clubelo.com` returned 502 for hours — from
+# its own origin (`Server: Microsoft-IIS/10.0`), so a genuine backend failure
+# rather than throttling. That blocked the Club Elo histories for 121 clubs
+# across the Primeira Liga, Eredivisie and Süper Lig, and without them a retrain
+# would hand exactly those three leagues a null on the strongest single feature.
+# Measured, that costs about +0.0150 log-loss per league — roughly the entire
+# distance between this model and the closing line, and ~20x what the xG
+# features bought. Shipping without it was not worth it, so the work waited.
+#
+# Waiting by hand does not survive a closed laptop, and the obvious alternatives
+# do not work either: a Claude cloud routine cannot see the host at all
+# (`x-deny-reason: host_not_allowed` from the sandbox's egress allowlist, which
+# reads as a Club Elo 403 and would have reported "still down" forever, even
+# after recovery). A GitHub runner has open egress, and this repository already
+# commits data artifacts from scheduled workflows, so the job belongs here.
+#
+# Two hours rather than hourly: the thing being waited on changes on the scale
+# of a provider fixing a server, not minutes, and NFR-8 asks that the cadence
+# stay sustainable on free infrastructure. Twelve no-op runs a day is a few
+# seconds each — the probe happens before checkout and before any install, so a
+# run during the outage costs almost nothing.
+on:
+  schedule:
+    - cron: "0 */2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# `elo_ratings_all.parquet` is rebuilt from every shard on disk and committed
+# whole. Two runs racing would push two different rebuilds of the same file and
+# one would be discarded, so they queue instead.
+concurrency:
+  group: club-elo
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # Before checkout and before Python, so an outage run is seconds of runner
+      # time rather than a full environment build discarded at the last step.
+      #
+      # Both endpoints are probed because they fail independently: the per-club
+      # endpoint is what the fetch actually calls, and the snapshot endpoint is
+      # what `build_roster` needs. `clubelo.com` itself is deliberately NOT
+      # probed — it sits behind Cloudflare and served 200 from cache throughout
+      # the outage, so it is evidence of nothing.
+      - name: Is the Club Elo API up
+        id: probe
+        run: |
+          set -uo pipefail
+          up=true
+          for url in "http://api.clubelo.com/Benfica" "http://api.clubelo.com/2026-03-15"; do
+            code=""
+            # Three attempts: one timeout is not an outage.
+            for attempt in 1 2 3; do
+              code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 25 "$url" || echo 000)
+              [ "$code" = "200" ] && break
+              sleep 5
+            done
+            echo "$url -> $code"
+            [ "$code" = "200" ] || up=false
+          done
+          echo "up=$up" >> "$GITHUB_OUTPUT"
+          if [ "$up" != "true" ]; then
+            echo "Club Elo API still unavailable; skipping the fetch."
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.probe.outputs.up == 'true'
+
+      - uses: actions/setup-python@v5
+        if: steps.probe.outputs.up == 'true'
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # `data/processed/elo_shards/` is gitignored — a resume cache, not a
+      # deliverable — so a fresh runner starts with none and a run that dies
+      # part-way would otherwise restart from zero. That is the exact failure
+      # the shard-per-club design exists to prevent, and it only holds if the
+      # shards survive between runs. Restored on a prefix match so a partial
+      # cache from an earlier attempt is still worth having.
+      - name: Restore the shard cache
+        if: steps.probe.outputs.up == 'true'
+        uses: actions/cache@v4
+        with:
+          path: data/processed/elo_shards
+          key: club-elo-shards-${{ github.run_id }}
+          restore-keys: club-elo-shards-
+
+      - name: Install
+        if: steps.probe.outputs.up == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e . --no-deps
+
+      # Derives its own club list from the match log, so it needs no argument
+      # and cannot drift against the taxonomy. Once every club is held this is a
+      # no-op that prints "nothing to fetch" and exits 0 — which is what makes
+      # leaving this workflow enabled after it succeeds harmless.
+      #
+      # It exits non-zero only when it fetched NOTHING while clubs were
+      # outstanding, which is the signature of the outage resuming mid-run
+      # rather than of a club being genuinely unrated. Club Elo rates a second
+      # tier for the Big 5 only, so a newly promoted Portuguese, Dutch or
+      # Turkish club having no history is expected and is reported, not failed.
+      - name: Fetch the missing club histories
+        if: steps.probe.outputs.up == 'true'
+        run: python scripts/fetch_league_club_elo.py
+
+      - name: Commit the ratings
+        if: steps.probe.outputs.up == 'true'
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          paths="data/processed/elo_ratings_all.parquet"
+          if git diff --quiet -- $paths; then
+            echo "no new ratings; nothing to commit"
+            exit 0
+          fi
+          git add $paths
+          git commit -m "fetch_club_elo: $(date -u +%Y-%m-%d)"
+          # Rebase rather than force. This branch also receives daily
+          # capture_odds commits, and a force push would discard whichever
+          # landed between checkout and here.
+          for attempt in 1 2 3; do
+            if git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push; then
+              exit 0
+            fi
+            echo "push attempt ${attempt} lost a race; retrying"
+            sleep $((attempt * 5))
+          done
+          echo "could not push after 3 attempts" >&2
+          exit 1
+
+      # What this workflow deliberately does NOT do: rebuild features or
+      # retrain. Committing ratings is mechanical and safe to automate; deciding
+      # that a new model should replace the incumbent is not, and `retrain.yml`
+      # already owns that decision behind `train.py --gate`. The follow-on after
+      # this lands is build_fixtures.py, then build_features.py, then a gated
+      # retrain — run deliberately, not as a side effect of an outage ending.
+      - name: What to do next
+        if: steps.probe.outputs.up == 'true'
+        run: |
+          echo "Club Elo ratings are current."
+          echo "Follow-on, run deliberately:"
+          echo "  python scripts/build_fixtures.py    # eight-league fixture list"
+          echo "  python scripts/build_features.py --verify && python scripts/build_features.py"
+          echo "  python scripts/train.py --gate"

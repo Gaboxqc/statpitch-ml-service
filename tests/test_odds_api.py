@@ -330,3 +330,64 @@ def test_next_kickoff_normalises_a_naive_timestamp_to_utc():
     assert odds_api.next_kickoff(_at("2026-09-02T18:00:00")) == datetime(
         2026, 9, 2, 18, 0, tzinfo=UTC
     )
+
+# --- the monthly budget, which is what caps how many competitions can be added -
+
+#: What a month would cost if every competition were charged every day.
+#:
+#: Deliberately the UNGATED figure. The point of the test below is that this
+#: number is already over budget at the shipped competition count, so the
+#: horizon gate is not a saving — it is the only reason the sweep fits at all.
+def worst_case_monthly_credits(n_competitions: int) -> int:
+    daily = n_competitions * len(odds_api.DAILY_MARKETS) * 30
+    matchday_extra = (
+        n_competitions
+        * (len(odds_api.MATCHDAY_MARKETS) - len(odds_api.DAILY_MARKETS))
+        * 30
+    )
+    return daily + matchday_extra
+
+
+def usable_credits() -> int:
+    return odds_api.MONTHLY_CREDITS - odds_api.DEFAULT_RESERVE
+
+
+def test_the_horizon_gate_is_load_bearing_not_an_optimisation():
+    """Without it the shipped competition count does not fit in the free tier.
+
+    Asking every mapped competition for one market every day, and three on the
+    days it plays, costs far more than the 450 usable credits a month. The sweep
+    only fits because `worth_a_credit` declines competitions with no fixture
+    inside `PRICING_HORIZON_DAYS` — out of season, or simply not playing soon.
+
+    Pinned because the gate reads like a tuning knob and is not one. Widening
+    the horizon far enough, or dropping the check, silently overruns a budget
+    that resets monthly: spend it on the 3rd and there is nothing until the 1st.
+    """
+    from statpitch import taxonomy
+
+    n = sum(1 for c in taxonomy.registry() if c.competition_id in odds_api.SPORT_KEYS)
+    assert worst_case_monthly_credits(n) > usable_credits(), (
+        "the ungated cost now fits in the budget, which means either the tier "
+        "changed or the sweep narrowed — re-derive what actually guards spending "
+        "before trusting this"
+    )
+
+
+def test_a_competition_out_of_horizon_costs_nothing(keyed):
+    """The other half of the same property, at the level that does the work."""
+    far = _at("2026-09-30T15:00:00Z")   # well beyond PRICING_HORIZON_DAYS
+    assert not odds_api.worth_a_credit(far, now=NOW)
+
+
+def test_every_mapped_competition_is_one_a_sweep_could_pay_for():
+    """`SPORT_KEYS` is the spend surface, so it should not outrun the taxonomy.
+
+    An entry here for a competition the taxonomy does not carry would be a
+    competition nothing else in the project knows about, quietly eligible for
+    credits on every sweep.
+    """
+    from statpitch import taxonomy
+
+    known = {c.competition_id for c in taxonomy.registry()}
+    assert set(odds_api.SPORT_KEYS) <= known

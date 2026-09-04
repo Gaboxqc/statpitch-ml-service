@@ -264,7 +264,7 @@ is the standard sharp-modelling formulation. The risk is obvious and must be
 controlled for: the model can simply learn to copy the market and look excellent.
 The test is whether the non-market features add anything *given* the market
 features — a nested-model comparison, not a headline log-loss. Only applicable to
-the five leagues that have odds.
+the leagues that have odds — five when this was written, eight since 2026-09.
 
 **5.5 Joint / multi-task head.** Predict home goals, away goals and result
 together, sharing a representation, so the score matrix and the 1X2 output cannot
@@ -382,7 +382,7 @@ right and should be kept — it should just be structured so it survives the hop
 A consumer can then store the code, render the reason, and show the measurement.
 The prose stays; it stops being the only machine-visible thing.
 
-**8.4 Batch endpoints.** A matchday is ~50 fixtures across five leagues. A consumer
+**8.4 Batch endpoints.** A matchday is ~80 fixtures across eight leagues. A consumer
 that must issue one request per fixture per market family will make hundreds of
 calls into a free instance. Add `POST /predict/batch` and a
 `GET /fixtures/upcoming?from=&to=&include=markets,explanations` that returns a

@@ -76,10 +76,18 @@ def clubs_needed(competition_ids: list[str]) -> dict[str, str]:
         if sub.empty:
             log.warning("%s: no matches in the log", competition_id)
             continue
-        names = set(sub["home_team"]) | set(sub["away_team"])
-        resolution = ce.resolve_cup_clubs(
-            {ce.NAME_ALIASES.get(str(n), str(n)): country for n in names}, roster
-        )
+        # Season-aware, and every window is taken rather than only the current
+        # one: a name that means two clubs across eras needs BOTH histories, or
+        # the seasons pointing at the one that was skipped go unrated.
+        targets: dict[str, str] = {}
+        for name in set(sub["home_team"]) | set(sub["away_team"]):
+            windows = ce.SEASON_ALIASES.get(str(name))
+            if windows:
+                for _, target in windows:
+                    targets[target] = country
+            else:
+                targets[ce.resolve_alias(str(name), aliases=ce.NAME_ALIASES)] = country
+        resolution = ce.resolve_cup_clubs(targets, roster)
         if resolution.ambiguous:
             raise SystemExit(
                 f"{competition_id}: {len(resolution.ambiguous)} ambiguous club name(s) "

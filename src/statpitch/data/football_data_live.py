@@ -179,6 +179,31 @@ CLUB_ALIASES: dict[str, dict[str, str]] = {
         "Paris Saint Germain": "Paris Saint-Germain FC",
         "Rennes": "Stade Rennais FC 1901",
     },
+    "POR.PRIMEIRA": {
+        # "Sporting" is a token of both Sporting CP and Sporting Clube de Braga,
+        # so the strict resolver correctly refuses rather than picking one. Same
+        # shape as the Espanyol/Barcelona case above.
+        "Sp Lisbon": "Sporting Clube de Portugal",
+    },
+    "NED.EREDIVISIE": {
+        # The fixture list carries the club's initials, which share no token
+        # with the city the price feed names it by.
+        "Nijmegen": "NEC",
+    },
+    "TUR.SUPERLIG": {
+        "Buyuksehyr": "Basaksehir",
+        "Goztep": "Goztepe",
+        "Amedspor": "Amed SK",
+        # The live feed spells the CURRENT Erzurum club "Erzurumspor"; the
+        # fixture list calls it "Erzurum BB". They are the same club here, and
+        # the mapping is safe because this table is scoped to the live feed,
+        # which only ever describes the season being played.
+        #
+        # It is NOT safe to generalise that to the archive, where the same
+        # string means two different clubs in two different eras — see the note
+        # on `Erzurum` in `club_elo.NAME_ALIASES`.
+        "Erzurumspor": "Erzurum BB",
+    },
 }
 
 #: Columns of the tidy live-odds artifact, in order.

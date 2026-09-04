@@ -361,3 +361,108 @@ def test_snapshot_dates_span_autumn_and_spring():
     """One probe per season misses clubs promoted and relegated inside it."""
     months = {d.split("-")[1] for d in ce.snapshot_dates(2020, 2021)}
     assert months == {"10", "03"}
+
+
+# --- names the archive reuses for different clubs ------------------------------
+
+def test_a_reused_name_resolves_by_era_not_by_string():
+    """"Erzurumspor" is two clubs, and Club Elo rates them separately.
+
+    The original (top flight 1999/00-2000/01) and BB Erzurumspor, its 2016
+    successor, which the archive elsewhere spells "Erzurum BB". Matched on the
+    string alone the 2026/27 fixtures collect the defunct club's rating, last
+    updated around 2015 — a returned number, silently a decade stale and
+    belonging to a different club.
+    """
+    assert ce.resolve_alias("Erzurumspor", "1999-2000") == "Erzurumspor"
+    assert ce.resolve_alias("Erzurumspor", "2000-2001") == "Erzurumspor"
+    assert ce.resolve_alias("Erzurumspor", "2026-2027") == "Erzurum BB"
+
+
+def test_the_window_boundary_is_the_first_season_it_applies_to():
+    assert ce.resolve_alias("Erzurumspor", "2015-2016") == "Erzurumspor"
+    assert ce.resolve_alias("Erzurumspor", "2016-2017") == "Erzurum BB"
+
+
+def test_a_seasonless_lookup_keeps_the_historical_reading():
+    """The conservative direction.
+
+    Defaulting to the newest window would promote every old match to a club that
+    did not exist yet; defaulting to the oldest leaves recent matches unrated at
+    worst, which is visible, rather than wrongly rated, which is not.
+    """
+    assert ce.resolve_alias("Erzurumspor") == "Erzurumspor"
+
+
+def test_season_forms_are_all_accepted():
+    for season in (2026, "2026", "2026-27", "2026-2027"):
+        assert ce.resolve_alias("Erzurumspor", season) == "Erzurum BB", season
+
+
+def test_an_unparseable_season_raises_rather_than_guessing_an_era():
+    with pytest.raises(ce.ClubEloError, match="unparseable season"):
+        ce.resolve_alias("Erzurumspor", "not-a-season")
+
+
+def test_the_flat_table_still_applies_when_no_window_exists():
+    assert ce.resolve_alias("Ath Madrid", "2020-2021") == "Atletico"
+    assert ce.resolve_alias("Arsenal", "2020-2021") == "Arsenal"
+
+
+def test_a_caller_supplied_table_overrides_the_module_one():
+    """`build_features` merges four alias sources; the merged map must win."""
+    merged = {"Some Club": "Merged Target"}
+    assert ce.resolve_alias("Some Club", "2020-2021", aliases=merged) == "Merged Target"
+
+
+def test_a_season_window_beats_the_caller_supplied_table():
+    """Otherwise a fixture-map entry could quietly undo the era split."""
+    merged = {"Erzurumspor": "Erzurumspor"}
+    assert ce.resolve_alias("Erzurumspor", "2026-2027", aliases=merged) == "Erzurum BB"
+
+
+def test_every_season_alias_target_exists_in_the_roster():
+    import pandas as pd
+
+    from statpitch import paths
+
+    roster_path = paths.processed_dir() / "clubelo_roster_full.parquet"
+    if not roster_path.exists():
+        pytest.skip("roster snapshot not built yet — run the Club Elo ingestion")
+    known = set(pd.read_parquet(roster_path)["clubelo_name"])
+    missing = {
+        name: target
+        for name, windows in ce.SEASON_ALIASES.items()
+        for _, target in windows
+        if target not in known
+    }
+    assert not missing, f"season-alias targets absent from the roster: {missing}"
+
+
+def test_season_windows_are_ordered_and_start_early_enough():
+    """Unordered windows would make "last match wins" pick the wrong era."""
+    for name, windows in ce.SEASON_ALIASES.items():
+        years = [year for year, _ in windows]
+        assert years == sorted(years), f"{name}: windows out of order"
+        assert len(set(years)) == len(years), f"{name}: duplicate window start"
+        assert years[0] <= 1993, (
+            f"{name}: the first window starts at {years[0]}, after the archive "
+            "does, so the earliest seasons fall through to it by accident"
+        )
+
+
+def test_leipzig_resolves_to_the_club_that_actually_played():
+    """VfB Leipzig in 1993/94; RB Leipzig did not exist until 2009.
+
+    The flat table pointed both at RB Leipzig, whose Elo history starts in 2014,
+    so the 1993/94 fixtures resolved to no rating rather than a wrong one — the
+    quieter half of the same defect as Erzurumspor.
+    """
+    assert ce.resolve_alias("Leipzig", "1993-1994") == "Lok Leipzig"
+    assert ce.resolve_alias("Leipzig", "2016-2017") == "RB Leipzig"
+
+
+def test_the_flat_table_does_not_contradict_a_season_window():
+    """Both tables carry "Leipzig"; the window has to win or the fix is inert."""
+    assert ce.NAME_ALIASES["Leipzig"] == "RB Leipzig"
+    assert ce.resolve_alias("Leipzig", "1993-1994") == "Lok Leipzig"

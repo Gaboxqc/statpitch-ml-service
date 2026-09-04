@@ -3,7 +3,10 @@
 **Status:** staking ENABLED under an explicitly **experimental** selection rule.
 **Version:** `dec-2026.08.1-experimental` (see §7 and §11 for exactly what
 "experimental" is claiming and what it is not).
-**Scope:** 12 European club competitions — 5 leagues, 5 domestic cups, 2 continental.
+**Scope:** 15 European club competitions — 8 leagues, 5 domestic cups, 2 continental.
+The Primeira Liga, Eredivisie and Süper Lig were added to the taxonomy on
+2026-09-04 and are **declared but not yet trained or measured**: every figure in
+this card comes from the original five leagues. See §6.
 
 > **Advisory only (NFR-11).** This system does not integrate with any bookmaker,
 > place wagers, or hold funds. Every output is a simulation or an analysis. It is
@@ -768,7 +771,7 @@ of those near-misses are instructive:
   vector and correlated and independent slates allocated identically — silently
   defeating the entire purpose of allocating jointly.
 
-**1,281 tests** (1,276 passing, 5 skipped), all offline; no test touches the
+**1,297 tests** (1,292 passing, 5 skipped), all offline; no test touches the
 network. The figure here read 793 for some time while the suite grew past it —
 corrected 2026-09-04 against `pytest --collect-only`, which is what it should
 have been counting all along.

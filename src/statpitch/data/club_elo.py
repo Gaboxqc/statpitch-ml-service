@@ -164,6 +164,81 @@ NAME_ALIASES: dict[str, str] = {
     "Osmanlispor": "Ankaraspor",   # 2015-2018, the club's name during that spell
 }
 
+#: Names the match log reuses for DIFFERENT clubs in different eras.
+#:
+#: `NAME_ALIASES` is a flat mapping and cannot express this: it answers "what is
+#: this club called in Club Elo", which presumes the string identifies one club.
+#: Sometimes it does not. football-data.co.uk writes "Erzurumspor" for the
+#: original club (1967-2015, in the top flight 1999/00-2000/01) and again for
+#: Büyükşehir Belediye Erzurumspor, the 2016 club that succeeded it — which
+#: Club Elo rates separately as "Erzurum BB", and which the archive elsewhere
+#: spells "Erzurum BB" itself.
+#:
+#: Resolved on the string alone, the 2026/27 fixtures collect the defunct club's
+#: rating, last updated around 2015. Nothing raises: a rating is returned, it is
+#: simply a decade stale and belongs to another club. That is the same class of
+#: error as "Ath Madrid" resolving to Real Madrid, arriving by a different route.
+#:
+#: Each entry maps a name to windows ordered by first season, as
+#: `(first_season_start_year, clubelo_name)`. The last window whose start year is
+#: at or before the season in question wins. A lookup with no season falls back
+#: to the earliest window, which is the conservative direction: it keeps the
+#: historical reading rather than silently promoting old matches to a club that
+#: did not exist yet.
+SEASON_ALIASES: dict[str, tuple[tuple[int, str], ...]] = {
+    "Erzurumspor": ((1993, "Erzurumspor"), (2016, "Erzurum BB")),
+    # "Leipzig" is VfB Leipzig in its only Bundesliga season, 1993/94 — the club
+    # that had been 1. FC Lokomotive Leipzig until 1991, and which Club Elo
+    # carries as "Lok Leipzig" (rated 1954-1998, and 1526 in March 1994). The
+    # flat table pointed it at RB Leipzig, which did not exist: its history
+    # starts in 2014, so those 34 fixtures resolved to no rating at all.
+    #
+    # The failure is quieter than Erzurumspor's rather than louder. `build_lookup`
+    # takes the last interval STARTING before the date, so a name pointed at a
+    # club whose history ended returns a stale number, while one pointed at a
+    # club whose history had not begun returns nothing. Wrong in both cases;
+    # only one of them looks wrong.
+    "Leipzig": ((1993, "Lok Leipzig"), (2009, "RB Leipzig")),
+}
+
+
+def resolve_alias(
+    name: str,
+    season: str | int | None = None,
+    *,
+    aliases: dict[str, str] | None = None,
+) -> str:
+    """Club Elo's name for `name`, honouring era-dependent renames.
+
+    Order: a `SEASON_ALIASES` window for this season, then the flat alias table
+    (`NAME_ALIASES` merged with whatever else the caller supplies), then the name
+    unchanged. Callers that have a season should always pass it — the whole point
+    is that the answer differs without it.
+    """
+    key = str(name)
+    windows = SEASON_ALIASES.get(key)
+    if windows:
+        if season is None:
+            return windows[0][1]
+        year = _season_year(season)
+        chosen = windows[0][1]
+        for first_year, target in windows:
+            if year >= first_year:
+                chosen = target
+        return chosen
+    table = NAME_ALIASES if aliases is None else aliases
+    return table.get(key, key)
+
+
+def _season_year(season: str | int) -> int:
+    """Start year of a season, accepting 2024, "2024", "2024-25" or "2024-2025"."""
+    if isinstance(season, int):
+        return season
+    head = str(season).strip().split("-")[0]
+    if not head.isdigit():
+        raise ClubEloError(f"unparseable season: {season!r}")
+    return int(head)
+
 #: openfootball name -> Club Elo name. A separate table from `NAME_ALIASES`
 #: because the two sources spell clubs differently in opposite directions:
 #: football-data.co.uk abbreviates ("Ath Bilbao"), openfootball uses the formal

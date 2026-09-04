@@ -4,10 +4,26 @@ clubelo.com publishes a free, keyless CSV API covering European club football
 since the 1940s.
 
 **It does not cover the full pyramid.** Requirements §7.1 and FR-9 describe it as
-doing so; verified against the API, it rates only the top two tiers of each
-country. Saarbrücken, Wrexham, Elversberg and Ulm (tiers 1-2) all return history;
+doing so; verified against the API, it rates at most the top two tiers.
+Saarbrücken, Wrexham, Elversberg and Ulm (tiers 1-2) all return history;
 AFC Sudbury, AFC Fylde, SC Verl, 1. FC Düren and AD Tardienta (tier 3+) return an
 empty CSV — not a 404, which is why the gap is easy to miss.
+
+**And "top two tiers" is not uniform across countries.** This said "of each
+country" until it was measured. On the 2026-03-15 snapshot:
+
+    ENG 20/24   ESP 20/22   GER 18/18   ITA 20/20   FRA 18/18   (tier1/tier2)
+    POR 18/0    NED 18/0    TUR 18/0
+
+The second tier is rated for the Big 5 only. The consequence is specific and
+seasonal: a club promoted into the Primeira Liga, Eredivisie or Süper Lig has no
+rating at all until it appears in a tier-1 snapshot, so it spends the opening
+weeks of its debut season on the FR-9 pooled entrant prior. That is the
+documented fallback working as intended, not a mapping bug — but it is why a
+newly promoted club there cannot be "fixed" with an alias, and why
+`build_roster` finding nothing new mid-season is the expected result rather than
+a sign the fetch failed. `snapshot_dates` probes 15 October and 15 March, both
+of which are in the future for a season that has only just kicked off.
 
 FR-9's own worked example still holds: a Segunda División club in the Copa del
 Rey is tier 2 and *is* rated. But domestic cups admit entrants from far deeper,
@@ -62,8 +78,17 @@ log = logging.getLogger(__name__)
 
 BASE_URL = "http://api.clubelo.com"
 
-#: Country codes for the five in-scope leagues, as Club Elo spells them.
-BIG5_COUNTRIES = ("ENG", "ESP", "GER", "ITA", "FRA")
+#: Country codes for the in-scope leagues, as Club Elo spells them.
+#:
+#: These are the same strings a `competition_id` is prefixed with, and that is
+#: not a coincidence — `resolve_cup_clubs` is keyed on (country, name) and
+#: `map_fixture_clubs` derives the country from the prefix. Adding a league here
+#: without adding its prefix there, or the reverse, silently constrains every
+#: club to an empty candidate set.
+IN_SCOPE_COUNTRIES = ("ENG", "ESP", "GER", "ITA", "FRA", "POR", "NED", "TUR")
+
+#: Deprecated alias kept so an out-of-tree caller does not break on the rename.
+BIG5_COUNTRIES = IN_SCOPE_COUNTRIES
 
 #: football-data.co.uk name -> Club Elo name, for names that differ beyond
 #: normalisation. Every entry here was confirmed against the Club Elo roster;
@@ -104,6 +129,39 @@ NAME_ALIASES: dict[str, str] = {
     "Evian Thonon Gaillard": "Evian TG",
     "St Etienne": "Saint-Etienne",
     "Paris SG": "Paris SG",
+    # Portugal
+    #
+    # Every entry below was established by ELIMINATION rather than by string
+    # similarity, and the method is worth recording because it is stronger than
+    # eyeballing: for a given season, take the archive's club list and Club Elo's
+    # tier-1 list for that country, remove everything that already matches, and
+    # the residues pair off. Where both sides have exactly one name left, the
+    # mapping is forced. Every season used here had equal counts on both sides.
+    "Sp Lisbon": "Sporting",           # Sporting CP, residual in all 33 seasons
+    "Est Amadora": "Estrela Amadora",  # the pre-2011 club
+    "Estrela": "Estrela Amadora",      # ...and the re-founded one; Elo has one entry
+    "Madeira": "U Madeira",            # 1994/95 spelling
+    "Uniao Madeira": "U Madeira",      # 2015/16 spelling, same club
+    "Campomaior": "Campomaiorense",
+    "Espinho": "Sp Espinho",
+    "AVS": "AVS Futebol",
+    # Netherlands
+    "Sparta": "Sparta Rotterdam",      # the only Sparta ever in the Eredivisie
+    # Turkey
+    "Ankaragucu": "Ankaraguecue",      # NOT Ankaraspor, a different Ankara club
+    "Kayserispor": "Kayseri",          # NOT Erciyesspor, also of Kayseri
+    "Buyuksehyr": "Bueyueksehir",
+    "Goztep": "Goeztepe",
+    "Karabukspor": "Karabuekspor",
+    "Karagumruk": "Fatih Karaguemruek",
+    "Ad. Demirspor": "Adana Demirspor",  # NOT Adanaspor
+    "Bodrumspor": "Bodrum",
+    "Antalya": "Antalyaspor",
+    # The two renames. Neither is reachable by string similarity, and both were
+    # forced by elimination on a season where every other club matched.
+    "Erzurum": "Erzurumspor",   # 1998/99. NOT Erzurum BB, which is the 2016+ club
+    "Oftasspor": "Hacettepespor",  # 2007/08, after the move from Of to Ankara
+    "Osmanlispor": "Ankaraspor",   # 2015-2018, the club's name during that spell
 }
 
 #: openfootball name -> Club Elo name. A separate table from `NAME_ALIASES`
@@ -272,7 +330,7 @@ def build_roster(
     first_season: int = 1993,
     last_season: int | None = None,
     *,
-    countries: tuple[str, ...] | None = BIG5_COUNTRIES,
+    countries: tuple[str, ...] | None = IN_SCOPE_COUNTRIES,
     session: PoliteSession | None = None,
 ) -> pd.DataFrame:
     """Union of every club seen across per-season snapshots.

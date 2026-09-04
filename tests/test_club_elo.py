@@ -137,18 +137,31 @@ def test_every_alias_target_exists_in_the_committed_roster():
     "Gimnastic" at "Nastic" ("Tarragona"), "Ajaccio GFCO" at itself ("Gazelec"),
     and "La Coruna" at "Deportivo" ("Depor"). Each returned an empty CSV and was
     dropped with nothing louder than a log line.
+
+    Checked against `clubelo_roster_full.parquet`, not `clubelo_roster.parquet`.
+    The latter holds the Big 5 only and has no consumer left in the codebase;
+    the full roster is the one `map_fixture_clubs` and `fetch_league_club_elo`
+    actually resolve against, so it is the set an alias has to be valid in. It
+    is a superset, which does not weaken the guard: a mistyped club name is
+    absent from 1,402 entries exactly as it was from 427.
     """
     import pandas as pd
 
     from statpitch import paths
 
-    roster_path = paths.processed_dir() / "clubelo_roster.parquet"
+    roster_path = paths.processed_dir() / "clubelo_roster_full.parquet"
     if not roster_path.exists():
         pytest.skip("roster snapshot not built yet — run the Club Elo ingestion")
 
     known = set(pd.read_parquet(roster_path)["clubelo_name"])
     missing = {k: v for k, v in ce.NAME_ALIASES.items() if v not in known}
     assert not missing, f"alias targets absent from the Club Elo roster: {missing}"
+
+    # The same hazard, in the table that reconciles the other source's spelling.
+    missing_of = {
+        k: v for k, v in ce.OPENFOOTBALL_ALIASES.items() if v not in known
+    }
+    assert not missing_of, f"openfootball alias targets absent: {missing_of}"
 
 
 def test_alias_table_has_no_self_contradictions():

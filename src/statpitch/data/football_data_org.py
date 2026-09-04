@@ -48,12 +48,20 @@ BASE_URL = "https://api.football-data.org/v4"
 ENV_KEY = "STATPITCH_FOOTBALL_DATA_ORG_KEY"
 
 #: competition_id -> football-data.org competition code.
+#:
+#: TUR.SUPERLIG is absent on purpose. The free tier's `/competitions` listing
+#: carries no Turkish competition at all — not a locked one, an absent one — so
+#: there is no code to map. Turkey's kickoff times therefore stay on
+#: openfootball's provisional dates with `date_confirmed=false`, which is the
+#: honest state rather than a mapping that 404s once a week.
 COMPETITIONS: dict[str, str] = {
     "ENG.PL": "PL",
     "ESP.LALIGA": "PD",
     "GER.BUNDESLIGA": "BL1",
     "ITA.SERIEA": "SA",
     "FRA.LIGUE1": "FL1",
+    "POR.PRIMEIRA": "PPL",
+    "NED.EREDIVISIE": "DED",
 }
 
 #: Ten requests a minute, so seven seconds apart leaves headroom for a retry

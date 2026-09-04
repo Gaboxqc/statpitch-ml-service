@@ -64,7 +64,7 @@ import xgboost as xgb
 from scipy import stats
 from sklearn.metrics import log_loss
 
-from statpitch import decision_config, paths
+from statpitch import decision_config, paths, taxonomy
 from statpitch.decision import devig
 from statpitch.features import build as fb
 from statpitch.models import training
@@ -73,10 +73,10 @@ log = logging.getLogger("market")
 
 MARKET_COLUMNS = ["market_home", "market_draw", "market_away"]
 
-#: The five competitions with a free odds source (Requirements §9).
-LEAGUES = frozenset(
-    {"ENG.PL", "ESP.LALIGA", "GER.BUNDESLIGA", "ITA.SERIEA", "FRA.LIGUE1"}
-)
+#: The competitions with a free odds source (Requirements §9). Derived rather
+#: than restated: a league added to the taxonomy but forgotten here would be
+#: trained on and then silently excluded from the market-as-feature comparison.
+LEAGUES = frozenset(c.competition_id for c in taxonomy.registry().with_odds_coverage())
 
 #: Matching the shipped model's shape as closely as a classifier can, so the
 #: comparison is between feature sets rather than between hyperparameters.

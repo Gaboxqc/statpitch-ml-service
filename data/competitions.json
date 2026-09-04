@@ -5,7 +5,9 @@
     "`format` is the competition's DEFAULT format. Real competitions vary format by stage (Copa del Rey semis are two-legged; a UCL final is a single leg at a neutral venue), so `stage_formats` overrides it per stage and `format_history` records format changes across seasons. Resolve with statpitch.taxonomy.resolve_format() rather than reading `format` directly.",
     "`odds_coverage` gates the entire Decision Layer (Requirements §9). football-data.co.uk covers league divisions only; no free odds source with cup coverage exists, so every cup and continental row is false.",
     "`tier` is the league's position in its national pyramid. It is null for cups, because tier is a property of the ENTRANT club there, not of the competition — that is what `admits_lower_tiers` flags and what the FR-9 lower-division prior consumes.",
-    "`odds_coverage` is now the CONJUNCTION of two things that were always distinct: `live_odds_coverage` (a price can be obtained for an upcoming fixture) and `benchmark_coverage` (historical closing odds exist to validate against). A bet needs both — a price with nothing to measure it against is not a recommendation — so `odds_coverage` keeps its exact meaning and its name (NFR-13). The split matters because the two WILL diverge: a paid or keyed odds feed would give the cups live prices while their closing-odds history stays empty forever, and a gate on one flag could not tell that apart from a fully covered competition."
+    "`odds_coverage` is now the CONJUNCTION of two things that were always distinct: `live_odds_coverage` (a price can be obtained for an upcoming fixture) and `benchmark_coverage` (historical closing odds exist to validate against). A bet needs both — a price with nothing to measure it against is not a recommendation — so `odds_coverage` keeps its exact meaning and its name (NFR-13). The split matters because the two WILL diverge: a paid or keyed odds feed would give the cups live prices while their closing-odds history stays empty forever, and a gate on one flag could not tell that apart from a fully covered competition.",
+    "The `competition_id` prefix is not free-form: it must be the Club Elo ISO-3 country code. `map_fixture_clubs.py` derives the country constraint from `competition_id.split('.')[0]` and `club_elo.resolve_cup_clubs` refuses to match a club across borders. A prefix Club Elo does not recognise silently constrains every club to nothing, so they all fall through to the pooled entrant prior — no error, no missing field, just a confident wrong number (MODEL_CARD §6). Hence POR/NED/TUR rather than PT/NL/TR.",
+    "NOT ADDED, and deliberately: Saudi Arabia. The Odds API publishes soccer_saudi_arabia_pro_league and Pinnacle quotes it, so `live_odds_coverage` would be true — but football-data.co.uk carries no Saudi division and its extra-leagues workbook covers only ARG/AUT/BRA/CHN/DNK/FIN/IRL/JPN/MEX/NOR/POL/ROU/RUS/SWE/SWZ/USA, so `benchmark_coverage` is false and `odds_coverage` is therefore false. It would be served and never staked, exactly like the cups. Club Elo also does not rate non-UEFA clubs, so the strongest single feature would be null on every fixture. Admitting it needs a new results-and-odds source AND a new ratings source, not a row in this file."
   ],
   "away_goals_rule_abolished_from_season": "2021-2022",
   "competitions": [
@@ -112,6 +114,69 @@
         "football_data_code": "F1",
         "openfootball_repo": "openfootball/europe",
         "understat_code": "Ligue_1"
+      }
+    },
+    {
+      "competition_id": "POR.PRIMEIRA",
+      "name": "Primeira Liga",
+      "country": "Portugal",
+      "competition_type": "league",
+      "format": "round_robin",
+      "stage_formats": {},
+      "tier": 1,
+      "odds_coverage": true,
+      "live_odds_coverage": true,
+      "benchmark_coverage": true,
+      "admits_lower_tiers": false,
+      "extra_time": false,
+      "neutral_venue_stages": [],
+      "teams": 18,
+      "sources": {
+        "football_data_code": "P1",
+        "openfootball_repo": "openfootball/europe",
+        "understat_code": null
+      }
+    },
+    {
+      "competition_id": "NED.EREDIVISIE",
+      "name": "Eredivisie",
+      "country": "Netherlands",
+      "competition_type": "league",
+      "format": "round_robin",
+      "stage_formats": {},
+      "tier": 1,
+      "odds_coverage": true,
+      "live_odds_coverage": true,
+      "benchmark_coverage": true,
+      "admits_lower_tiers": false,
+      "extra_time": false,
+      "neutral_venue_stages": [],
+      "teams": 18,
+      "sources": {
+        "football_data_code": "N1",
+        "openfootball_repo": "openfootball/europe",
+        "understat_code": null
+      }
+    },
+    {
+      "competition_id": "TUR.SUPERLIG",
+      "name": "Super Lig",
+      "country": "Turkey",
+      "competition_type": "league",
+      "format": "round_robin",
+      "stage_formats": {},
+      "tier": 1,
+      "odds_coverage": true,
+      "live_odds_coverage": true,
+      "benchmark_coverage": true,
+      "admits_lower_tiers": false,
+      "extra_time": false,
+      "neutral_venue_stages": [],
+      "teams": 18,
+      "sources": {
+        "football_data_code": "T1",
+        "openfootball_repo": "openfootball/europe",
+        "understat_code": null
       }
     },
     {

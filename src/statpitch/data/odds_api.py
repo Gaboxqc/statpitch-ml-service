@@ -81,6 +81,9 @@ SPORT_KEYS: dict[str, str] = {
     "GER.BUNDESLIGA": "soccer_germany_bundesliga",
     "ITA.SERIEA": "soccer_italy_serie_a",
     "FRA.LIGUE1": "soccer_france_ligue_one",
+    "POR.PRIMEIRA": "soccer_portugal_primeira_liga",
+    "NED.EREDIVISIE": "soccer_netherlands_eredivisie",
+    "TUR.SUPERLIG": "soccer_turkey_super_league",
     "ENG.FA_CUP": "soccer_fa_cup",
     "ESP.COPA_DEL_REY": "soccer_spain_copa_del_rey",
     "GER.DFB_POKAL": "soccer_germany_dfb_pokal",
@@ -91,9 +94,25 @@ SPORT_KEYS: dict[str, str] = {
 }
 
 #: Competitions with no free alternative, which is what this key buys.
+#:
+#: TUR.SUPERLIG is here for a different reason than the six cups, and the
+#: difference is worth keeping visible. The cups are structurally unsourced —
+#: openfootball stopped publishing cup files. Turkey is unsourced *this season*:
+#: `openfootball/europe` carries `turkey/2025-26_tr1.txt` but has not published
+#: `turkey/2026-27_tr1.txt` (verified 2026-09-04, 404), and its 2025-26 file
+#: still marks 207 matches unplayed, so openfootball does not maintain Turkish
+#: results either. Left out, the Süper Lig is declared in the taxonomy with
+#: `odds_coverage: true` and then produces no fixtures at all — a league that
+#: exists everywhere except the artifact.
+#:
+#: If openfootball later publishes the file, both sources will describe the same
+#: fixtures under different club spellings. `build_fixtures` collapses that by
+#: source priority per competition rather than by fixture_id, because the ids
+#: would not collide — see the note there.
 UNSOURCED_WITHOUT_A_KEY = (
     "ENG.FA_CUP", "ESP.COPA_DEL_REY", "ITA.COPPA_ITALIA",
     "FRA.COUPE_DE_FRANCE", "UEFA.UCL", "UEFA.UEL",
+    "TUR.SUPERLIG",
 )
 
 #: Bookmaker keys worth extracting by name rather than only aggregating.

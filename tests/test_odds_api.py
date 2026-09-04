@@ -230,13 +230,40 @@ def test_every_taxonomy_competition_has_a_sport_key():
         assert competition.competition_id in odds_api.SPORT_KEYS
 
 
-def test_the_unsourced_six_are_exactly_the_cups_nothing_free_reaches():
+def test_nothing_keyless_reaches_the_competitions_this_key_is_spent_on():
+    """Each entry is mapped to a keyless source that does not currently answer.
+
+    `in of.SCHEDULE_SOURCES` is the mapped-but-404 state: the path is right and
+    upstream has not published the file. That is true of the six cups
+    permanently — openfootball stopped publishing cup files — and of
+    TUR.SUPERLIG for as long as `turkey/{season}_tr1.txt` is missing. Spending a
+    (free) /events call on a competition another source already answers would
+    double-list it, which is what `build_fixtures` now collapses.
+    """
     from statpitch.data import openfootball as of
     from statpitch.data import openligadb as old
 
     for competition_id in odds_api.UNSOURCED_WITHOUT_A_KEY:
         assert competition_id not in old.COMPETITIONS
         assert competition_id in of.SCHEDULE_SOURCES  # mapped, but 404 upstream
+
+
+def test_an_odds_covered_league_here_is_a_deliberate_exception():
+    """The default set is cups plus whatever league is temporarily unsourced.
+
+    A league landing in this tuple by accident would quietly move its fixtures
+    off openfootball's formal club names and round labels onto the Odds API's,
+    which `map_fixture_clubs` has no aliases for. Turkey is the one deliberate
+    case; anything else joining it should have to edit this test.
+    """
+    from statpitch import taxonomy
+
+    leagues = {
+        c.competition_id
+        for c in taxonomy.registry().of_type("league")
+        if c.competition_id in odds_api.UNSOURCED_WITHOUT_A_KEY
+    }
+    assert leagues == {"TUR.SUPERLIG"}
 
 
 def test_describe_reports_capability_without_needing_a_key(keyless):

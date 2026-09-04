@@ -62,6 +62,35 @@ DEFAULT_HORIZON_DAYS = 120
 LOOKBACK_DAYS = 5
 
 
+#: Fixture sources, best first. Ties are broken here rather than by row count,
+#: because "which source has more rows" is a coin toss that changes weekly.
+#:
+#: openfootball and OpenLigaDB win over the Odds API on the two things a fixture
+#: is consumed for: they publish a round label, which `taxonomy.resolve_format`
+#: needs and the Odds API cannot supply (its rows carry
+#: `stage_confirmed=false`), and they write formal club names, which is the
+#: spelling `map_fixture_clubs` already has aliases for.
+SOURCE_PRIORITY = ("openfootball", "openligadb", "odds_api")
+
+
+def _one_source_per_competition(frame: pd.DataFrame) -> pd.DataFrame:
+    """Keep the highest-priority source that actually covers each competition."""
+    rank = {name: i for i, name in enumerate(SOURCE_PRIORITY)}
+    keep = []
+    for competition_id, rows in frame.groupby("competition_id", sort=False):
+        sources = set(rows["source"])
+        best = min(sources, key=lambda s: rank.get(s, len(rank)))
+        if len(sources) > 1:
+            log.warning(
+                "%s: covered by %s; keeping %s and dropping %d row(s) from the "
+                "rest, which describe the same fixtures under other club names",
+                competition_id, ", ".join(sorted(sources)), best,
+                int((rows["source"] != best).sum()),
+            )
+        keep.append(rows[rows["source"] == best])
+    return pd.concat(keep, ignore_index=True)
+
+
 def build(
     seasons: list[int], horizon_days: int, lookback_days: int = LOOKBACK_DAYS
 ) -> pd.DataFrame:
@@ -86,12 +115,22 @@ def build(
     frame = pd.concat(populated, ignore_index=True)
 
     # A fixture published by two sources keeps the row with a confirmed kickoff.
-    # Only one source covers any given competition today, so this is a guard
-    # against a future overlap rather than something that currently fires.
     frame = (
         frame.sort_values(["fixture_id", "date_confirmed"])
         .drop_duplicates(subset="fixture_id", keep="last")
     )
+
+    # ...but that only collapses an overlap the two sources agree on spelling.
+    # They do not: `fixture_id` is built from club names, and The Odds API writes
+    # "Galatasaray" where openfootball writes "Galatasaray SK". Two sources
+    # covering one competition therefore produce two DISJOINT id sets and the
+    # drop above passes both through, double-listing every fixture in it.
+    #
+    # This became reachable when TUR.SUPERLIG was added: openfootball has not
+    # published its 2026-27 file, so Turkey is served from the Odds API, and the
+    # day openfootball publishes it the league would silently double. Collapsing
+    # per competition instead of per fixture is what makes that a non-event.
+    frame = _one_source_per_competition(frame)
 
     today = pd.Timestamp(datetime.now(UTC).date())
     floor = today - pd.Timedelta(days=lookback_days)

@@ -85,7 +85,7 @@ def test_only_odds_covered_competitions_are_in_scope():
     """Requirements §9: cups have no free odds source, so no closing line."""
     assert "ENG.FA_CUP" not in mf.LEAGUES
     assert "UEFA.UCL" not in mf.LEAGUES
-    assert len(mf.LEAGUES) == 5
+    assert len(mf.LEAGUES) == 8
 
 
 def test_market_probabilities_are_a_proper_distribution():

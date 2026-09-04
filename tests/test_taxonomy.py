@@ -16,8 +16,15 @@ from statpitch.taxonomy import TaxonomyError, load_registry
 
 PHASE_1_COMPETITIONS = {
     "ENG.PL", "ESP.LALIGA", "GER.BUNDESLIGA", "ITA.SERIEA", "FRA.LIGUE1",
+    "POR.PRIMEIRA", "NED.EREDIVISIE", "TUR.SUPERLIG",
     "ENG.FA_CUP", "ESP.COPA_DEL_REY", "GER.DFB_POKAL", "ITA.COPPA_ITALIA",
     "FRA.COUPE_DE_FRANCE", "UEFA.UCL", "UEFA.UEL",
+}
+
+#: Club Elo's ISO-3 country codes, which is what a `competition_id` prefix has
+#: to be. See `test_every_league_prefix_is_a_club_elo_country_code`.
+CLUB_ELO_COUNTRY_CODES = {
+    "ENG", "ESP", "GER", "ITA", "FRA", "POR", "NED", "TUR", "UEFA",
 }
 
 
@@ -28,7 +35,7 @@ def reg():
 
 # --- coverage of the shipped taxonomy -----------------------------------------
 
-def test_all_twelve_phase_one_competitions_present(reg):
+def test_all_phase_one_competitions_present(reg):
     assert set(reg.competitions) == PHASE_1_COMPETITIONS
 
 
@@ -38,12 +45,26 @@ def test_odds_coverage_is_true_for_leagues_and_false_for_everything_else(reg):
     # in code rather than in prose.
     for comp in reg:
         assert comp.odds_coverage is (comp.competition_type == "league"), comp.competition_id
-    assert len(reg.with_odds_coverage()) == 5
+    assert len(reg.with_odds_coverage()) == 8
 
 
 def test_every_league_maps_to_a_football_data_division_code(reg):
     codes = {c.football_data_code for c in reg.of_type("league")}
-    assert codes == {"E0", "SP1", "D1", "I1", "F1"}
+    assert codes == {"E0", "SP1", "D1", "I1", "F1", "P1", "N1", "T1"}
+
+
+def test_every_league_prefix_is_a_club_elo_country_code(reg):
+    """The prefix is a lookup key, not a label (competitions.json notes).
+
+    `map_fixture_clubs` constrains Elo name resolution by
+    `competition_id.split(".")[0]`, and `club_elo.resolve_cup_clubs` refuses to
+    match across borders. A prefix Club Elo does not use constrains every club
+    to an empty candidate set, so all of them fall through to the pooled
+    entrant prior — MODEL_CARD §6's confident wrong number, with nothing raised.
+    """
+    for comp in reg:
+        prefix = comp.competition_id.split(".")[0]
+        assert prefix in CLUB_ELO_COUNTRY_CODES, comp.competition_id
 
 
 def test_cups_have_null_tier_but_admit_lower_tiers(reg):

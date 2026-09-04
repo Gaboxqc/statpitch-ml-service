@@ -57,9 +57,12 @@
       "ESP.LALIGA": "shin",
       "GER.BUNDESLIGA": "shin",
       "ITA.SERIEA": "shin",
-      "FRA.LIGUE1": "shin"
+      "FRA.LIGUE1": "shin",
+      "POR.PRIMEIRA": null,
+      "NED.EREDIVISIE": null,
+      "TUR.SUPERLIG": null
     },
-    "comment": "FR-28. Selected per competition in Notebook 12 by log-loss and calibration error against realised outcomes. Default is Shin rather than proportional because proportional de-vig systematically overstates longshot fair probability and would manufacture phantom value on draws and away underdogs (Design \u00a76.2)."
+    "comment": "FR-28. Selected per competition in Notebook 12 by log-loss and calibration error against realised outcomes. Default is Shin rather than proportional because proportional de-vig systematically overstates longshot fair probability and would manufacture phantom value on draws and away underdogs (Design \u00a76.2). The three nulls are SEEDED, not fitted: scripts/select_devig_method.py rewrites only keys already present in this object, so a competition missing from here would never receive a fitted method and would fall back to the default forever without anything saying so. null means 'awaiting the Phase 5 rerun' and reads as the fallback until then."
   },
   "grading": {
     "e_peak": 0.04,

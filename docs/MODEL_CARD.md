@@ -406,10 +406,33 @@ early bettor could capture. Valid signal, accurate name.
 
 ## 6. Limitations
 
-**Odds coverage is 5 of 12 competitions.** Free odds exist for the five leagues.
-They do not exist for the domestic cups or for UCL/UEL. Those competitions get
-predictions, brackets and simulations; they never get a bet recommendation, and
-the API says so per request with a stated reason rather than omitting the field.
+**Odds coverage is 8 of 15 competitions.** Free odds exist for the eight
+leagues. They do not exist for the domestic cups or for UCL/UEL. Those
+competitions get predictions, brackets and simulations; they never get a bet
+recommendation, and the API says so per request with a stated reason rather than
+omitting the field.
+
+*Extended 2026-09-04.* The Primeira Liga, Eredivisie and Süper Lig were added.
+football-data.co.uk publishes `P1`/`N1`/`T1` on the identical modern-era schema
+(`AvgC*`, `PSC*`, `AHCh`, kickoff times) back to 1994/95, and The Odds API
+publishes all three with Pinnacle on the board — so they clear both halves of
+`odds_coverage` on the same evidence the original five did.
+
+Saudi Arabia was evaluated at the same time and **excluded**. Its live prices
+exist, but football-data.co.uk carries no Saudi division in either the main
+archive or the extra-leagues workbook, so `benchmark_coverage` is false and
+nothing could validate a price. Club Elo does not rate non-UEFA clubs either,
+which would null the strongest single feature on every fixture. See the notes in
+`data/competitions.json`.
+
+**The three new leagues are declared, not yet trained or measured.** This
+section describes the taxonomy gate, which is what the API reads. The shipped
+model has not seen a Portuguese, Dutch or Turkish match, the selection rule's
++0.51% CLV (§5) is measured on Big-5 fixtures only, and their de-vig methods are
+seeded `null` in `decision_config.json` pending the rerun. Until the archive
+ingest, retrain and per-competition study land, treat a card entry in these three
+as an unbacked prediction — the same standing the cups have, arrived at from the
+opposite direction.
 
 *Refined 2026-08-24.* `odds_coverage` is now the conjunction of two flags that
 were always distinct: `live_odds_coverage` (a price can be obtained) and
@@ -745,4 +768,7 @@ of those near-misses are instructive:
   vector and correlated and independent slates allocated identically — silently
   defeating the entire purpose of allocating jointly.
 
-**793 tests**, all offline; no test touches the network.
+**1,281 tests** (1,276 passing, 5 skipped), all offline; no test touches the
+network. The figure here read 793 for some time while the suite grew past it —
+corrected 2026-09-04 against `pytest --collect-only`, which is what it should
+have been counting all along.

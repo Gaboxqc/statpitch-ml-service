@@ -17,6 +17,7 @@ from datetime import date
 
 import pytest
 
+from statpitch import taxonomy
 from statpitch.data import football_data_org as fdo
 from statpitch.data.http import FetchError
 
@@ -64,10 +65,35 @@ def test_a_present_key_is_detected(monkeypatch):
     assert fdo.api_key() == "tok"
 
 
-def test_all_five_odds_covered_leagues_are_mapped():
-    assert set(fdo.COMPETITIONS) == {
-        "ENG.PL", "ESP.LALIGA", "GER.BUNDESLIGA", "ITA.SERIEA", "FRA.LIGUE1"
-    }
+#: Odds-covered leagues this source does not carry, with the reason.
+#:
+#: Unlike Transfermarkt, football-data.org's free tier is a partial list, so the
+#: mapping cannot simply equal the taxonomy. Naming the gap here is what stops it
+#: being read as a forgotten entry — and forces a deliberate edit if the plan
+#: ever adds Turkey, rather than a silently widening hole.
+NOT_OFFERED_BY_THIS_SOURCE = {
+    # `/competitions` returns no Turkish competition at all — not a locked
+    # TIER_TWO row, an absent one. Verified against the live listing 2026-09-04.
+    "TUR.SUPERLIG",
+}
+
+
+def test_every_odds_covered_league_is_mapped_unless_the_source_lacks_it():
+    covered = {c.competition_id for c in taxonomy.registry().with_odds_coverage()}
+    assert set(fdo.COMPETITIONS) == covered - NOT_OFFERED_BY_THIS_SOURCE
+
+
+def test_an_unmapped_league_degrades_to_the_provisional_date(monkeypatch):
+    """Turkey's absence must cost nothing, not raise.
+
+    `collect_fixtures` reads a None as "keep openfootball's provisional date and
+    leave date_confirmed false", which is the honest state for a competition
+    this source cannot see.
+    """
+    monkeypatch.setenv(fdo.ENV_KEY, "tok")
+    assert fdo.fetch_matches(
+        "TUR.SUPERLIG", date(2026, 8, 1), date(2026, 8, 21)
+    ) is None
 
 
 def test_an_unmapped_competition_returns_nothing(monkeypatch):

@@ -70,7 +70,7 @@ CARD_COLUMNS = (
     "p_model", "q_fair", "p_used", "odds_avg", "fair_odds", "odds_max",
     "edge_prob", "expected_value", "price_edge", "model_edge",
     "grade", "composite", "reasons", "stake_fraction",
-    "rule_edge", "rule_qualified", "reference_odds",
+    "rule_edge", "rule_qualified", "rule_declined", "reference_odds",
     "pricing", "model_odds", "selection_basis",
     "book_margin", "max_book_sum", "n_books", "capture_id",
     "w", "config_version", "config_status", "model_version", "generated_at",
@@ -216,6 +216,47 @@ def fair_book(
     )
 
 
+#: Why the selection rule declined a row, or None when it qualified.
+#:
+#: `rule_qualified` is a boolean, and false conflates four different things: the
+#: rule is off, the competition is outside the evidence, the market family is,
+#: or the edge simply was not there today. A consumer cannot act on the
+#: difference — "the Eredivisie never produces a bet, by measurement" and "this
+#: Eredivisie fixture had no edge this morning" are the same false.
+#:
+#: That mattered as soon as the rule became competition-scoped: two of the eight
+#: leagues are now permanently outside it, and without this field the only way
+#: to tell was to read `selection_rule.competitions` off a different endpoint and
+#: join it yourself.
+RULE_DECLINED_INACTIVE = "rule_inactive"
+RULE_DECLINED_COMPETITION = "competition_out_of_scope"
+RULE_DECLINED_MARKET = "market_family_out_of_scope"
+RULE_DECLINED_NO_REFERENCE = "no_reference_price"
+RULE_DECLINED_BELOW_THRESHOLD = "below_threshold"
+
+
+def _why_the_rule_declined(
+    rule, edge: float | None, market_family: str, competition_id: str
+) -> str | None:
+    """The first reason the rule refuses this selection, most structural first.
+
+    Ordered deliberately. A fixture in a competition the rule was never measured
+    in is out of scope whether or not it also happens to lack a price today, and
+    reporting the transient reason would hide the permanent one.
+    """
+    if not rule.is_active:
+        return RULE_DECLINED_INACTIVE
+    if not rule.covers_competition(competition_id):
+        return RULE_DECLINED_COMPETITION
+    if not rule.covers(market_family):
+        return RULE_DECLINED_MARKET
+    if edge is None:
+        return RULE_DECLINED_NO_REFERENCE
+    if edge <= rule.threshold:
+        return RULE_DECLINED_BELOW_THRESHOLD
+    return None
+
+
 def _grade_kwargs(config) -> dict:
     grading = config.grading
     guardrails = config.guardrails
@@ -355,13 +396,10 @@ def build_card(
 
             selection = by_key[assessment.key]
             edge = rule_edge.get(assessment.key)
-            qualified = bool(
-                rule.is_active
-                and edge is not None
-                and edge > rule.threshold
-                and rule.covers(str(selection.family))
-                and rule.covers_competition(competition_id)
+            declined = _why_the_rule_declined(
+                rule, edge, str(selection.family), competition_id
             )
+            qualified = declined is None
             records.append(
                 {
                     "fixture_id": fixture_id,
@@ -388,6 +426,7 @@ def build_card(
                     "model_edge": assessment.model_edge,
                     "rule_edge": edge,
                     "rule_qualified": qualified,
+                    "rule_declined": declined,
                     "reference_odds": sharp_price.get(assessment.key),
                     "pricing": "market",
                     "model_odds": (
@@ -513,6 +552,8 @@ def _model_priced_rows(
                 "edge_prob": None, "expected_value": None,
                 "price_edge": None, "model_edge": None,
                 "rule_edge": None, "rule_qualified": False,
+                # No quote at all, so the rule never got as far as an edge.
+                "rule_declined": RULE_DECLINED_NO_REFERENCE,
                 "reference_odds": None,
                 "pricing": "model",
                 "model_odds": float(1.0 / probability) if probability > 0 else None,

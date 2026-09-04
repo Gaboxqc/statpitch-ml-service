@@ -123,7 +123,7 @@ SCHEDULE_SOURCES: dict[str, tuple[str, str]] = {**LEAGUE_SCHEDULE_SOURCES, **SOU
 #: changes as rounds are drawn, kick-offs are confirmed and matches are played.
 #:
 #: Six hours rather than zero so that iterating locally does not re-download
-#: twelve competitions on every run, and so the scheduled job — which runs far
+#: every competition on every run, and so the scheduled job — which runs far
 #: less often than that — always sees fresh data.
 SCHEDULE_MAX_AGE_SECONDS = 6 * 3600
 

@@ -10,21 +10,27 @@
   "holdout_excluded": "2024-2025",
   "odds_regime": "pre_2025_07_23",
   "price_column": "odds_avg",
-  "n_matches": 8955,
+  "n_matches": 13740,
   "default_method": "shin",
   "ranked_winners": {
     "ENG.PL": "power",
     "ESP.LALIGA": "shin",
     "FRA.LIGUE1": "shin",
     "GER.BUNDESLIGA": "proportional",
-    "ITA.SERIEA": "power"
+    "ITA.SERIEA": "power",
+    "NED.EREDIVISIE": "shin",
+    "POR.PRIMEIRA": "power",
+    "TUR.SUPERLIG": "power"
   },
   "selected_winners": {
     "ENG.PL": "shin",
     "ESP.LALIGA": "shin",
     "FRA.LIGUE1": "shin",
     "GER.BUNDESLIGA": "shin",
-    "ITA.SERIEA": "shin"
+    "ITA.SERIEA": "shin",
+    "NED.EREDIVISIE": "shin",
+    "POR.PRIMEIRA": "power",
+    "TUR.SUPERLIG": "power"
   },
   "finding": "No method separates from the others on 1X2 consensus closing odds across the Big 5: every paired 95% interval spans zero and the nominal ranking flips between competitions with no pattern. Competitions therefore keep the documented default rather than persisting noise as a decision. This qualifies Design 6.2, which expects the choice to be load-bearing at this stage \u2014 on a ~4.5% consensus margin over three-way markets, no effect is detectable. See statistical_power before reading that as equivalence, and note the untested cases: higher-margin single-book prices and longshot-heavy markets, where the favourite-longshot bias has more room to bite.",
   "statistical_power": "Underpowered, not equivalent. Simulating a book with margin loaded onto the longshot, power/shin recover the true probabilities better than proportional (L1 error 0.039/0.041 vs 0.050), but the log-loss gap only becomes significant at ~20,000 matches (p=0.0005); at 4,000 the same effect gives p=0.49. This window holds 8,955, so it is short by roughly 2x. Read the null result as 'cannot distinguish at this sample size', never as 'the methods are identical'.",
@@ -138,6 +144,72 @@
       "p_value": 0.85968,
       "n_matches": 1900,
       "significant": false
+    },
+    {
+      "competition_id": "NED.EREDIVISIE",
+      "challenger": "proportional",
+      "baseline": "shin",
+      "mean_difference": 0.00096988,
+      "ci_low": -0.00033749,
+      "ci_high": 0.00227724,
+      "p_value": 0.14615,
+      "n_matches": 1456,
+      "significant": false
+    },
+    {
+      "competition_id": "NED.EREDIVISIE",
+      "challenger": "power",
+      "baseline": "shin",
+      "mean_difference": 4.262e-05,
+      "ci_low": -0.00080917,
+      "ci_high": 0.00089442,
+      "p_value": 0.92188,
+      "n_matches": 1456,
+      "significant": false
+    },
+    {
+      "competition_id": "POR.PRIMEIRA",
+      "challenger": "proportional",
+      "baseline": "shin",
+      "mean_difference": 0.00190289,
+      "ci_low": 0.00069022,
+      "ci_high": 0.00311556,
+      "p_value": 0.00214,
+      "n_matches": 1530,
+      "significant": true
+    },
+    {
+      "competition_id": "POR.PRIMEIRA",
+      "challenger": "power",
+      "baseline": "shin",
+      "mean_difference": -0.0008898,
+      "ci_low": -0.00149025,
+      "ci_high": -0.00028935,
+      "p_value": 0.00373,
+      "n_matches": 1530,
+      "significant": true
+    },
+    {
+      "competition_id": "TUR.SUPERLIG",
+      "challenger": "proportional",
+      "baseline": "shin",
+      "mean_difference": 0.00136228,
+      "ci_low": 0.00050927,
+      "ci_high": 0.00221529,
+      "p_value": 0.00178,
+      "n_matches": 1799,
+      "significant": true
+    },
+    {
+      "competition_id": "TUR.SUPERLIG",
+      "challenger": "power",
+      "baseline": "shin",
+      "mean_difference": -0.00055639,
+      "ci_low": -0.00097142,
+      "ci_high": -0.00014137,
+      "p_value": 0.00867,
+      "n_matches": 1799,
+      "significant": true
     }
   ],
   "table": [
@@ -275,6 +347,87 @@
       "brier": 0.570343,
       "n_matches": 1900,
       "mean_margin": 0.04624
+    },
+    {
+      "competition_id": "NED.EREDIVISIE",
+      "method": "proportional",
+      "log_loss": 0.917421,
+      "ece": 0.013011,
+      "brier": 0.541587,
+      "n_matches": 1456,
+      "mean_margin": 0.05554
+    },
+    {
+      "competition_id": "NED.EREDIVISIE",
+      "method": "power",
+      "log_loss": 0.916494,
+      "ece": 0.009731,
+      "brier": 0.541484,
+      "n_matches": 1456,
+      "mean_margin": 0.05554
+    },
+    {
+      "competition_id": "NED.EREDIVISIE",
+      "method": "shin",
+      "log_loss": 0.916451,
+      "ece": 0.012195,
+      "brier": 0.541405,
+      "n_matches": 1456,
+      "mean_margin": 0.05554
+    },
+    {
+      "competition_id": "POR.PRIMEIRA",
+      "method": "proportional",
+      "log_loss": 0.925205,
+      "ece": 0.020992,
+      "brier": 0.54557,
+      "n_matches": 1530,
+      "mean_margin": 0.059
+    },
+    {
+      "competition_id": "POR.PRIMEIRA",
+      "method": "power",
+      "log_loss": 0.922412,
+      "ece": 0.012038,
+      "brier": 0.544142,
+      "n_matches": 1530,
+      "mean_margin": 0.059
+    },
+    {
+      "competition_id": "POR.PRIMEIRA",
+      "method": "shin",
+      "log_loss": 0.923302,
+      "ece": 0.014182,
+      "brier": 0.544567,
+      "n_matches": 1530,
+      "mean_margin": 0.059
+    },
+    {
+      "competition_id": "TUR.SUPERLIG",
+      "method": "proportional",
+      "log_loss": 0.989415,
+      "ece": 0.016419,
+      "brier": 0.589236,
+      "n_matches": 1799,
+      "mean_margin": 0.06316
+    },
+    {
+      "competition_id": "TUR.SUPERLIG",
+      "method": "power",
+      "log_loss": 0.987496,
+      "ece": 0.011903,
+      "brier": 0.58804,
+      "n_matches": 1799,
+      "mean_margin": 0.06316
+    },
+    {
+      "competition_id": "TUR.SUPERLIG",
+      "method": "shin",
+      "log_loss": 0.988053,
+      "ece": 0.013132,
+      "brier": 0.588386,
+      "n_matches": 1799,
+      "mean_margin": 0.06316
     }
   ]
 }

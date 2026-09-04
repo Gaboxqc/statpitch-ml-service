@@ -360,6 +360,7 @@ def build_card(
                 and edge is not None
                 and edge > rule.threshold
                 and rule.covers(str(selection.family))
+                and rule.covers_competition(competition_id)
             )
             records.append(
                 {

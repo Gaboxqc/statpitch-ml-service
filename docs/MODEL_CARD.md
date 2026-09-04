@@ -4,9 +4,11 @@
 **Version:** `dec-2026.08.1-experimental` (see §7 and §11 for exactly what
 "experimental" is claiming and what it is not).
 **Scope:** 15 European club competitions — 8 leagues, 5 domestic cups, 2 continental.
-The Primeira Liga, Eredivisie and Süper Lig were added to the taxonomy on
-2026-09-04 and are **declared but not yet trained or measured**: every figure in
-this card comes from the original five leagues. See §6.
+The Primeira Liga, Eredivisie and Süper Lig were added on 2026-09-04. Their
+market side is measured (§5, §6); the **model** has not been retrained, so every
+model figure in this card comes from the original five leagues. Of the three,
+only the Süper Lig may be staked — the selection rule does not clear in the other
+two, and §5 gives the numbers.
 
 > **Advisory only (NFR-11).** This system does not integrate with any bookmaker,
 > place wagers, or hold funds. Every output is a simulation or an analysis. It is
@@ -393,6 +395,39 @@ priced bets resolved it clearly (t=3.47). Stripping the outcome out and asking
 only whether the price moved the right way converges on roughly an eighth of the
 sample. Requirements §8.3 makes CLV the headline metric for this reason.
 
+### It does not hold everywhere, and pooling was hiding that
+
+Re-measured 2026-09-04 on the eight-league archive, the pooled figure got
+*better*: Pinnacle-referenced CLV at threshold 0 is **+0.43%, t=+7.19 over 10,832
+matches**, up from 7,790. Broken out per competition, on the same window with the
+holdout excluded:
+
+| competition | CLV | clustered t | n | verdict |
+|---|---|---|---|---|
+| ENG.PL | +0.32% | +2.31 | 2,421 | clears |
+| ESP.LALIGA | +0.49% | +3.61 | 2,207 | clears |
+| FRA.LIGUE1 | +0.66% | +4.03 | 1,946 | clears |
+| GER.BUNDESLIGA | +0.61% | +3.50 | 1,860 | clears |
+| ITA.SERIEA | +0.50% | +3.47 | 2,423 | clears |
+| TUR.SUPERLIG | +0.47% | +2.63 | 1,521 | clears |
+| POR.PRIMEIRA | +0.27% | +1.07 | 974 | **does not clear** |
+| NED.EREDIVISIE | **−0.22%** | **−0.82** | 1,098 | **does not clear** |
+
+The Eredivisie's own estimate is **negative**, and the five Big-5 leagues were
+carrying it to a comfortable pooled result. That is the failure mode an average
+is built to produce, and it was invisible until there were enough competitions
+for one of them to disagree.
+
+`decision_config.selection_rule.competitions` now lists the six that clear, and
+`SelectionRule.covers_competition` gates staking on it exactly as
+`market_families` gates it by market. The two exclusions are not the same kind:
+the Eredivisie is **disproven** at this sample size, while the Primeira Liga at
+t=1.07 is **unproven** — a positive point estimate that ~974 selections cannot
+resolve. Both stay out; only one of them is expected to stay out forever.
+
+Note this cuts against the project's own convenience. The pooled number is the
+better headline and it is the one that would have shipped.
+
 **What this result is not.** It is not a demonstration that the *model* has edge —
 the model is not what selects these bets; a sharper book's price is. It is
 evidence that a stale price at a soft book, identified by reference to a sharp
@@ -428,11 +463,19 @@ nothing could validate a price. Club Elo does not rate non-UEFA clubs either,
 which would null the strongest single feature on every fixture. See the notes in
 `data/competitions.json`.
 
-**The three new leagues are declared, not yet trained or measured.** This
-section describes the taxonomy gate, which is what the API reads. The shipped
-model has not seen a Portuguese, Dutch or Turkish match, the selection rule's
-+0.51% CLV (§5) is measured on Big-5 fixtures only, and their de-vig methods are
-seeded `null` in `decision_config.json` pending the rerun. Until the archive
+**The three new leagues are declared and market-measured, but not yet trained.**
+This section describes the taxonomy gate, which is what the API reads. The
+shipped model has not seen a Portuguese, Dutch or Turkish match.
+
+Their *market* side has now been measured, and it did not come out uniformly.
+De-vig methods were re-fitted across all eight leagues, and the Primeira Liga and
+Süper Lig are the only two competitions in the project where the choice of method
+is statistically significant — `power` over `shin` at p=0.004 and p=0.009. Both
+carry a fatter book margin than the Big 5 (5.9% and 6.3% against England's 4.5%),
+and the three methods only diverge materially when there is more vig to remove.
+
+The selection rule was measured per competition rather than pooled, and two of
+the eight do not clear the bar — see §5. The Süper Lig does. Until the archive
 ingest, retrain and per-competition study land, treat a card entry in these three
 as an unbacked prediction — the same standing the cups have, arrived at from the
 opposite direction.

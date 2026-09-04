@@ -915,6 +915,10 @@ def bets_today() -> dict:
             "reference": rule.reference,
             "threshold": rule.threshold,
             "market_families": list(rule.market_families),
+            # The competitions the rule was measured to earn in. Published
+            # rather than left implicit: a consumer seeing no bets from the
+            # Eredivisie deserves to know that is a measurement, not an outage.
+            "competitions": list(rule.competitions),
             "max_per_day": rule.max_per_day,
             "evidence": rule.evidence,
             "fallback_enabled": rule.fallback_enabled,

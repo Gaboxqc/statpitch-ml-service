@@ -532,3 +532,41 @@ def test_model_priced_rows_are_never_rule_qualified(fixtures, predictions, confi
         fixtures, predictions, pd.DataFrame(columns=["fixture_id"]), config, now=NOW
     )
     assert not card["rule_qualified"].any()
+
+
+def test_a_competition_outside_the_rules_scope_is_never_staked(
+    fixtures, predictions, odds, fitted
+):
+    """The guard that stops a pooled average authorising a bet.
+
+    The card fixtures are ENG.PL. Scoped to a rule measured only in Serie A,
+    nothing here may be staked — even though the edge, the market family and the
+    grade are all exactly what they were when it did qualify.
+    """
+    from dataclasses import replace
+
+    from statpitch.decision_config import SelectionRule
+
+    # A threshold nothing can fail, so the ONLY thing separating the two runs
+    # below is the competition scope.
+    base = dict(
+        status="experimental", reference="odds_pinnacle",
+        threshold=-1.0, market_families=("1x2",), max_per_day=3,
+    )
+    priced = _with_sharp(odds)
+
+    in_scope = replace(fitted, selection_rule=SelectionRule(
+        **base, competitions=("ENG.PL",)))
+    card_in, _ = cb.build_card(fixtures, predictions, priced, in_scope, now=NOW)
+
+    out_of_scope = replace(fitted, selection_rule=SelectionRule(
+        **base, competitions=("ITA.SERIEA",)))
+    card_out, _ = cb.build_card(fixtures, predictions, priced, out_of_scope, now=NOW)
+
+    assert not card_out["rule_qualified"].any()
+    assert (card_out["stake_fraction"].fillna(0.0) == 0.0).all()
+    # ...and the exclusion is the scope, not something else about the fixtures.
+    assert card_in["rule_qualified"].any(), (
+        "the in-scope control did not qualify either, so this test would pass "
+        "for the wrong reason"
+    )

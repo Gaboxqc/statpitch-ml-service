@@ -106,8 +106,46 @@
       "Udinese": "Udinese Calcio",
       "Venezia": "Venezia FC"
     },
-    "NED.EREDIVISIE": {},
-    "POR.PRIMEIRA": {},
+    "NED.EREDIVISIE": {
+      "AZ Alkmaar": "AZ",
+      "Ajax": "AFC Ajax",
+      "Cambuur": "SC Cambuur-Leeuwarden",
+      "Den Haag": "ADO Den Haag",
+      "Excelsior": "SBV Excelsior",
+      "Feyenoord": "Feyenoord Rotterdam",
+      "For Sittard": "Fortuna Sittard",
+      "Go Ahead Eagles": "Go Ahead Eagles",
+      "Groningen": "FC Groningen",
+      "Heerenveen": "SC Heerenveen",
+      "Nijmegen": "NEC",
+      "PSV Eindhoven": "PSV",
+      "Sparta Rotterdam": "Sparta Rotterdam",
+      "Telstar": "Telstar 1963",
+      "Twente": "FC Twente '65",
+      "Utrecht": "FC Utrecht",
+      "Willem II": "Willem II Tilburg",
+      "Zwolle": "PEC Zwolle"
+    },
+    "POR.PRIMEIRA": {
+      "Academico Viseu": "Académico de Viseu FC",
+      "Alverca": "FC Alverca",
+      "Arouca": "FC Arouca",
+      "Benfica": "Sport Lisboa e Benfica",
+      "Casa Pia": "Casa Pia AC",
+      "Estoril": "GD Estoril Praia",
+      "Estrela": "CF Estrela da Amadora",
+      "Famalicao": "FC Famalicão",
+      "Gil Vicente": "Gil Vicente FC",
+      "Guimaraes": "Vitória Guimarães",
+      "Maritimo": "CS Marítimo",
+      "Moreirense": "Moreirense FC",
+      "Nacional": "CD Nacional",
+      "Porto": "FC Porto",
+      "Rio Ave": "Rio Ave FC",
+      "Santa Clara": "CD Santa Clara",
+      "Sp Braga": "Sporting Clube de Braga",
+      "Sp Lisbon": "Sporting Clube de Portugal"
+    },
     "TUR.SUPERLIG": {}
   },
   "curated": {
@@ -136,49 +174,15 @@
     },
     "ITA.SERIEA": {
       "Inter": "FC Internazionale Milano"
+    },
+    "NED.EREDIVISIE": {
+      "Nijmegen": "NEC"
+    },
+    "POR.PRIMEIRA": {
+      "Sp Lisbon": "Sporting Clube de Portugal"
     }
   },
   "unmatched": {
-    "NED.EREDIVISIE": [
-      "AZ Alkmaar",
-      "Ajax",
-      "Cambuur",
-      "Den Haag",
-      "Excelsior",
-      "Feyenoord",
-      "For Sittard",
-      "Go Ahead Eagles",
-      "Groningen",
-      "Heerenveen",
-      "Nijmegen",
-      "PSV Eindhoven",
-      "Sparta Rotterdam",
-      "Telstar",
-      "Twente",
-      "Utrecht",
-      "Willem II",
-      "Zwolle"
-    ],
-    "POR.PRIMEIRA": [
-      "Academico Viseu",
-      "Alverca",
-      "Arouca",
-      "Benfica",
-      "Casa Pia",
-      "Estoril",
-      "Estrela",
-      "Famalicao",
-      "Gil Vicente",
-      "Guimaraes",
-      "Maritimo",
-      "Moreirense",
-      "Nacional",
-      "Porto",
-      "Rio Ave",
-      "Santa Clara",
-      "Sp Braga",
-      "Sp Lisbon"
-    ],
     "TUR.SUPERLIG": [
       "Alanyaspor",
       "Amedspor",
@@ -200,5 +204,5 @@
       "Trabzonspor"
     ]
   },
-  "generated_at": "2026-09-13T09:59:22+00:00"
+  "generated_at": "2026-09-14T09:42:28+00:00"
 }

@@ -146,7 +146,26 @@
       "Sp Braga": "Sporting Clube de Braga",
       "Sp Lisbon": "Sporting Clube de Portugal"
     },
-    "TUR.SUPERLIG": {}
+    "TUR.SUPERLIG": {
+      "Alanyaspor": "Aytemiz Alanyaspor",
+      "Amedspor": "Amed SK",
+      "Besiktas": "Beşiktaş",
+      "Buyuksehyr": "Basaksehir",
+      "Corum": "Çorum",
+      "Erzurumspor": "Erzurum BB",
+      "Eyupspor": "Eyüpspor",
+      "Fenerbahce": "Fenerbahçe",
+      "Galatasaray": "Galatasaray",
+      "Gaziantep": "Gaziantep FK",
+      "Genclerbirligi": "Gençlerbirligi",
+      "Goztep": "Goztepe",
+      "Kasimpasa": "Kasimpasa",
+      "Kocaelispor": "Kocaelispor",
+      "Konyaspor": "Atiker Konyaspor",
+      "Rizespor": "Çaykur Rizespor",
+      "Samsunspor": "Samsunspor",
+      "Trabzonspor": "Trabzonspor"
+    }
   },
   "curated": {
     "ENG.PL": {
@@ -180,29 +199,14 @@
     },
     "POR.PRIMEIRA": {
       "Sp Lisbon": "Sporting Clube de Portugal"
+    },
+    "TUR.SUPERLIG": {
+      "Amedspor": "Amed SK",
+      "Buyuksehyr": "Basaksehir",
+      "Erzurumspor": "Erzurum BB",
+      "Goztep": "Goztepe"
     }
   },
-  "unmatched": {
-    "TUR.SUPERLIG": [
-      "Alanyaspor",
-      "Amedspor",
-      "Besiktas",
-      "Buyuksehyr",
-      "Corum",
-      "Erzurumspor",
-      "Eyupspor",
-      "Fenerbahce",
-      "Galatasaray",
-      "Gaziantep",
-      "Genclerbirligi",
-      "Goztep",
-      "Kasimpasa",
-      "Kocaelispor",
-      "Konyaspor",
-      "Rizespor",
-      "Samsunspor",
-      "Trabzonspor"
-    ]
-  },
-  "generated_at": "2026-10-11T11:11:41+00:00"
+  "unmatched": {},
+  "generated_at": "2026-10-12T11:46:02+00:00"
 }

@@ -127,24 +127,8 @@
       "Zwolle": "PEC Zwolle"
     },
     "POR.PRIMEIRA": {
-      "Academico Viseu": "Académico de Viseu FC",
-      "Alverca": "FC Alverca",
-      "Arouca": "FC Arouca",
-      "Benfica": "Sport Lisboa e Benfica",
-      "Casa Pia": "Casa Pia AC",
-      "Estoril": "GD Estoril Praia",
-      "Estrela": "CF Estrela da Amadora",
-      "Famalicao": "FC Famalicão",
       "Gil Vicente": "Gil Vicente FC",
-      "Guimaraes": "Vitória Guimarães",
-      "Maritimo": "CS Marítimo",
-      "Moreirense": "Moreirense FC",
-      "Nacional": "CD Nacional",
-      "Porto": "FC Porto",
-      "Rio Ave": "Rio Ave FC",
-      "Santa Clara": "CD Santa Clara",
-      "Sp Braga": "Sporting Clube de Braga",
-      "Sp Lisbon": "Sporting Clube de Portugal"
+      "Sp Braga": "Sporting Clube de Braga"
     },
     "TUR.SUPERLIG": {
       "Alanyaspor": "Aytemiz Alanyaspor",
@@ -197,9 +181,6 @@
     "NED.EREDIVISIE": {
       "Nijmegen": "NEC"
     },
-    "POR.PRIMEIRA": {
-      "Sp Lisbon": "Sporting Clube de Portugal"
-    },
     "TUR.SUPERLIG": {
       "Amedspor": "Amed SK",
       "Buyuksehyr": "Basaksehir",
@@ -208,5 +189,5 @@
     }
   },
   "unmatched": {},
-  "generated_at": "2026-10-12T12:43:46+00:00"
+  "generated_at": "2026-10-16T09:29:10+00:00"
 }
